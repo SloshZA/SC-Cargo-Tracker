@@ -1,0 +1,799 @@
+:root {
+    --dropdown-label-color: #00ffcc;
+    --dropdown-text-color: #00ffcc;
+    --button-color: #00ffcc;
+    --title-color: #00ffcc;
+    --drop-off-header-text-color: #00ffcc;
+    --table-header-text-color: #00ffcc;
+    --pickup-text-color: #00ffcc;
+    --commodity-text-color: #00ffcc;
+    --amount-text-color: #00ffcc;
+    --row-text-color: #00ffcc;
+    --mission-text-color: #00ffcc; /* Add this line */
+    --table-outline-color: #00ffcc; /* Add this line */
+}
+
+
+body {
+    font-family: 'Orbitron', sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #0d0d0d;
+    color: #00ffcc;
+    transition: background-color 0.3s, color 0.3s;
+}
+
+header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px;
+    background-color: #1a1a1a;
+    border-bottom: 1px solid #333;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+header h1 {
+    margin: 0;
+    font-size: 24px;
+    color: var(--title-color);
+    text-shadow: 0 0 8px var(--title-color);
+}
+
+button {
+    background-color: var(--button-color);
+    color: #0d0d0d;
+    border: none;
+    padding: 7px 20px; /* Reduce height by 70% */
+    cursor: pointer;
+    font-size: 16px;
+    border-radius: 5px;
+    transition: background-color 0.3s, color 0.3s;
+}
+
+button:hover {
+    background-color: #00cc99;
+}
+
+.add-entry-button {
+    background-color: var(--button-color);
+    width: 180px; /* Add width */
+    height: 35px; /* Add height */
+}
+
+.add-entry-button:hover {
+    background-color: #00cc99;
+}
+
+.clear-log-button {
+    background-color: #ff6666;
+    width: 180px; /* Add width */
+    height: 35px; /* Add height */
+}
+
+.clear-log-button:hover {
+    background-color: #ff3333;
+}
+
+.scu-group {
+    display: flex;
+    flex-direction: row; /* Ensure input is in a row */
+    align-items: center; /* Align items horizontally */
+    gap: 5px;
+}
+
+.scu-label {
+    color: #00ffcc;
+    font-size: 16px;
+    text-wrap: wrap;
+    margin-left: 10px; /* Add some space between the button and the label */
+    align-items: center;
+    white-space: pre-wrap; /* Ensure text wraps */
+}
+
+.scu-total {
+    color: #00ffcc;
+    font-size: 14px;
+    align-items: center;
+}
+
+.scu-input {
+    width: 30px;
+    background-color: #333; /* Make the input box non-interactable */
+    color: #00ffcc;
+    border: 1px solid #333;
+    border-radius: 5px;
+    padding: 10px;
+}
+
+.amount-input {
+    width: 30px; /* Add width */
+    height: 20px;
+    background-color: #333; /* Background color */
+    color: #00ffcc; /* Text color */
+    border: 1px solid #333; /* Border color */
+    border-radius: 5px; /* Border radius */
+    padding: 10px; /* Padding */
+}
+
+.dark-mode {
+    background-color: #0d0d0d;
+    color: #00ffcc;
+}
+
+.tabs {
+    display: flex;
+    justify-content: space-around;
+    padding: 10px;
+    background-color: #1a1a1a;
+    border-bottom: 1px solid #333;
+}
+
+.tab {
+    padding: 10px 20px;
+    cursor: pointer;
+    color: #00ffcc;
+    transition: color 0.3s, border-bottom 0.3s;
+}
+
+.tab:hover {
+    color: #00cc99;
+}
+
+.active-tab {
+    font-weight: bold;
+    border-bottom: 2px solid #00ffcc;
+}
+
+.content {
+    padding: 20px;
+    background-color: #1a1a1a;
+    border-top: 1px solid #333;
+    box-shadow: 0 -4px 8px rgba(0, 0, 0, 0.2);
+}
+
+h2 {
+    color: #00ffcc;
+    text-shadow: 0 0 8px #00ffcc;
+}
+
+p {
+    color: #cccccc;
+}
+
+.hauling-missions {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 20px;
+    background-color: #1a1a1a;
+    border: 1px solid #333;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    align-items: center; /* Center align items */
+}
+
+.form-group label:not(.preferences label) {
+    color: var(--dropdown-label-color);
+    text-shadow: 0 0 8px var(--dropdown-label-color);
+    text-align: center; /* Center text */
+}
+
+/* Styles for Location Type dropdown */
+select.location-type {
+    width: 85px;
+    background-color: #333;
+    color: var(--dropdown-text-color);
+    border: 1px solid #333;
+    border-radius: 5px;
+    padding: 10px;
+    font-family: 'Orbitron', sans-serif;
+    align-self: center;
+}
+
+/* Styles for Location dropdown */
+select.location {
+    width: 110px;
+    background-color: #333;
+    color: var(--dropdown-text-color);
+    border: 1px solid #333;
+    border-radius: 5px;
+    padding: 10px;
+    font-family: 'Orbitron', sans-serif;
+}
+
+/* Styles for Moon dropdown */
+select.moon {
+    width: 110px;
+    background-color: #333;
+    color: var(--dropdown-text-color);
+    border: 1px solid #333;
+    border-radius: 5px;
+    padding: 10px;
+    font-family: 'Orbitron', sans-serif;
+}
+
+/* Styles for Drop off points dropdown */
+select.drop-off {
+    width: 300px;
+    background-color: #333;
+    color: var(--dropdown-text-color);
+    border: 1px solid #333;
+    border-radius: 5px;
+    padding: 10px;
+    font-family: 'Orbitron', sans-serif;
+}
+
+/* Styles for Commodity dropdown */
+select.commodity {
+    width: 120px;
+    background-color: #333;
+    color: var(--dropdown-text-color);
+    border: 1px solid #333;
+    border-radius: 5px;
+    padding: 10px;
+    font-family: 'Orbitron', sans-serif;
+}
+
+/* Styles for First Dropdown */
+select.first-dropdown {
+    width: 110px;
+    background-color: #333;
+    color: var(--dropdown-text-color);
+    border: 1px solid #333;
+    border-radius: 5px;
+    padding: 10px;
+    font-family: 'Orbitron', sans-serif;
+}
+
+/* Styles for Second Dropdown */
+select.second-dropdown {
+    width: 110px;
+    background-color: #333;
+    color: var(--dropdown-text-color);
+    border: 1px solid #333;
+    border-radius: 5px;
+    padding: 10px;
+    font-family: 'Orbitron', sans-serif;
+}
+
+/* Styles for Planet dropdown */
+select.planet {
+    width: 110px;
+    background-color: #333;
+    color: var(--dropdown-text-color);
+    border: 1px solid #333;
+    border-radius: 5px;
+    padding: 10px;
+    font-family: 'Orbitron', sans-serif;
+}
+
+/* Styles for selectable options */
+.selectable-option {
+    padding-right: 10px; /* Add padding to the right */
+}
+
+/* Styles for First Dropdown Search Bar */
+input.first-dropdown {
+    width: 110px;
+    background-color: #333;
+    color: var(--dropdown-text-color);
+    border: 1px solid #333;
+    border-radius: 5px;
+    padding: 10px;
+    font-family: 'Orbitron', sans-serif;
+    margin-bottom: 5px; /* Add margin to separate from dropdown */
+}
+
+/* Styles for Second Dropdown Search Bar */
+input.second-dropdown {
+    width: 110px;
+    background-color: #333;
+    color: var(--dropdown-text-color);
+    border: 1px solid #333;
+    border-radius: 5px;
+    padding: 10px;
+    font-family: 'Orbitron', sans-serif;
+    margin-bottom: 5px; /* Add margin to separate from dropdown */
+}
+
+.form-row {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.button-group {
+    display: flex;
+    width: 700px;
+    gap: 10px;
+    padding: 10px; /* Adjust padding */
+    margin-left: 10px;
+    margin-top: 20px;
+    background-color: #1a1a1a;
+    border: 1px solid #333;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    flex-direction: row; /* Ensure buttons are in a row */
+    flex-wrap: wrap; /* Allow wrapping */
+    align-items: center; /* Center align items */
+    
+}
+
+.actions {
+    display: flex;
+    gap: 10px;
+}
+
+.actions button {
+    background-color: var(--button-color);
+    color: #0d0d0d;
+    border: none;
+    padding: 7px 20px; /* Reduce height by 70% */
+    cursor: pointer;
+    font-size: 16px;
+    border-radius: 5px;
+    transition: background-color 0.3s, color 0.3s;
+}
+
+.actions button:hover {
+    background-color: #00cc99;
+}
+
+.actions .form-group {
+    flex-direction: row;
+    align-items: center;
+    gap: 5px;
+}
+
+.actions .form-group label {
+    margin: 0;
+}
+
+.actions .form-group input {
+    width: 100px;
+    background-color: #333; /* Make the input box non-interactable */
+    color: #00ffcc;
+}
+
+.scu-container {
+    display: flex;
+    flex-direction: column; /* Stack items vertically */
+    align-items: center; /* Center align items */
+    text-align: center; /* Center text */
+    gap: 5px;
+}
+
+.scu-label {
+    color: #00ffcc;
+    font-size: 15px;
+    margin-left: 10px; /* Add some space between the button and the label */
+    white-space: pre-wrap; /* Ensure text wraps */
+
+}
+
+.scu-total {
+    color: #00ffcc;
+    font-size: 14px;
+}
+
+/* ...existing code... */
+
+.table-container {
+    margin-top: 20px;
+    overflow-x: auto;
+    border-radius: 10px; /* Add rounded edges to the container */
+}
+
+.table {
+    width: 100%;
+    border-collapse: separate; /* Change to separate to allow border-radius */
+    background-color: #1a1a1a;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    border: 1px solid var(--table-outline-color); /* Update this line */
+    border-radius: 10px; /* Add rounded edges */
+    overflow: hidden; /* Ensure rounded corners are visible */
+}
+
+.table th, .table td {
+    padding: 10px;
+    text-align: left;
+    border: 1px solid var(--table-outline-color); /* Update this line */
+}
+
+.table th.pickup, .table td.pickup {
+    width: 235px;
+    font-size: 14px; /* Set text size */
+    text-align: center;
+    color: var(--pickup-text-color);
+    padding: 5px; /* Reduce padding */
+}
+
+.table th.commodity, .table td.commodity {
+    width: 150px;
+    text-align: center;
+    color: var(--commodity-text-color);
+}
+
+.table th.amount, .table td.amount {
+    width: 100px;
+    font-size: 14px; /* Set text size */
+    text-align: center;
+    color: var(--amount-text-color);
+}
+
+.table th.actions, .table td.actions {
+    text-align: center;
+}
+
+.table th.status, .table td.status {
+    width: 90px;
+    text-align: center;
+    
+}
+
+.table td:not(.status):not(.actions) {
+    color: var(--row-text-color);
+}
+
+.table th {
+    color: var(--table-header-text-color);
+}
+
+.table th.pickup, .table th.commodity, .table th.amount {
+    color: var(--table-header-text-color);
+}
+
+.table td.pickup, .table td.commodity, .table td.amount {
+    color: var(--row-text-color);
+}
+
+.table .actions button {
+    background-color: var(--button-color);
+    color: #0d0d0d;
+    border: none;
+    padding: 5px 10px;
+    cursor: pointer;
+    font-size: 13px; /* Reduce text size */
+    border-radius: 5px;
+    transition: background-color 0.3s, color 0.3s;
+}
+
+.table .actions button:hover {
+    background-color: #00cc99;
+}
+
+.table .actions .remove-cargo-button {
+    background-color: #ff6666; /* Change to red */
+    color: #0d0d0d; /* Change text color to black */
+    font-size: 12px; /* Reduce text size */
+}
+
+.table .actions .remove-cargo-button:hover {
+    background-color: #ff3333; /* Change to darker red */
+}
+
+/* ...existing code... */
+
+.table .actions input[type="text"] {
+    width: 40px; /* Set width */
+    background-color: #333; /* Background color */
+    color: #00ffcc; /* Text color */
+    border: 1px solid #333; /* Border color */
+    border-radius: 5px; /* Border radius */
+    padding: 5px; /* Padding */
+    font-family: 'Orbitron', sans-serif; /* Font family */
+}
+
+.drop-off-header {
+    padding: 10px;
+    background-color: #1a1a1a;
+    border: 1px solid #333;
+    border-radius: 5px;
+    margin-bottom: 10px;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    color: var(--drop-off-header-text-color);
+    transition: background-color 0.3s, color 0.3s; /* Add transition for smooth color change */
+    font-size: 20px; /* Increase text size */
+}
+
+.drop-off-header:hover {
+    background-color: #333;
+    color: #00cc99; /* Change text color on hover */
+}
+
+.drop-off-header .left-box {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.drop-off-header .left-box button {
+    background-color: #00ffcc;
+    color: #0d0d0d;
+    border: none;
+    padding: 5px 10px;
+    cursor: pointer;
+    font-size: 14px;
+    border-radius: 5px;
+    transition: background-color 0.3s, color 0.3s;
+}
+
+.drop-off-header .left-box button:hover {
+    background-color: #00cc99;
+}
+
+.drop-off-header .right-box {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.drop-off-header .right-box span {
+    padding: 5px 10px;
+    background-color: #333;
+    border-radius: 5px;
+    color: #00ffcc;
+    font-size: 14px;
+}
+
+.drop-off-header .right-box button {
+    background-color: #00ffcc;
+    color: #0d0d0d;
+    border: none;
+    padding: 5px 10px;
+    cursor: pointer;
+    font-size: 14px;
+    border-radius: 5px;
+    transition: background-color 0.3s, color 0.3s;
+}
+
+.drop-off-header .right-box button:hover {
+    background-color: #00cc99;
+}
+
+/* ...existing code... */
+
+.checkbox-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-left: 30px; /* Add extra 20px space on the left */
+    margin-top: -50px;
+    margin-bottom: -20px;
+    border: 1px solid #00ffcc; /* Add border */
+    padding: 10px; /* Add padding */
+    border-radius: 5px; /* Add border radius */
+    width: 200px;
+
+}
+
+.checkbox-group .column {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.checkbox-group label {
+    color: var(--mission-text-color); /* Update this line */
+    font-size: 14px;
+    position: relative; /* Add position relative for tooltip */
+}
+
+.checkbox-group label:hover .tooltip {
+    display: block; /* Show tooltip on hover */
+}
+
+.tooltip {
+    display: none; /* Hide tooltip by default */
+    position: absolute;
+    right: 100%; /* Display to the left */
+    top: 0;
+    background-color: #1a1a1a;
+    color: #00ffcc;
+    border: 1px solid #00ffcc;
+    padding: 10px;
+    border-radius: 5px;
+    z-index: 10;
+    width: 700px; /* Increase width for the tooltip */
+    max-height: 500px; /* Increase maximum height for the tooltip */
+    min-height: 50px; /* Ensure minimum height to show column headers */
+    overflow: auto; /* Add scroll if content overflows */
+    transition: height 0.3s ease; /* Smooth transition for height */
+}
+
+/* ...existing code... */
+
+/* Styles for React Select */
+.react-select__control {
+    background-color: #333;
+    border: 1px solid #333;
+    border-radius: 5px;
+    padding: 5px;
+    font-family: 'Orbitron', sans-serif;
+    color: var(--dropdown-text-color);
+    font-size: 14px; /* Add text size */
+}
+
+.react-select__menu {
+    background-color: #333;
+    color: var(--dropdown-text-color);
+}
+
+.react-select__option {
+    background-color: #333;
+    color: var(--dropdown-text-color);
+}
+
+.react-select__option--is-focused {
+    background-color: #444;
+}
+
+.react-select__option--is-selected {
+    background-color: #555;
+}
+
+.react-select__single-value {
+    color: var(--dropdown-text-color);
+}
+
+/* Specific styles for each dropdown */
+.first-dropdown-select .react-select__control {
+    width: 350px;
+}
+
+.second-dropdown-select .react-select__control {
+    width: 350px;
+}
+
+.location-type-select .react-select__control {
+    width: 100px;
+}
+
+.planet-select .react-select__control {
+    width: 119px;
+}
+
+.moon-select .react-select__control {
+    width: 120px;
+}
+
+.drop-off-select .react-select__control {
+    width: 300px;
+}
+
+.commodity-select .react-select__control {
+    width: 154px;
+}
+
+/* Styles for Station dropdown */
+.station-select .react-select__control {
+    width: 119px;
+}
+
+/* ...existing code... */
+
+.react-select__menu-list {
+    scrollbar-width: none; /* For Firefox */
+    -ms-overflow-style: none; /* For Internet Explorer and Edge */
+}
+
+.react-select__menu-list::-webkit-scrollbar {
+    display: none; /* For Chrome, Safari, and Opera */
+}
+
+/* ...existing code... */
+
+.react-select__input input {
+    color: white; /* Set text color to white */
+}
+
+/* ...existing code... */
+
+.preferences {
+    color: #00ffcc; /* Set a fixed color for text under Preferences tab */
+    text-align: left; /* Align text to the left */
+}
+
+.preferences .form-group {
+    align-items: flex-start; /* Align form groups to the left */
+}
+
+.preferences input[type="color"] {
+    margin-left: 10px;
+}
+
+/* ...existing code... */
+
+.preferences-box {
+    width: 250px;
+    background-color: #1a1a1a;
+    border: 1px solid #333;
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    transition: background-color 0.3s, border-color 0.3s;
+}
+
+.preferences-box:hover {
+    background-color: #333;
+    border-color: #00ffcc;
+}
+
+.preferences-box h3 {
+    border-bottom: 2px solid #00ffcc; /* Add underline */
+    padding-bottom: 5px; /* Add some space between the text and the underline */
+}
+
+/* ...existing code... */
+
+.preferences-container {
+    background-color: #1a1a1a;
+    border: 1px solid #333;
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    display: flex;
+    flex-direction: row; /* Change to row to position boxes side by side */
+    gap: 20px;
+}
+
+.banner {
+    background-color: #ff6666;
+    color: #0d0d0d;
+    padding: 10px;
+    text-align: center;
+    font-size: 16px;
+    position: fixed;
+    top: 0;
+    width: 100%;
+    z-index: 1000;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* ...existing code... */
+
+.location-box {
+    background-color: #2a2a2a;
+    border: 1px solid #444;
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    transition: background-color 0.3s, border-color 0.3s;
+}
+
+.location-box:hover {
+    background-color: #444;
+    border-color: #00cc99;
+}
+
+.cargo-manifest-box {
+    width: 280px;
+    background-color: #2a2a2a;
+    border: 1px solid #444;
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    transition: background-color 0.3s, border-color 0.3s;
+}
+
+.cargo-manifest-box:hover {
+    background-color: #444;
+    border-color: #00cc99;
+}
+
+/* ...existing code... */
+

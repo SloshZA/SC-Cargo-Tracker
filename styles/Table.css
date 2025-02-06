@@ -1,0 +1,102 @@
+.table-container {
+    margin-top: 20px;
+    overflow-x: auto;
+    border-radius: 10px;
+}
+
+.table {
+    width: 100%;
+    border-collapse: separate;
+    background-color: #1a1a1a;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    border: 1px solid var(--table-outline-color);
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.table th, .table td {
+    padding: 10px;
+    text-align: left;
+    border: 1px solid var(--table-outline-color);
+}
+
+.table th.pickup, .table td.pickup {
+    width: 370px;
+    font-size: 14px;
+    text-align: center;
+    color: var(--pickup-text-color);
+    padding: 5px;
+}
+
+.table th.commodity, .table td.commodity {
+    width: 160px;
+    text-align: center;
+    color: var(--commodity-text-color);
+}
+
+.table th.amount, .table td.amount {
+    width: 100px;
+    font-size: 14px;
+    text-align: center;
+    color: var(--amount-text-color);
+}
+
+.table th.actions, .table td.actions {
+    text-align: center;
+}
+
+.table th.status, .table td.status {
+    width: 90px;
+    text-align: center;
+}
+
+.table td:not(.status):not(.actions) {
+    color: var(--row-text-color);
+}
+
+.table th {
+    color: var(--table-header-text-color);
+}
+
+.table th.pickup, .table th.commodity, .table th.amount {
+    color: var(--table-header-text-color);
+}
+
+.table td.pickup, .table td.commodity, .table td.amount {
+    color: var(--row-text-color);
+}
+
+.table .actions button {
+    background-color: var(--button-color);
+    color: #0d0d0d;
+    border: none;
+    padding: 5px 10px;
+    cursor: pointer;
+    font-size: 13px;
+    border-radius: 5px;
+    transition: background-color 0.3s, color 0.3s;
+}
+
+.table .actions button:hover {
+    background-color: #00cc99;
+}
+
+.table .actions .remove-cargo-button {
+    background-color: #ff6666;
+    color: #0d0d0d;
+    font-size: 12px;
+}
+
+.table .actions .remove-cargo-button:hover {
+    background-color: #ff3333;
+}
+
+.table .actions input[type="text"] {
+    width: 40px;
+    background-color: #333;
+    color: #00ffcc;
+    border: 1px solid #333;
+    border-radius: 5px;
+    padding: 5px;
+    font-family: 'Orbitron', sans-serif;
+} 

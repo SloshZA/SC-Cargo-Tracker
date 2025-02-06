@@ -1,0 +1,115 @@
+.hauling-missions {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 20px;
+    background-color: #1a1a1a;
+    border: 1px solid #333;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    align-items: center;
+}
+
+.form-group label:not(.preferences label) {
+    color: var(--dropdown-label-color);
+    text-shadow: 0 0 8px var(--dropdown-label-color);
+    text-align: center;
+}
+
+.form-group label[for="location-type"] {
+    white-space: nowrap;
+}
+
+.form-row {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.button-group {
+    display: flex;
+    width: 700px;
+    gap: 10px;
+    padding: 10px;
+    margin-left: 10px;
+    margin-top: 20px;
+    background-color: #1a1a1a;
+    border: 1px solid #333;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.actions {
+    display: flex;
+    gap: 10px;
+}
+
+.actions button {
+    background-color: var(--button-color);
+    color: #0d0d0d;
+    border: none;
+    padding: 7px 20px;
+    cursor: pointer;
+    font-size: 16px;
+    border-radius: 5px;
+    transition: background-color 0.3s, color 0.3s;
+}
+
+.actions button:hover {
+    background-color: #00cc99;
+}
+
+.actions .form-group {
+    flex-direction: row;
+    align-items: center;
+    gap: 5px;
+}
+
+.actions .form-group label {
+    margin: 0;
+}
+
+.actions .form-group input {
+    width: 100px;
+    background-color: #333;
+    color: #00ffcc;
+}
+
+.scu-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 5px;
+}
+
+.scu-label {
+    color: #00ffcc;
+    font-size: 15px;
+    margin-left: 10px;
+    white-space: pre-wrap;
+}
+
+.scu-total {
+    color: #00ffcc;
+    font-size: 14px;
+}
+
+.amount-input {
+    width: 30px;
+    height: 20px;
+    background-color: #333;
+    color: #00ffcc;
+    border: 1px solid #333;
+    border-radius: 5px;
+    padding: 10px;
+} 

@@ -1,0 +1,109 @@
+.history-container {
+    padding: 20px;
+    background-color: #1a1a1a;
+    border: 1px solid #333;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.history-group-box {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.history-date-group {
+    background-color: #1a1a1a;
+    border: 1px solid var(--table-outline-color);
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.history-date-header {
+    padding: 10px;
+    background-color: #333;
+    color: var(--drop-off-header-text-color);
+    font-size: 16px;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: background-color 0.3s;
+}
+
+.history-date-header:hover {
+    background-color: #444;
+}
+
+.commodity-group {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 2px;
+}
+
+.commodity-section {
+    background-color: #1a1a1a;
+    border: 1px solid #333;
+    border-radius: 5px;
+    padding: 10px;
+}
+
+.commodity-header {
+    color: var(--table-header-text-color);
+    font-size: 16px;
+    margin-bottom: 10px;
+    padding-bottom: 5px;
+    border-bottom: 1px solid #333;
+}
+
+.history-table {
+    width: 100%;
+    border-collapse: separate;
+    background-color: #1a1a1a;
+    border: 1px solid var(--table-outline-color);
+    border-radius: 5px;
+    overflow: hidden;
+}
+
+.history-table th,
+.history-table td {
+    padding: 6px;
+    text-align: left;
+    border: 1px solid var(--table-outline-color);
+}
+
+.history-table th {
+    background-color: #333;
+    color: var(--table-header-text-color);
+    font-weight: bold;
+    font-size: 14px;
+    padding: 8px;
+}
+
+.history-table td {
+    color: var(--row-text-color);
+    font-size: 12px;
+    padding: 4px;
+}
+
+.history-table tr:hover {
+    background-color: #333;
+}
+
+@media (max-width: 768px) {
+    .history-date-header {
+        font-size: 16px;
+        padding: 10px;
+    }
+    
+    .commodity-header {
+        font-size: 14px;
+    }
+    
+    .history-table th,
+    .history-table td {
+        padding: 8px;
+        font-size: 14px;
+    }
+} 

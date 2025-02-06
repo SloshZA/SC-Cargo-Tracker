@@ -1,0 +1,23 @@
+.tabs {
+    display: flex;
+    justify-content: space-around;
+    padding: 10px;
+    background-color: #1a1a1a;
+    border-bottom: 1px solid #333;
+}
+
+.tab {
+    padding: 10px 20px;
+    cursor: pointer;
+    color: #00ffcc;
+    transition: color 0.3s, border-bottom 0.3s;
+}
+
+.tab:hover {
+    color: #00cc99;
+}
+
+.active-tab {
+    font-weight: bold;
+    border-bottom: 2px solid #00ffcc;
+} 
