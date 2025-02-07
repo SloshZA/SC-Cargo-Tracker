@@ -1,4 +1,4 @@
-# SC Cargo Tracker
+# Star Citizen Cargo Hauling Tracker
 
 A comprehensive tool for managing and tracking multiple cargo hauling missions in Star Citizen.
 

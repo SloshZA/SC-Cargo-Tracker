@@ -1,3 +1,4 @@
+/* Root Variables */
 :root {
     --dropdown-label-color: #00ffcc;
     --dropdown-text-color: #00ffcc;
@@ -9,11 +10,11 @@
     --commodity-text-color: #00ffcc;
     --amount-text-color: #00ffcc;
     --row-text-color: #00ffcc;
-    --mission-text-color: #00ffcc; /* Add this line */
-    --table-outline-color: #00ffcc; /* Add this line */
+    --mission-text-color: #00ffcc;
+    --table-outline-color: #00ffcc;
 }
 
-
+/* Base Styles */
 body {
     font-family: 'Orbitron', sans-serif;
     margin: 0;
@@ -21,8 +22,12 @@ body {
     background-color: #0d0d0d;
     color: #00ffcc;
     transition: background-color 0.3s, color 0.3s;
+    width: 1200px;
+    height: 800px;
+    margin: 0 auto;
 }
 
+/* Header Styles */
 header {
     display: flex;
     justify-content: space-between;
@@ -37,14 +42,14 @@ header h1 {
     margin: 0;
     font-size: 24px;
     color: var(--title-color);
-    text-shadow: 0 0 8px var(--title-color);
 }
 
+/* Button Styles */
 button {
     background-color: var(--button-color);
     color: #0d0d0d;
     border: none;
-    padding: 7px 20px; /* Reduce height by 70% */
+    padding: 7px 20px;
     cursor: pointer;
     font-size: 16px;
     border-radius: 5px;
@@ -57,28 +62,61 @@ button:hover {
 
 .add-entry-button {
     background-color: var(--button-color);
-    width: 180px; /* Add width */
-    height: 35px; /* Add height */
+    color: #0d0d0d;
+    border: none;
+    padding: 7px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 16px;
+    transition: background-color 0.3s, color 0.3s;
+    margin: 10px 0;
+    display: inline-block;
+    text-align: center;
+    text-decoration: none;
+    white-space: nowrap;
 }
 
 .add-entry-button:hover {
     background-color: #00cc99;
+    color: #0d0d0d;
+}
+
+.add-entry-button:disabled {
+    background-color: #666;
+    color: #999;
+    cursor: not-allowed;
+}
+
+.add-entry-button:active {
+    transform: scale(0.98);
 }
 
 .clear-log-button {
     background-color: #ff6666;
-    width: 180px; /* Add width */
-    height: 35px; /* Add height */
+    width: 150px;
+    height: 35px;
 }
 
 .clear-log-button:hover {
     background-color: #ff3333;
 }
 
+.process-orders-button {
+    background-color: var(--button-color);
+    width: 180px;
+    height: 35px;
+    flex-wrap: nowrap;
+}
+
+.process-orders-button:hover {
+    background-color: #0099cc;
+}
+
 .scu-group {
     display: flex;
-    flex-direction: row; /* Ensure input is in a row */
-    align-items: center; /* Align items horizontally */
+    flex-direction: row;
+    align-items: center;
     gap: 5px;
 }
 
@@ -86,9 +124,9 @@ button:hover {
     color: #00ffcc;
     font-size: 16px;
     text-wrap: wrap;
-    margin-left: 10px; /* Add some space between the button and the label */
+    margin-left: 10px;
     align-items: center;
-    white-space: pre-wrap; /* Ensure text wraps */
+    white-space: pre-wrap;
 }
 
 .scu-total {
@@ -99,7 +137,7 @@ button:hover {
 
 .scu-input {
     width: 30px;
-    background-color: #333; /* Make the input box non-interactable */
+    background-color: #333;
     color: #00ffcc;
     border: 1px solid #333;
     border-radius: 5px;
@@ -107,13 +145,13 @@ button:hover {
 }
 
 .amount-input {
-    width: 30px; /* Add width */
+    width: 30px;
     height: 20px;
-    background-color: #333; /* Background color */
-    color: #00ffcc; /* Text color */
-    border: 1px solid #333; /* Border color */
-    border-radius: 5px; /* Border radius */
-    padding: 10px; /* Padding */
+    background-color: #333;
+    color: #00ffcc;
+    border: 1px solid #333;
+    border-radius: 5px;
+    padding: 10px;
 }
 
 .dark-mode {
@@ -154,7 +192,6 @@ button:hover {
 
 h2 {
     color: #00ffcc;
-    text-shadow: 0 0 8px #00ffcc;
 }
 
 p {
@@ -172,20 +209,24 @@ p {
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 
+/* Form Elements */
 .form-group {
     display: flex;
     flex-direction: column;
     gap: 5px;
-    align-items: center; /* Center align items */
+    align-items: center;
 }
 
 .form-group label:not(.preferences label) {
     color: var(--dropdown-label-color);
-    text-shadow: 0 0 8px var(--dropdown-label-color);
-    text-align: center; /* Center text */
+    text-align: center;
 }
 
-/* Styles for Location Type dropdown */
+.form-group label[for="location-type"] {
+    white-space: nowrap;
+}
+
+/* Dropdown Styles */
 select.location-type {
     width: 85px;
     background-color: #333;
@@ -197,7 +238,10 @@ select.location-type {
     align-self: center;
 }
 
-/* Styles for Location dropdown */
+select.location-type option {
+    white-space: nowrap;
+}
+
 select.location {
     width: 110px;
     background-color: #333;
@@ -208,7 +252,6 @@ select.location {
     font-family: 'Orbitron', sans-serif;
 }
 
-/* Styles for Moon dropdown */
 select.moon {
     width: 110px;
     background-color: #333;
@@ -219,7 +262,6 @@ select.moon {
     font-family: 'Orbitron', sans-serif;
 }
 
-/* Styles for Drop off points dropdown */
 select.drop-off {
     width: 300px;
     background-color: #333;
@@ -230,7 +272,6 @@ select.drop-off {
     font-family: 'Orbitron', sans-serif;
 }
 
-/* Styles for Commodity dropdown */
 select.commodity {
     width: 120px;
     background-color: #333;
@@ -241,7 +282,6 @@ select.commodity {
     font-family: 'Orbitron', sans-serif;
 }
 
-/* Styles for First Dropdown */
 select.first-dropdown {
     width: 110px;
     background-color: #333;
@@ -252,7 +292,6 @@ select.first-dropdown {
     font-family: 'Orbitron', sans-serif;
 }
 
-/* Styles for Second Dropdown */
 select.second-dropdown {
     width: 110px;
     background-color: #333;
@@ -263,7 +302,6 @@ select.second-dropdown {
     font-family: 'Orbitron', sans-serif;
 }
 
-/* Styles for Planet dropdown */
 select.planet {
     width: 110px;
     background-color: #333;
@@ -274,12 +312,10 @@ select.planet {
     font-family: 'Orbitron', sans-serif;
 }
 
-/* Styles for selectable options */
 .selectable-option {
-    padding-right: 10px; /* Add padding to the right */
+    padding-right: 10px;
 }
 
-/* Styles for First Dropdown Search Bar */
 input.first-dropdown {
     width: 110px;
     background-color: #333;
@@ -288,10 +324,9 @@ input.first-dropdown {
     border-radius: 5px;
     padding: 10px;
     font-family: 'Orbitron', sans-serif;
-    margin-bottom: 5px; /* Add margin to separate from dropdown */
+    margin-bottom: 5px;
 }
 
-/* Styles for Second Dropdown Search Bar */
 input.second-dropdown {
     width: 110px;
     background-color: #333;
@@ -300,7 +335,7 @@ input.second-dropdown {
     border-radius: 5px;
     padding: 10px;
     font-family: 'Orbitron', sans-serif;
-    margin-bottom: 5px; /* Add margin to separate from dropdown */
+    margin-bottom: 5px;
 }
 
 .form-row {
@@ -311,19 +346,18 @@ input.second-dropdown {
 
 .button-group {
     display: flex;
-    width: 700px;
+    width: 750px;
     gap: 10px;
-    padding: 10px; /* Adjust padding */
+    padding: 10px;
     margin-left: 10px;
     margin-top: 20px;
     background-color: #1a1a1a;
     border: 1px solid #333;
     border-radius: 10px;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-    flex-direction: row; /* Ensure buttons are in a row */
-    flex-wrap: wrap; /* Allow wrapping */
-    align-items: center; /* Center align items */
-    
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
 }
 
 .actions {
@@ -335,7 +369,7 @@ input.second-dropdown {
     background-color: var(--button-color);
     color: #0d0d0d;
     border: none;
-    padding: 7px 20px; /* Reduce height by 70% */
+    padding: 7px 20px;
     cursor: pointer;
     font-size: 16px;
     border-radius: 5px;
@@ -358,24 +392,23 @@ input.second-dropdown {
 
 .actions .form-group input {
     width: 100px;
-    background-color: #333; /* Make the input box non-interactable */
+    background-color: #333;
     color: #00ffcc;
 }
 
 .scu-container {
     display: flex;
-    flex-direction: column; /* Stack items vertically */
-    align-items: center; /* Center align items */
-    text-align: center; /* Center text */
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
     gap: 5px;
 }
 
 .scu-label {
     color: #00ffcc;
     font-size: 15px;
-    margin-left: 10px; /* Add some space between the button and the label */
-    white-space: pre-wrap; /* Ensure text wraps */
-
+    margin-left: 10px;
+    white-space: pre-wrap;
 }
 
 .scu-total {
@@ -383,47 +416,49 @@ input.second-dropdown {
     font-size: 14px;
 }
 
-/* ...existing code... */
-
+/* Table Styles */
 .table-container {
     margin-top: 20px;
     overflow-x: auto;
-    border-radius: 10px; /* Add rounded edges to the container */
+    border-radius: 10px;
 }
 
 .table {
     width: 100%;
-    border-collapse: separate; /* Change to separate to allow border-radius */
+    border-collapse: separate;
     background-color: #1a1a1a;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-    border: 1px solid var(--table-outline-color); /* Update this line */
-    border-radius: 10px; /* Add rounded edges */
-    overflow: hidden; /* Ensure rounded corners are visible */
+    border: 1px solid var(--table-outline-color);
+    border-radius: 10px;
+    overflow: hidden;
 }
 
 .table th, .table td {
     padding: 10px;
     text-align: left;
-    border: 1px solid var(--table-outline-color); /* Update this line */
+    border: 1px solid var(--table-outline-color);
 }
 
 .table th.pickup, .table td.pickup {
-    width: 235px;
-    font-size: 14px; /* Set text size */
+    width: 370px;
+    font-size: 14px;
     text-align: center;
     color: var(--pickup-text-color);
-    padding: 5px; /* Reduce padding */
+    padding: 5px;
 }
 
 .table th.commodity, .table td.commodity {
-    width: 150px;
+    width: 160px !important;
     text-align: center;
     color: var(--commodity-text-color);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .table th.amount, .table td.amount {
-    width: 100px;
-    font-size: 14px; /* Set text size */
+    width: 80px;
+    font-size: 14px;
     text-align: center;
     color: var(--amount-text-color);
 }
@@ -435,7 +470,6 @@ input.second-dropdown {
 .table th.status, .table td.status {
     width: 90px;
     text-align: center;
-    
 }
 
 .table td:not(.status):not(.actions) {
@@ -460,7 +494,7 @@ input.second-dropdown {
     border: none;
     padding: 5px 10px;
     cursor: pointer;
-    font-size: 13px; /* Reduce text size */
+    font-size: 13px;
     border-radius: 5px;
     transition: background-color 0.3s, color 0.3s;
 }
@@ -470,27 +504,26 @@ input.second-dropdown {
 }
 
 .table .actions .remove-cargo-button {
-    background-color: #ff6666; /* Change to red */
-    color: #0d0d0d; /* Change text color to black */
-    font-size: 12px; /* Reduce text size */
+    background-color: #ff6666;
+    color: #0d0d0d;
+    font-size: 12px;
 }
 
 .table .actions .remove-cargo-button:hover {
-    background-color: #ff3333; /* Change to darker red */
+    background-color: #ff3333;
 }
-
-/* ...existing code... */
 
 .table .actions input[type="text"] {
-    width: 40px; /* Set width */
-    background-color: #333; /* Background color */
-    color: #00ffcc; /* Text color */
-    border: 1px solid #333; /* Border color */
-    border-radius: 5px; /* Border radius */
-    padding: 5px; /* Padding */
-    font-family: 'Orbitron', sans-serif; /* Font family */
+    width: 40px;
+    background-color: #333;
+    color: #00ffcc;
+    border: 1px solid #333;
+    border-radius: 5px;
+    padding: 5px;
+    font-family: 'Orbitron', sans-serif;
 }
 
+/* Header Components */
 .drop-off-header {
     padding: 10px;
     background-color: #1a1a1a;
@@ -502,13 +535,13 @@ input.second-dropdown {
     justify-content: space-between;
     align-items: center;
     color: var(--drop-off-header-text-color);
-    transition: background-color 0.3s, color 0.3s; /* Add transition for smooth color change */
-    font-size: 20px; /* Increase text size */
+    transition: background-color 0.3s, color 0.3s;
+    font-size: 20px;
 }
 
 .drop-off-header:hover {
     background-color: #333;
-    color: #00cc99; /* Change text color on hover */
+    color: #00cc99;
 }
 
 .drop-off-header .left-box {
@@ -561,20 +594,18 @@ input.second-dropdown {
     background-color: #00cc99;
 }
 
-/* ...existing code... */
-
+/* Checkbox Group */
 .checkbox-group {
     display: flex;
     flex-wrap: wrap;
     gap: 5px;
-    margin-left: 30px; /* Add extra 20px space on the left */
+    margin-left: 70px;
     margin-top: -50px;
     margin-bottom: -20px;
-    border: 1px solid #00ffcc; /* Add border */
-    padding: 10px; /* Add padding */
-    border-radius: 5px; /* Add border radius */
-    width: 200px;
-
+    border: 1px solid #00ffcc;
+    padding: 10px;
+    border-radius: 5px;
+    width: 210px;
 }
 
 .checkbox-group .column {
@@ -584,19 +615,19 @@ input.second-dropdown {
 }
 
 .checkbox-group label {
-    color: var(--mission-text-color); /* Update this line */
+    color: var(--mission-text-color);
     font-size: 14px;
-    position: relative; /* Add position relative for tooltip */
+    position: relative;
 }
 
 .checkbox-group label:hover .tooltip {
-    display: block; /* Show tooltip on hover */
+    display: block;
 }
 
 .tooltip {
-    display: none; /* Hide tooltip by default */
+    display: none;
     position: absolute;
-    right: 100%; /* Display to the left */
+    right: 100%;
     top: 0;
     background-color: #1a1a1a;
     color: #00ffcc;
@@ -604,16 +635,14 @@ input.second-dropdown {
     padding: 10px;
     border-radius: 5px;
     z-index: 10;
-    width: 700px; /* Increase width for the tooltip */
-    max-height: 500px; /* Increase maximum height for the tooltip */
-    min-height: 50px; /* Ensure minimum height to show column headers */
-    overflow: auto; /* Add scroll if content overflows */
-    transition: height 0.3s ease; /* Smooth transition for height */
+    width: 700px;
+    max-height: 500px;
+    min-height: 50px;
+    overflow: auto;
+    transition: height 0.3s ease;
 }
 
-/* ...existing code... */
-
-/* Styles for React Select */
+/* React Select Custom Styles */
 .react-select__control {
     background-color: #333;
     border: 1px solid #333;
@@ -621,7 +650,7 @@ input.second-dropdown {
     padding: 5px;
     font-family: 'Orbitron', sans-serif;
     color: var(--dropdown-text-color);
-    font-size: 14px; /* Add text size */
+    font-size: 14px;
 }
 
 .react-select__menu {
@@ -646,7 +675,6 @@ input.second-dropdown {
     color: var(--dropdown-text-color);
 }
 
-/* Specific styles for each dropdown */
 .first-dropdown-select .react-select__control {
     width: 350px;
 }
@@ -656,15 +684,16 @@ input.second-dropdown {
 }
 
 .location-type-select .react-select__control {
-    width: 100px;
+    width: 90px;
 }
 
 .planet-select .react-select__control {
     width: 119px;
+    margin-left: -20px;
 }
 
 .moon-select .react-select__control {
-    width: 120px;
+    width: 110px;
 }
 
 .drop-off-select .react-select__control {
@@ -675,44 +704,37 @@ input.second-dropdown {
     width: 154px;
 }
 
-/* Styles for Station dropdown */
 .station-select .react-select__control {
     width: 119px;
+    margin-left: -20px;
 }
 
-/* ...existing code... */
-
 .react-select__menu-list {
-    scrollbar-width: none; /* For Firefox */
-    -ms-overflow-style: none; /* For Internet Explorer and Edge */
+    scrollbar-width: none;
+    -ms-overflow-style: none;
 }
 
 .react-select__menu-list::-webkit-scrollbar {
-    display: none; /* For Chrome, Safari, and Opera */
+    display: none;
 }
-
-/* ...existing code... */
 
 .react-select__input input {
-    color: white; /* Set text color to white */
+    color: white;
 }
 
-/* ...existing code... */
-
+/* Preferences Panel */
 .preferences {
-    color: #00ffcc; /* Set a fixed color for text under Preferences tab */
-    text-align: left; /* Align text to the left */
+    color: #00ffcc;
+    text-align: left;
 }
 
 .preferences .form-group {
-    align-items: flex-start; /* Align form groups to the left */
+    align-items: flex-start;
 }
 
 .preferences input[type="color"] {
     margin-left: 10px;
 }
-
-/* ...existing code... */
 
 .preferences-box {
     width: 250px;
@@ -731,11 +753,9 @@ input.second-dropdown {
 }
 
 .preferences-box h3 {
-    border-bottom: 2px solid #00ffcc; /* Add underline */
-    padding-bottom: 5px; /* Add some space between the text and the underline */
+    border-bottom: 2px solid #00ffcc;
+    padding-bottom: 5px;
 }
-
-/* ...existing code... */
 
 .preferences-container {
     background-color: #1a1a1a;
@@ -745,10 +765,11 @@ input.second-dropdown {
     margin-bottom: 20px;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
     display: flex;
-    flex-direction: row; /* Change to row to position boxes side by side */
+    flex-direction: row;
     gap: 20px;
 }
 
+/* Banner and Notifications */
 .banner {
     background-color: #ff6666;
     color: #0d0d0d;
@@ -757,12 +778,21 @@ input.second-dropdown {
     font-size: 16px;
     position: fixed;
     top: 0;
-    width: 100%;
+    left: 0;
+    right: 0;
     z-index: 1000;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    animation: slideDown 0.3s ease-out;
 }
 
-/* ...existing code... */
+@keyframes slideDown {
+    from {
+        transform: translateY(-100%);
+    }
+    to {
+        transform: translateY(0);
+    }
+}
 
 .location-box {
     background-color: #2a2a2a;
@@ -795,7 +825,6 @@ input.second-dropdown {
     border-color: #00cc99;
 }
 
-<<<<<<< HEAD
 /* History Section */
 .history-container {
     padding: 20px;
@@ -1501,10 +1530,6 @@ input.second-dropdown {
 
 .stream-toggle {
     margin-bottom: 15px;
-    display: flex;
-    align-items: center;
-    justify-content: flex-start;
-    gap: 15px;
 }
 
 .stream-toggle label {
@@ -1541,10 +1566,9 @@ input.second-dropdown {
 
 /* Keybinding Controls */
 .keybinding-control {
-    margin-left: 0;
+    margin-left: 20px;
     display: flex;
     align-items: center;
-    justify-content: flex-start;
 }
 
 .keybinding-button {
@@ -1556,7 +1580,6 @@ input.second-dropdown {
     cursor: pointer;
     font-family: 'Orbitron', sans-serif;
     transition: background-color 0.3s;
-    margin-right: auto;
 }
 
 .keybinding-button:hover {
@@ -1649,7 +1672,4 @@ table, th, td, tr {
 input, select, textarea, button {
     text-shadow: none !important;
 }
-=======
-/* ...existing code... */
->>>>>>> parent of 3602d96 (update to file structure)
 

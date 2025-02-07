@@ -1,61 +1,77 @@
+import Tesseract from 'tesseract.js';
 import React, { useState, useEffect, useRef } from 'react';
 import ReactDOM from 'react-dom/client';
 import Select from 'react-select';
-import TestFeatures from './TestFeatures';
+import TestFeatures from './components/TestFeatures';
 import './styles.css';
+import Portal from './components/Portal';
+import './styles/Header.css';
+import './styles/Tabs.css';
+import './styles/Content.css';
+import './styles/HaulingMissions.css';
+import './styles/Table.css';
+import './styles/Preferences.css';
+import './styles/History.css';
 console.log('Script is running');
+const crypto = require('crypto');
+const nonce = crypto.randomBytes(16).toString('base64');
 //Presets
 //'--City--',
 //'--Distribution Center--',
+//'--Stations--',
+//'--Lagrange Stations--',
 //'--Outpost--',
 //'--Scrapyard--',
 //'--Farming Outpost--',
 const data = {
     planets: ['Arccorp', 'Crusader', 'Hurston', 'Microtech'],
     stations: [
-<<<<<<< HEAD
         '--Stations--',
-        'Baijini Point','Everus Harbor','Grimm Hex','Magnus Gateway','Port Tressler','Pyro Gateway','Seraphim Station',
-        '--Lagrange Stations--',
-        'ARC-L1 Wide Forest Station','ARC-L2 Lively Pathway Station','ARC-L3 Modern Express Station','ARC-L4 Faint Glen Station','ARC-L5 Yellow Core Station',
-        'CRU-L1 Ambitious Dream Station','CRU-L4 Shallow Fields Station','CRU-L5 Beautiful Glen Station',
-        'HUR-L1 Green Glade Station','HUR-L2 Faithful Dream Station','HUR-L3 Thundering Express Station','HUR-L4 Melodic Fields Station','HUR-L5 High Course Station',
-        'MIC-L1 Shallow Frontier Station','MIC-L2 Long Forest Station','MIC-L3 Endless Odyssey Station','MIC-L4 Red Crossroads Station','MIC-L5 Modern Icarus Station',
-=======
         'Grimm Hex',
         'Everus Harbor',
         'Baijini Point',
         'Seraphim Station',
-        'Port Tressler'
->>>>>>> parent of 3602d96 (update to file structure)
+        'Port Tressler',
+        'Pyro Gateway',
+        'Magnus Gateway',
+        '--Lagrange Stations--',
+        'ARC-L1 Wide Forest Station',
+        'ARC-L2 Lively Pathway Station',
+        'ARC-L3 Modern Express Station',
+        'ARC-L4 Faint Glen Station',
+        'ARC-L5 Yellow Core Station',
+        'CRU-L1 Ambitious Dream Station',
+        'CRU-L4 Shallow Fields Station',
+        'CRU-L5 Beautiful Glen Station',
+        'HUR-L1 Green Glade Station',
+        'HUR-L2 Faithful Dream Station',
+        'HUR-L3 Thundering Express Station',
+        'HUR-L4 Melodic Fields Station',
+        'HUR-L5 High Course Station',
+        'MIC-L1 Shallow Frontier Station',
+        'MIC-L2 Long Forest Station',
+        'MIC-L3 Endless Odyssey Station',
+        'MIC-L4 Red Crossroads Station',
+        'MIC-L5 Modern Icarus Station',
     ],
     Dropoffpoints: {
         Arccorp: ['--City--','Area 18'],
         Crusader: ['--City--','Orison'],
         Hurston: [
-            '--City--',//
+            '--City--',
             'Lorville',
-<<<<<<< HEAD
             '--Distribution Center--',
-            'Covalex Distribution Centre S1DC06','Greycat Stanton 1 Production Complex-B','HDPC-Cassillo','HDPC-Farnesway','Sakura Sun Magnolia Workcenter'
-=======
-            '--Distribution Center--',//
             'Covalex Distribution Centre S1DC06',
             'Greycat Stanton 1 Production Complex-B',
             'HDPC-Cassillo',
             'HDPC-Farnesway',
             'Sakura Sun Magnolia Workcenter'
->>>>>>> parent of 3602d96 (update to file structure)
         ],
         Microtech: [
             '--City--',
-            'New Babbage',
+            'NB Int Spaceport',
             '--Distribution Center--',
-<<<<<<< HEAD
-            'Covalex Distribution Center S4DC05','Greycat Stanton IV Production Complex-A','Sakura Sun Goldenrod Workcenter','microTech Logistics Depot S4LD01','microTech Logistics Depot S4LD13',
-            'Shubin Mining Facility SM0-10','Shubin Mining Facility SM0-13','Shubin Mining Facility SM0-18','Shubin Mining Facility SM0-22'
-=======
-            'Covalex Distribution Centre S4DC05',
+            'Covalex Distribution Center S4DC05',
             'Greycat Stanton IV Production Complex-A',
             'Sakura Sun Goldenrod Workcenter',
             'microTech Logistics Depot S4LD01',
@@ -64,15 +80,23 @@ const data = {
             'Shubin Mining Facility SM0-13',
             'Shubin Mining Facility SM0-18',
             'Shubin Mining Facility SM0-22'
->>>>>>> parent of 3602d96 (update to file structure)
         ]
     },
     moons: {
         Arccorp: {
-            Lyria: ['--Outpost--','Humboldt Mine','Loveridge Mineral Reserve','Shubin Mining Facility SAL-2','Shubin Mining Facility SAL-5'],
+            Lyria: [
+                '--Outpost--',
+                'Humboldt Mine',
+                'Loveridge Mineral Reserve',
+                'Shubin Mining Facility SAL-2',
+                'Shubin Mining Facility SAL-5'
+            ],
             Wala: [
                 '--Outpost--',
-                'ArcCorp Mining Area 045','ArcCorp Mining Area 048','ArcCorp Mining Area 056','ArcCorp Mining Area 061',
+                'ArcCorp Mining Area 045',
+                'ArcCorp Mining Area 048',
+                'ArcCorp Mining Area 056',
+                'ArcCorp Mining Area 061',
                 '--Scrapyard--',
                 'Samson & Sons Salvage Center',
                 '--Farming Outpost--',
@@ -80,72 +104,100 @@ const data = {
             ]
         },
         Crusader: {
-            Cellin: ['--Outpost--','Gallee Family Farms','Hickes Research Outpost','Terra Mills Hydrofarm','Tram & Myers Mining'],
-            Daymar: ['--Outpost--','ArcCorp Mining Area 141','Bountiful Harvest Hydroponics','Kudre Ore','Shubin Mining Facility SCD-1','Brios Breaker Yard'],
-            Yela: ['--Outpost--','ArcCorp Mining Area 157','Benson Mining Outpost','Deakins Research Outpost']
+            Cellin: [
+                '--Outpost--',
+                'Gallee Family Farms',
+                'Hickes Research Outpost',
+                'Terra Mills Hydrofarm',
+                'Tram & Myers Mining'
+            ],
+            Daymar: [
+                '--Outpost--',
+                'ArcCorp Mining Area 141',
+                'Bountiful Harvest Hydroponics',
+                'Kudre Ore',
+                'Shubin Mining Facility SCD-1',
+                'Brios Breaker Yard'
+            ],
+            Yela: [
+                '--Outpost--',
+                'ArcCorp Mining Area 157',
+                'Benson Mining Outpost',
+                'Deakins Research Outpost'
+            ]
         },
         Hurston: {
-            Arial: ['--Outpost--','HDMS-Bezdek','HDMS-Lathan'],
-            Aberdeen: ['--Outpost--','HDMS-Anderson','HDMS-Norgaard' ],
-            Ita: ['--Outpost--','HDMS-Ryder','HDMS-Woodruff'],
-            Magda: ['--Outpost--','HDMS-Hahn','HDMS-Perlman']
+            Arial: [
+                '--Outpost--',
+                'HDMS-Bezdek',
+                'HDMS-Lathan'
+            ],
+            Aberdeen: [
+                '--Outpost--',
+                'HDMS-Anderson',
+                'HDMS-Norgaard'
+            ],
+            Ita: [
+                '--Outpost--',
+                'HDMS-Ryder',
+                'HDMS-Woodruff'
+            ],
+            Magda: [
+                '--Outpost--',
+                'HDMS-Hahn',
+                'HDMS-Perlman'
+            ]
         },
         Microtech: {
-            Calliope: ['--Outpost--','Rayari Anvik Research Outpost','Rayari Kaltag Research Outpost','Shubin Mining Facility SMCa-6','Shubin Mining Facility SMCa-8'],
-            Clio: ['--Outpost--','Rayari Cantwell Research Outpost','Rayari McGrath Research Outpost'],
-            Euterpe: ['--Outpost--','Devlin Scrap & Salvage']
+            Calliope: [
+                '--Outpost--',
+                'Rayari Anvik Research Outpost',
+                'Rayari Kaltag Research Outpost',
+                'Shubin Mining Facility SMCa-6',
+                'Shubin Mining Facility SMCa-8'
+            ],
+            Clio: [
+                '--Outpost--',
+                'Rayari Cantwell Research Outpost',
+                'Rayari McGrath Research Outpost'
+            ],
+            Euterpe: [
+                '--Outpost--',
+                'Devlin Scrap & Salvage'
+            ]
         }
     },
     commodities: [
-<<<<<<< HEAD
-        'Agricultural Supplies','Aluminum',
-        'Carbon','Corundum (Raw)','Corundum',
-=======
-        'Aluminium',
+        'Aluminum',
         'Carbon',
         'Corundum',
         'Processed Food',
         'Pressurized ice',
+        'Agricultural Supplies',
         'Quartz',
         'Silicon',
         'Stims',
         'Tin',
         'Titanium',
         'Tungsten',
->>>>>>> parent of 3602d96 (update to file structure)
         'Hydrogen Fuel',
-        'Pressurized ice','Processed Food',
-        'Quantum Fuel','Quartz (Raw)','Quartz',
-        'Scrap',
-<<<<<<< HEAD
+        'Quantum Fuel',
         'Ship Ammunition',
-        'Silicon (Raw)','Silicon','Stims',
-        'Tin (Raw)','Tin',
-        'Titanium (Raw)','Titanium',
-        'Tungsten (Raw)','Tungsten',
+        'Scrap',
         'Waste',
-    ],
-    pickupPoints: [
-        '--City--',
-        'Lorville','NB Int Spaceport','Area 18','Orison',
-        '--Station--',
-        'Grimm Hex','Everus Harbor','Baijini Point','Seraphim Station','Port Tressler','Pyro Gateway','Magnus Gateway',
-        '--Lagrange Stations--',
-        'ARC-L1 Wide Forest Station','ARC-L2 Lively Pathway Station','ARC-L3 Modern Express Station','ARC-L4 Faint Glen Station','ARC-L5 Yellow Core Station',
-        'CRU-L1 Ambitious Dream Station','CRU-L4 Shallow Fields Station','CRU-L5 Beautiful Glen Station',
-        'HUR-L1 Green Glade Station','HUR-L2 Faithful Dream Station','HUR-L3 Thundering Express Station','HUR-L4 Melodic Fields Station','HUR-L5 High Course Station',
-        'MIC-L1 Shallow Frontier Station','MIC-L2 Long Forest Station','MIC-L3 Endless Odyssey Station','MIC-L4 Red Crossroads Station','MIC-L5 Modern Icarus Station',
-        '--Distribution Center--',
-        'Covalex Distribution Center S4DC05','Covalex Distribution Centre S1DC06','Greycat Stanton I Production Complex-B','Greycat Stanton IV Production Complex-A',
-        'HDPC-Cassillo','HDPC-Farnesway','microTech Logistics Depot S4LD01','microTech Logistics Depot S4LD13','Sakura Sun Goldenrod Workcenter','Sakura Sun Magnolia Workcenter',
-        'Shubin Mining Facility SM0-10','Shubin Mining Facility SM0-13','Shubin Mining Facility SM0-18','Shubin Mining Facility SM0-22',
-=======
-        'Waste'
+        'Ship Ammunition',
+        'Quantum Fuel',
+        'Corundum (Raw)',
+        'Quartz (Raw)',
+        'Silicon (Raw)',
+        'Tin (Raw)',
+        'Titanium (Raw)',
+        'Tungsten (Raw)'
     ],
     pickupPoints: [
         '--City--',
         'Lorville',
-        'New Babbage',
+        'NB Int Spaceport',
         'Area 18',
         'Orison',
         '--Station--',
@@ -154,29 +206,29 @@ const data = {
         'Baijini Point',
         'Seraphim Station',
         'Port Tressler',
-        '--Lagrange Station--',
+        'Pyro Gateway',
+        'Magnus Gateway',
+        '--Lagrange Stations--',
         'ARC-L1 Wide Forest Station',
-        'ARC-L2',
-        'ARC-L3',
-        'ARC-L4',
-        'ARC-L5',
-        'CRU-L1 Shallow Frontier Station',
-        'CRU-L2',
-        'CRU-L3',
-        'CRU-L4',
-        'CRU-L5',
+        'ARC-L2 Lively Pathway Station',
+        'ARC-L3 Modern Express Station',
+        'ARC-L4 Faint Glen Station',
+        'ARC-L5 Yellow Core Station',
+        'CRU-L1 Ambitious Dream Station',
+        'CRU-L4 Shallow Fields Station',
+        'CRU-L5 Beautiful Glen Station',
         'HUR-L1 Green Glade Station',
-        'HUR-L2',
-        'HUR-L3',
-        'HUR-L4',
-        'HUR-L5',
+        'HUR-L2 Faithful Dream Station',
+        'HUR-L3 Thundering Express Station',
+        'HUR-L4 Melodic Fields Station',
+        'HUR-L5 High Course Station',
         'MIC-L1 Shallow Frontier Station',
-        'MIC-L2',
-        'MIC-L3',
-        'MIC-L4',
-        'MIC-L5',
+        'MIC-L2 Long Forest Station',
+        'MIC-L3 Endless Odyssey Station',
+        'MIC-L4 Red Crossroads Station',
+        'MIC-L5 Modern Icarus Station',        'MIC-L5',
         '--Distribution Center--',
-        'Covalex Distribution Centre S4DC05',
+        'Covalex Distribution Center S4DC05',
         'Greycat Stanton IV Production Complex-A',
         'Sakura Sun Goldenrod Workcenter',
         'microTech Logistics Depot S4LD01',
@@ -186,43 +238,53 @@ const data = {
         'Shubin Mining Facility SM0-18',
         'Shubin Mining Facility SM0-22',
         'Covalex Distribution Centre S1DC06',
-        'Greycat Stanton 1 Production Complex-B',
+        'Greycat Stanton I Production Complex-B',
         'HDPC-Cassillo',
         'HDPC-Farnesway',
         'Sakura Sun Magnolia Workcenter',
->>>>>>> parent of 3602d96 (update to file structure)
         '--Outpost--',
-        'ArcCorp Mining Area 045','ArcCorp Mining Area 048','ArcCorp Mining Area 056','ArcCorp Mining Area 061','ArcCorp Mining Area 141','ArcCorp Mining Area 157',
-        'Benson Mining Outpost','Bountiful Harvest Hydroponics','Brios Breaker Yard',
-        'Deakins Research Outpost','Devlin Scrap & Salvage',
-        'Gallee Family Farms',
-        'HDMS-Anderson','HDMS-Bezdek','HDMS-Hahn','HDMS-Lathan','HDMS-Norgaard','HDMS-Perlman','HDMS-Ryder','HDMS-Woodruff','Hickes Research Outpost','Humboldt Mine',
-        'Kudre Ore',
+        'Humboldt Mine',
         'Loveridge Mineral Reserve',
-        'Rayari Anvik Research Outpost','Rayari Cantwell Research Outpost','Rayari Kaltag Research Outpost','Rayari McGrath Research Outpost',
-        'Shubin Mining Facility SAL-2','Shubin Mining Facility SAL-5','Shubin Mining Facility SCD-1','Shubin Mining Facility SMCa-6','Shubin Mining Facility SMCa-8',
-        'Terra Mills Hydrofarm','Tram & Myers Mining',
+        'Shubin Mining Facility SAL-2',
+        'Shubin Mining Facility SAL-5',
+        'ArcCorp Mining Area 045',
+        'ArcCorp Mining Area 048',
+        'ArcCorp Mining Area 056',
+        'ArcCorp Mining Area 061',
+        'Gallee Family Farms',
+        'Hickes Research Outpost',
+        'Terra Mills Hydrofarm',
+        'Tram & Myers Mining',
+        'ArcCorp Mining Area 141',
+        'Bountiful Harvest Hydroponics',
+        'Kudre Ore',
+        'Shubin Mining Facility SCD-1',
+        'Brios Breaker Yard',
+        'ArcCorp Mining Area 157',
+        'Benson Mining Outpost',
+        'Deakins Research Outpost',
+        'HDMS-Bezdek',
+        'HDMS-Lathan',
+        'HDMS-Anderson',
+        'HDMS-Norgaard',
+        'HDMS-Ryder',
+        'HDMS-Woodruff',
+        'HDMS-Hahn',
+        'HDMS-Perlman',
+        'Rayari Anvik Research Outpost',
+        'Rayari Kaltag Research Outpost',
+        'Shubin Mining Facility SMCa-6',
+        'Shubin Mining Facility SMCa-8',
+        'Rayari Cantwell Research Outpost',
+        'Rayari McGrath Research Outpost',
+        'Devlin Scrap & Salvage',
         '--Scrapyard--',
         '--Farming Outpost--'
     ],
     quickLookup: [
         '--City--',
-<<<<<<< HEAD
-        'Lorville','NB Int Spaceport','Area 18','Orison',
-        '--Station--',
-        'Grimm Hex','Everus Harbor','Baijini Point','Seraphim Station','Port Tressler','Pyro Gateway','Magnus Gateway',
-        '--Lagrange Stations--',
-        'ARC-L1 Wide Forest Station','ARC-L2 Lively Pathway Station','ARC-L3 Modern Express Station','ARC-L4 Faint Glen Station','ARC-L5 Yellow Core Station',
-        'CRU-L1 Ambitious Dream Station','CRU-L4 Shallow Fields Station','CRU-L5 Beautiful Glen Station',
-        'HUR-L1 Green Glade Station','HUR-L2 Faithful Dream Station','HUR-L3 Thundering Express Station','HUR-L4 Melodic Fields Station','HUR-L5 High Course Station',
-        'MIC-L1 Shallow Frontier Station','MIC-L2 Long Forest Station','MIC-L3 Endless Odyssey Station','MIC-L4 Red Crossroads Station','MIC-L5 Modern Icarus Station',
-        '--Distribution Center--',
-        'Covalex Distribution Center S4DC05','Covalex Distribution Centre S1DC06','Greycat Stanton I Production Complex-B','Greycat Stanton IV Production Complex-A',
-        'HDPC-Cassillo','HDPC-Farnesway','microTech Logistics Depot S4LD01','microTech Logistics Depot S4LD13','Sakura Sun Goldenrod Workcenter','Sakura Sun Magnolia Workcenter',
-        'Shubin Mining Facility SM0-10','Shubin Mining Facility SM0-13','Shubin Mining Facility SM0-18','Shubin Mining Facility SM0-22',
-=======
         'Lorville',
-        'New Babbage',
+        'NB Int Spaceport',
         'Area 18',
         'Orison',
         '--Station--',
@@ -231,29 +293,29 @@ const data = {
         'Baijini Point',
         'Seraphim Station',
         'Port Tressler',
-        '--Lagrange Station--',
+        'Pyro Gateway',
+        'Magnus Gateway',
+        '--Lagrange Stations--',
         'ARC-L1 Wide Forest Station',
-        'ARC-L2',
-        'ARC-L3',
-        'ARC-L4',
-        'ARC-L5',
-        'CRU-L1 Shallow Frontier Station',
-        'CRU-L2',
-        'CRU-L3',
-        'CRU-L4',
-        'CRU-L5',
+        'ARC-L2 Lively Pathway Station',
+        'ARC-L3 Modern Express Station',
+        'ARC-L4 Faint Glen Station',
+        'ARC-L5 Yellow Core Station',
+        'CRU-L1 Ambitious Dream Station',
+        'CRU-L4 Shallow Fields Station',
+        'CRU-L5 Beautiful Glen Station',
         'HUR-L1 Green Glade Station',
-        'HUR-L2',
-        'HUR-L3',
-        'HUR-L4',
-        'HUR-L5',
+        'HUR-L2 Faithful Dream Station',
+        'HUR-L3 Thundering Express Station',
+        'HUR-L4 Melodic Fields Station',
+        'HUR-L5 High Course Station',
         'MIC-L1 Shallow Frontier Station',
-        'MIC-L2',
-        'MIC-L3',
-        'MIC-L4',
-        'MIC-L5',
+        'MIC-L2 Long Forest Station',
+        'MIC-L3 Endless Odyssey Station',
+        'MIC-L4 Red Crossroads Station',
+        'MIC-L5 Modern Icarus Station',        'MIC-L5',
         '--Distribution Center--',
-        'Covalex Distribution Centre S4DC05',
+        'Covalex Distribution Center S4DC05',
         'Greycat Stanton IV Production Complex-A',
         'Sakura Sun Goldenrod Workcenter',
         'microTech Logistics Depot S4LD01',
@@ -267,20 +329,45 @@ const data = {
         'HDPC-Cassillo',
         'HDPC-Farnesway',
         'Sakura Sun Magnolia Workcenter',
->>>>>>> parent of 3602d96 (update to file structure)
         '--Outpost--',
-        'ArcCorp Mining Area 045','ArcCorp Mining Area 048','ArcCorp Mining Area 056','ArcCorp Mining Area 061','ArcCorp Mining Area 141','ArcCorp Mining Area 157',
-        'Benson Mining Outpost','Bountiful Harvest Hydroponics','Brios Breaker Yard',
-        'Deakins Research Outpost','Devlin Scrap & Salvage',
-        'Gallee Family Farms',
-        'HDMS-Anderson','HDMS-Bezdek','HDMS-Hahn','HDMS-Lathan','HDMS-Norgaard','HDMS-Perlman','HDMS-Ryder','HDMS-Woodruff','Hickes Research Outpost','Humboldt Mine',
-        'Kudre Ore',
+        'Humboldt Mine',
         'Loveridge Mineral Reserve',
-        'Rayari Anvik Research Outpost','Rayari Cantwell Research Outpost','Rayari Kaltag Research Outpost','Rayari McGrath Research Outpost',
-        'Shubin Mining Facility SAL-2','Shubin Mining Facility SAL-5','Shubin Mining Facility SCD-1','Shubin Mining Facility SMCa-6','Shubin Mining Facility SMCa-8',
-        'Terra Mills Hydrofarm','Tram & Myers Mining',
+        'Shubin Mining Facility SAL-2',
+        'Shubin Mining Facility SAL-5',
+        'ArcCorp Mining Area 045',
+        'ArcCorp Mining Area 048',
+        'ArcCorp Mining Area 056',
+        'ArcCorp Mining Area 061',
+        'Gallee Family Farms',
+        'Hickes Research Outpost',
+        'Terra Mills Hydrofarm',
+        'Tram & Myers Mining',
+        'ArcCorp Mining Area 141',
+        'Bountiful Harvest Hydroponics',
+        'Kudre Ore',
+        'Shubin Mining Facility SCD-1',
+        'Brios Breaker Yard',
+        'ArcCorp Mining Area 157',
+        'Benson Mining Outpost',
+        'Deakins Research Outpost',
+        'HDMS-Bezdek',
+        'HDMS-Lathan',
+        'HDMS-Anderson',
+        'HDMS-Norgaard',
+        'HDMS-Ryder',
+        'HDMS-Woodruff',
+        'HDMS-Hahn',
+        'HDMS-Perlman',
+        'Rayari Anvik Research Outpost',
+        'Rayari Kaltag Research Outpost',
+        'Shubin Mining Facility SMCa-6',
+        'Shubin Mining Facility SMCa-8',
+        'Rayari Cantwell Research Outpost',
+        'Rayari McGrath Research Outpost',
+        'Devlin Scrap & Salvage',
         '--Scrapyard--',
-        '--Farming Outpost--'    ]
+        '--Farming Outpost--'
+    ]
 };
 
 const customStyles = {
@@ -292,13 +379,19 @@ const customStyles = {
         padding: '5px',
         fontFamily: 'Orbitron, sans-serif',
         color: 'var(--dropdown-text-color)',
-        fontSize: '14px' // Add text size
+        fontSize: '14px'
     }),
     menu: (provided) => ({
         ...provided,
         backgroundColor: '#333',
         color: 'var(--dropdown-text-color)',
-        fontSize: '14px' // Add text size
+        fontSize: '14px',
+        minWidth: '300px', 
+        maxHeight: '400px', 
+        padding: '8px',
+        marginTop: '4px',
+        borderRadius: '4px',
+        boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
     }),
     option: (provided, state) => {
         const isUnselectable = state.data.value.startsWith('--');
@@ -306,23 +399,62 @@ const customStyles = {
             ...provided,
             backgroundColor: state.isFocused && !isUnselectable ? '#444' : '#333',
             color: isUnselectable ? 'white' : 'var(--dropdown-text-color)',
-            fontSize: '14px', // Add text size
-            fontWeight: isUnselectable ? 'bold' : 'normal', // Bold for unselectable options
-            fontStyle: isUnselectable ? 'italic' : 'normal', // Italic for unselectable options
-            cursor: isUnselectable ? 'not-allowed' : 'default', // Not-allowed cursor for unselectable options
-            pointerEvents: isUnselectable ? 'none' : 'auto' // Disable pointer events for unselectable options
+            fontSize: '14px', 
+            fontWeight: isUnselectable ? 'bold' : 'normal', 
+            fontStyle: isUnselectable ? 'italic' : 'normal', 
+            cursor: isUnselectable ? 'not-allowed' : 'default', 
+            pointerEvents: isUnselectable ? 'none' : 'auto' 
         };
     },
     singleValue: (provided) => ({
         ...provided,
         color: 'var(--dropdown-text-color)',
-        fontSize: '14px' // Add text size
+        fontSize: '14px'
     }),
 };
+
+const STATUS_OPTIONS = ['Pending', 'In Progress', 'Delivered', 'Failed'];
+
+function findClosestMatch(input, options) {
+    if (!input || !options || options.length === 0) return null;
+
+    const cleanInput = input.replace(/[^a-zA-Z0-9\s]/g, '').toLowerCase();
+    
+    let bestMatch = null;
+    let bestScore = -Infinity;
+
+    options.forEach(option => {
+        const cleanOption = option.replace(/[^a-zA-Z0-9\s]/g, '').toLowerCase();
+        
+        let score = 0;
+        const inputWords = cleanInput.split(' ');
+        const optionWords = cleanOption.split(' ');
+        
+        inputWords.forEach(word => {
+            if (optionWords.includes(word)) {
+                score += word.length * 2;
+            } else {
+                optionWords.forEach(optionWord => {
+                    if (optionWord.includes(word) || word.includes(optionWord)) {
+                        score += Math.min(word.length, optionWord.length);
+                    }
+                });
+            }
+        });
+
+        if (score > bestScore || (score === bestScore && cleanOption.length < bestMatch.length)) {
+            bestScore = score;
+            bestMatch = option;
+        }
+    });
+
+    return bestScore >= cleanInput.length * 0.5 ? bestMatch : null;
+}
 
 const App = () => {
     const [darkMode, setDarkMode] = useState(false);
     const [activeTab, setActiveTab] = useState('Hauling Missions');
+    const [isAutoScaling, setIsAutoScaling] = useState(true);
     const [locationType, setLocationType] = useState('planet');
     const [selectedPlanet, setSelectedPlanet] = useState('');
     const [selectedMoon, setSelectedMoon] = useState('');
@@ -332,11 +464,16 @@ const App = () => {
         const savedEntries = localStorage.getItem('entries');
         return savedEntries ? JSON.parse(savedEntries) : [];
     });
+
+    const [historyEntries, setHistoryEntries] = useState(() => {
+        const savedHistory = localStorage.getItem('historyEntries');
+        return savedHistory ? JSON.parse(savedHistory) : [];
+    });
     const [collapsed, setCollapsed] = useState(() => {
         const savedCollapsed = localStorage.getItem('collapsed');
         return savedCollapsed ? JSON.parse(savedCollapsed) : {};
-    }); // Define collapsed state
-    const amountInputRef = useRef(null); // Reference for amount input
+    });
+    const amountInputRef = useRef(null);
 
     const [dropdownLabelColor, setDropdownLabelColor] = useState(() => localStorage.getItem('dropdownLabelColor') || '#00ffcc');
     const [dropdownTextColor, setDropdownTextColor] = useState(() => localStorage.getItem('dropdownTextColor') || '#00ffcc');
@@ -371,6 +508,24 @@ const App = () => {
     const commodityOptions = data.commodities.map(commodity => ({ value: commodity, label: commodity }));
     const [selectedCommodity, setSelectedCommodity] = useState(() => localStorage.getItem('selectedCommodity') || commodityOptions[0].value);
     const pickupPointOptions = data.pickupPoints.map(point => ({ value: point, label: point }));
+
+    const [missionRewards, setMissionRewards] = useState(() => {
+        const savedRewards = localStorage.getItem('missionRewards');
+        return savedRewards ? JSON.parse(savedRewards) : {};
+    });
+
+    const handleRewardChange = (missionId, value) => {
+        const numericValue = value.replace(/\D/g, '');
+        
+        const formattedValue = numericValue.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+        
+        const updatedRewards = {
+            ...missionRewards,
+            [missionId]: formattedValue
+        };
+        setMissionRewards(updatedRewards);
+        localStorage.setItem('missionRewards', JSON.stringify(updatedRewards));
+    };
 
     const handleCheckboxChange = (index) => {
         const updatedSelectedMissions = Array(10).fill(false);
@@ -418,6 +573,11 @@ const App = () => {
         localStorage.setItem('collapsedMissions', JSON.stringify(updatedCollapsedMissions));
     };
 
+    const toggleAutoScaling = () => {
+        setIsAutoScaling(!isAutoScaling);
+        document.body.style.transform = isAutoScaling ? 'scale(1)' : '';
+    };
+
     useEffect(() => {
         localStorage.setItem('entries', JSON.stringify(entries));
     }, [entries]);
@@ -438,8 +598,8 @@ const App = () => {
         document.documentElement.style.setProperty('--drop-off-header-text-color', dropOffHeaderTextColor);
         document.documentElement.style.setProperty('--row-text-color', rowTextColor);
         document.documentElement.style.setProperty('--table-header-text-color', tableHeaderTextColor);
-        document.documentElement.style.setProperty('--mission-text-color', missionTextColor); // Add this line
-        document.documentElement.style.setProperty('--table-outline-color', tableOutlineColor); // Add this line
+        document.documentElement.style.setProperty('--mission-text-color', missionTextColor);
+        document.documentElement.style.setProperty('--table-outline-color', tableOutlineColor);
     }, [dropdownLabelColor, dropdownTextColor, buttonColor, titleColor, dropOffHeaderTextColor, rowTextColor, tableHeaderTextColor, missionTextColor, tableOutlineColor]);
 
     useEffect(() => {
@@ -477,6 +637,10 @@ const App = () => {
     useEffect(() => {
         localStorage.setItem('tableOutlineColor', tableOutlineColor);
     }, [tableOutlineColor]);
+
+    useEffect(() => {
+        console.log('Entries updated:', entries);
+    }, [entries]);
 
     const resetDropdownLabelColor = () => {
         setDropdownLabelColor('#00ffcc');
@@ -519,30 +683,41 @@ const App = () => {
     };
 
     const handleLocationTypeChange = (selectedOption) => {
-        setSecondDropdownValue(''); // Clear quick lookup
+        const newType = selectedOption ? selectedOption.value : 'planet';
+        setLocationType(newType);
+        setSelectedPlanet('');
+        setSelectedMoon('');
+        setSelectedDropOffPoint('');
+        setSecondDropdownValue('');
+        
+        if (newType === 'planet') {
+            setFirstDropdownOptions(planetOptions);
+        } else if (newType === 'station') {
+            setFirstDropdownOptions(stationOptions);
+        }
     };
 
     const handleStationSelectChange = (selectedOption) => {
         setSelectedDropOffPoint(selectedOption ? selectedOption.value : '');
         setSelectedPlanet('');
         setSelectedMoon('');
-        setSecondDropdownValue(''); // Clear quick lookup
+        setSecondDropdownValue('');
     };
 
     const handleMoonSelectChange = (selectedOption) => {
         setSelectedMoon(selectedOption ? selectedOption.value : '');
         setSelectedDropOffPoint('');
-        setSecondDropdownValue(''); // Clear quick lookup
+        setSecondDropdownValue('');
     };
 
     const handleDropOffSelectChange = (selectedOption) => {
         setSelectedDropOffPoint(selectedOption ? selectedOption.value : '');
         handleSelectChange();
-        setSecondDropdownValue(''); // Clear quick lookup
+        setSecondDropdownValue('');
     };
 
     const handleCommoditySelectChange = (selectedOption) => {
-        if (!selectedOption || selectedOption.value.startsWith('--')) return; // Prevent selection of unselectable options
+        if (!selectedOption || selectedOption.value.startsWith('--')) return;
         setSelectedCommodity(selectedOption.value);
     };
 
@@ -560,7 +735,7 @@ const App = () => {
 
     const handleAmountKeyPress = (event, index) => {
         if (event.key === 'Enter') {
-            event.target.blur(); // Unfocus the input box
+            event.target.blur();
         }
     };
 
@@ -579,11 +754,29 @@ const App = () => {
 
     const [bannerMessage, setBannerMessage] = useState('');
 
-    const showBannerMessage = (message) => {
-        setBannerMessage(message);
+    const showBannerMessage = (message, isSuccess = true) => {
+        const banner = document.createElement('div');
+        banner.className = 'banner-message';
+        banner.textContent = message;
+        banner.style.backgroundColor = isSuccess ? '#4CAF50' : '#F44336';
+        banner.style.padding = '20px';
+        banner.style.fontSize = '1.2em';
+        banner.style.width = '100%';
+        banner.style.textAlign = 'center';
+        banner.style.position = 'fixed';
+        banner.style.top = '0';
+        banner.style.left = '0';
+        banner.style.zIndex = '1000';
+        banner.style.transition = 'opacity 0.5s';
+
+        document.body.appendChild(banner);
+
         setTimeout(() => {
-            setBannerMessage('');
-        }, 2000);
+            banner.style.opacity = '0';
+            setTimeout(() => {
+                banner.remove();
+            }, 500);
+        }, 3000);
     };
 
     const addEntry = () => {
@@ -601,7 +794,7 @@ const App = () => {
             commodity: selectedCommodity,
             originalAmount: amountValue,
             currentAmount: amountValue,
-            status: 'Pending',
+            status: STATUS_OPTIONS[0],
             pickupPoint: firstDropdownValue,
             planet: selectedPlanet,
             moon: selectedMoon
@@ -614,14 +807,97 @@ const App = () => {
             updatedMissionEntries[selectedMissionIndex] = [...updatedMissionEntries[selectedMissionIndex], newEntry];
             setMissionEntries(updatedMissionEntries);
             localStorage.setItem('missionEntries', JSON.stringify(updatedMissionEntries));
+
+            if (newEntry.status === STATUS_OPTIONS[2]) {
+                const updatedHistory = historyEntries.map(historyGroup => {
+                    return {
+                        ...historyGroup,
+                        entries: historyGroup.entries.map(historyEntry => {
+                            if (historyEntry.dropOffPoint === newEntry.dropOffPoint && 
+                                historyEntry.commodity === newEntry.commodity) {
+                                return {
+                                    ...historyEntry,
+                                    status: STATUS_OPTIONS[2]
+                                };
+                            }
+                            return historyEntry;
+                        })
+                    };
+                });
+                
+                setHistoryEntries(updatedHistory);
+                localStorage.setItem('historyEntries', JSON.stringify(updatedHistory));
+            }
         }
     };
 
+    const [needsClearConfirmation, setNeedsClearConfirmation] = useState(false);
+
     const clearLog = () => {
-        setEntries([]);
-        setMissionEntries(Array(10).fill([]));
-        localStorage.removeItem('entries');
-        localStorage.removeItem('missionEntries');
+        if (needsClearConfirmation) {
+            setEntries([]);
+            setMissionEntries(Array(10).fill([]));
+            localStorage.removeItem('entries');
+            localStorage.removeItem('missionEntries');
+            setNeedsClearConfirmation(false);
+        } else {
+            setNeedsClearConfirmation(true);
+            setTimeout(() => {
+                if (needsClearConfirmation) {
+                    setNeedsClearConfirmation(false);
+                }
+            }, 3000);
+        }
+    };
+
+    const processOrders = () => {
+        const deliveredEntries = entries.filter(entry => entry.status === 'Delivered');
+        const activeEntries = entries.filter(entry => entry.status !== 'Delivered');
+        
+        if (deliveredEntries.length > 0) {
+            const groupedEntries = deliveredEntries.reduce((acc, entry) => {
+                if (!acc[entry.dropOffPoint]) {
+                    acc[entry.dropOffPoint] = [];
+                }
+                acc[entry.dropOffPoint].push({
+                    ...entry,
+                    timestamp: new Date().toISOString(),
+                    status: 'Delivered'
+                });
+                return acc;
+            }, {});
+
+            const updatedHistory = [
+                ...historyEntries,
+                ...Object.entries(groupedEntries).map(([dropOffPoint, entries]) => ({
+                    dropOffPoint,
+                    entries,
+                    timestamp: new Date().toISOString()
+                }))
+            ];
+            
+            const updatedMissionEntries = missionEntries.map(mission => 
+                mission.filter(missionEntry => 
+                    !deliveredEntries.some(deliveredEntry => 
+                        deliveredEntry.dropOffPoint === missionEntry.dropOffPoint &&
+                        deliveredEntry.commodity === missionEntry.commodity &&
+                        deliveredEntry.originalAmount === missionEntry.originalAmount
+                    )
+                )
+            );
+            
+            setHistoryEntries(updatedHistory);
+            setEntries(activeEntries);
+            setMissionEntries(updatedMissionEntries);
+            
+            localStorage.setItem('entries', JSON.stringify(activeEntries));
+            localStorage.setItem('historyEntries', JSON.stringify(updatedHistory));
+            localStorage.setItem('missionEntries', JSON.stringify(updatedMissionEntries));
+            
+            showBannerMessage(`${deliveredEntries.length} orders processed and moved to history.`);
+        } else {
+            showBannerMessage('No delivered orders to process.');
+        }
     };
 
     const updateCargo = (index, newAmount) => {
@@ -672,16 +948,49 @@ const App = () => {
     const markAsDelivered = (dropOffPoint) => {
         const updatedEntries = entries.map(entry => {
             if (entry.dropOffPoint === dropOffPoint) {
-                return { ...entry, status: 'Delivered' };
+                const updatedHistory = historyEntries.map(historyGroup => {
+                    return {
+                        ...historyGroup,
+                        entries: historyGroup.entries.map(historyEntry => {
+                            if (historyEntry.dropOffPoint === dropOffPoint) {
+                                return {
+                                    ...historyEntry,
+                                    status: STATUS_OPTIONS[2]
+                                };
+                            }
+                            return historyEntry;
+                        })
+                    };
+                });
+                
+                setHistoryEntries(updatedHistory);
+                localStorage.setItem('historyEntries', JSON.stringify(updatedHistory));
+
+                const updatedMissionEntries = missionEntries.map(mission => 
+                    mission.map(missionEntry => {
+                        if (missionEntry.dropOffPoint === dropOffPoint) {
+                            return {
+                                ...missionEntry,
+                                status: STATUS_OPTIONS[2]
+                            };
+                        }
+                        return missionEntry;
+                    })
+                );
+                
+                setMissionEntries(updatedMissionEntries);
+                localStorage.setItem('missionEntries', JSON.stringify(updatedMissionEntries));
+                
+                return { ...entry, status: STATUS_OPTIONS[2] };
             }
             return entry;
         });
         setEntries(updatedEntries);
+        localStorage.setItem('entries', JSON.stringify(updatedEntries));
     };
 
     const handleFirstDropdownChange = (selectedOption) => {
         setFirstDropdownValue(selectedOption ? selectedOption.value : '');
-        // Update options based on search text
         const searchText = selectedOption ? selectedOption.value.toLowerCase() : '';
         const filteredOptions = data.planets.filter(option => option.toLowerCase().includes(searchText));
         setFirstDropdownOptions(filteredOptions);
@@ -689,22 +998,57 @@ const App = () => {
 
     const handleSecondDropdownChange = (selectedOption) => {
         setSecondDropdownValue(selectedOption ? selectedOption.value : '');
-        // Update options based on search text
         const searchText = selectedOption ? selectedOption.value.toLowerCase() : '';
         const filteredOptions = data.stations.filter(option => option.toLowerCase().includes(searchText));
         setSecondDropdownOptions(filteredOptions);
     };
 
+    const validLocations = new Set([
+        'Everus Harbor', 'Area 18', 'Orison', 'Lorville', 'NB Int Spaceport',
+        'Covalex Distribution Centre S1DC06', 'Greycat Stanton 1 Production Complex-B',
+        'HDPC-Cassillo', 'HDPC-Farnesway', 'Sakura Sun Magnolia Workcenter',
+        'Covalex Distribution Center S4DC05', 'Greycat Stanton IV Production Complex-A',
+        'Sakura Sun Goldenrod Workcenter', 'microTech Logistics Depot S4LD01',
+        'microTech Logistics Depot S4LD13', 'Shubin Mining Facility SM0-10',
+        'Shubin Mining Facility SM0-13', 'Shubin Mining Facility SM0-18',
+        'Shubin Mining Facility SM0-22'
+    ]);
+
+    const validatePickupPoint = (pickup) => {
+        const validPickupPoints = [
+            ...data.pickupPoints,
+            ...Object.values(data.Dropoffpoints).flat(),
+            ...Object.values(data.moons).flatMap(moon => Object.values(moon)).flat()
+        ];
+
+        const isValid = validPickupPoints.includes(pickup);
+        return {
+            pickup,
+            isValid,
+            message: isValid ? '' : `Invalid pickup point: ${pickup}`
+        };
+    };
+
     const handlePickupPointChange = (selectedOption) => {
-        setFirstDropdownValue(selectedOption ? selectedOption.value : '');
+        if (selectedOption) {
+            const location = selectedOption.value;
+            const validation = validatePickupPoint(location);
+            
+            if (!validation.isValid) {
+                console.warn(validation);
+                alert(`Warning: "${location}" is not a recognized location. Please check your spelling.`);
+            }
+            setFirstDropdownValue(location);
+        } else {
+            setFirstDropdownValue('');
+        }
     };
 
     const handleQuickLookupChange = (selectedOption) => {
-        setSecondDropdownValue(selectedOption ? selectedOption.value : '');
-
-        // Simulate user selection for locationType, planet, moon, and dropOffPoints
         if (selectedOption) {
             const value = selectedOption.value;
+            setSecondDropdownValue(value);
+
             if (data.planets.includes(value)) {
                 setLocationType('planet');
                 setSelectedPlanet(value);
@@ -742,17 +1086,22 @@ const App = () => {
                     }
                 }
             }
+        } else {
+            setSecondDropdownValue('');
+            setLocationType('planet');
+            setSelectedPlanet('');
+            setSelectedMoon('');
+            setSelectedDropOffPoint('');
         }
-
-        // Clear the quick lookup dropdown box
-        setSecondDropdownValue('');
+        setTimeout(() => {
+            setSecondDropdownValue('');
+        }, 100);
     };
 
     const handlePlanetSelectChange = (selectedOption) => {
         setSelectedPlanet(selectedOption ? selectedOption.value : '');
         setSelectedMoon('');
         setSelectedDropOffPoint('');
-<<<<<<< HEAD
         setSecondDropdownValue('');
     };
 
@@ -1064,59 +1413,33 @@ const App = () => {
 
     const captureTab = document.getElementById('capture-tab');
 
-    // Initialize Tesseract worker
-    const [worker, setWorker] = useState(null);
-
-    // Initialize Tesseract worker
-    useEffect(() => {
-        const initializeWorker = async () => {
-            try {
-                const newWorker = await Tesseract.createWorker({
-                    logger: m => console.log(m)
-                });
-                
-                await newWorker.loadLanguage('eng');
-                await newWorker.initialize('eng');
-                
-                setWorker(newWorker);
-            } catch (error) {
-                console.error('Failed to initialize Tesseract worker:', error);
-                showBannerMessage('Failed to initialize OCR system', false);
-            }
-        };
-
-        initializeWorker();
-
-        // Cleanup worker on unmount
-        return () => {
-            if (worker) {
-                worker.terminate();
-            }
-        };
-    }, []); // Empty dependency array means this runs once on mount
-
-    // Update the OCR function to use the worker
-    const performOCR = async (imageData) => {
+    const performOCR = async (image) => {
         try {
-            if (!imageData) {
-                throw new Error('No image data provided');
-            }
-            
-            if (!worker) {
-                throw new Error('OCR system not initialized');
+            if (!image || typeof image !== 'string' || !image.startsWith('data:image')) {
+                showBannerMessage('Invalid image data', false);
+                throw new Error('Invalid image data');
             }
 
-            const { data: { text } } = await worker.recognize(imageData);
+            const { data: { text } } = await Tesseract.recognize(
+                image,
+                'eng',
+                {
+                    logger: m => console.log(m),
+                    errorHandler: (err) => {
+                        console.error('Tesseract Error:', err);
+                        showBannerMessage('OCR processing error', false);
+                        throw err;
+                    }
+                }
+            );
             
-            if (!text || text.trim() === '') {
-                throw new Error('No text recognized');
-            }
-            
-            return text;
+            const cleanedText = text.replace(/[.,]/g, '');
+            showBannerMessage('OCR capture successful!', true);
+            return cleanedText;
         } catch (error) {
             console.error('OCR Error:', error);
-            showBannerMessage('OCR Error: ' + error.message, false);
-            throw error;
+            showBannerMessage('Error processing image. Please try again.', false);
+            return '';
         }
     };
 
@@ -1984,36 +2307,316 @@ const App = () => {
             localStorage.setItem('entries', JSON.stringify(newEntries));
             return newEntries;
         });
-=======
-        setSecondDropdownValue(''); // Clear quick lookup
->>>>>>> parent of 3602d96 (update to file structure)
     };
 
     return (
         <div className={darkMode ? 'dark-mode' : ''}>
             <header>
                 <h1 style={{ color: 'var(--title-color)' }}>SC Cargo Tracker</h1>
-                <button onClick={toggleDarkMode}>
-                    {darkMode ? 'Light Mode' : 'Dark Mode'}
+                <button onClick={toggleAutoScaling}>
+                    {isAutoScaling ? 'Disable Auto Scaling' : 'Enable Auto Scaling'}
                 </button>
             </header>
             <div className="tabs">
-                {['Hauling Missions', 'Cargo Delivery', 'Test Features', 'History', 'Payouts', 'Preferences'].map(tab => (
-                    <div key={tab} className={`tab ${activeTab === tab ? 'active-tab' : ''}`} onClick={() => setActiveTab(tab)}>{tab}</div>
+                {['Capture', 'Hauling Missions', 'History', 'Payouts', 'Preferences'].map(tab => (
+                    <div 
+                        key={tab} 
+                        className={`tab ${activeTab === tab ? 'active-tab' : ''}`} 
+                        onClick={() => handleTabChange(tab)}
+                    >
+                        {tab}
+                    </div>
                 ))}
             </div>
             <div className="content">
                 <h2 style={{ color: 'var(--title-color)' }}>{activeTab}</h2>
                 {bannerMessage && (
-                    <div className="banner">
-                        {bannerMessage}
+                    <Portal>
+                        <div className="banner">
+                            {bannerMessage}
+                        </div>
+                    </Portal>
+                )}
+                {activeTab === 'Capture' && (
+                    <div className="capture-tab">
+                        <h3>Capture Mode</h3>
+                        <div className="capture-controls">
+                            <div className="stream-toggle">
+                                <label>
+                                    <input 
+                                        type="checkbox" 
+                                        checked={useVideoStream} 
+                                        onChange={toggleVideoStream} 
+                                    />
+                                    Capture Application Window
+                                </label>
+                                <div className="keybinding-control">
+                                    {showKeyInput ? (
+                                        <input
+                                            type="text"
+                                            className="key-input"
+                                            onKeyDown={handleKeyChange}
+                                            autoFocus
+                                            maxLength={1}
+                                            placeholder="Press any key"
+                                        />
+                                    ) : (
+                                        <button 
+                                            className="keybinding-button"
+                                            onClick={() => setShowKeyInput(true)}
+                                            style={{ 
+                                        backgroundColor: 'var(--button-color)',
+                                                color: '#0d0d0d',
+                                                border: 'none',
+                                                padding: '7px 20px',
+                                                borderRadius: '5px',
+                                                cursor: 'pointer',
+                                                fontFamily: 'inherit',
+                                                fontSize: '16px',
+                                                transition: 'background-color 0.3s, color 0.3s',
+                                                margin: '10px 0',
+                                                display: 'inline-block',
+                                                textAlign: 'center',
+                                                textDecoration: 'none',
+                                                whiteSpace: 'nowrap'
+                                            }}
+                                        >
+                                            Set Capture Key: {captureKey.toUpperCase()}
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+                            {useVideoStream && (
+                                <div 
+                                    className="video-container"
+                                    onMouseDown={handleMouseDown}
+                                    onMouseMove={handleMouseMove}
+                                    onMouseUp={handleMouseUp}
+                                    style={{ position: 'relative', cursor: isDrawing ? 'crosshair' : 'default' }}
+                                >
+                                    <video 
+                                        ref={videoRef} 
+                                        autoPlay 
+                                        playsInline 
+                                        style={{ 
+                                            width: '100%', 
+                                            height: 'auto', 
+                                            borderRadius: '5px',
+                                            display: 'block'
+                                        }}
+                                    />
+                                    {selectionBox && videoRef.current && (
+                                        <div 
+                                            style={{
+                                                position: 'absolute',
+                                                left: (Math.min(selectionBox.startX, selectionBox.endX) / videoRef.current.videoWidth) * 100 + '%',
+                                                top: (Math.min(selectionBox.startY, selectionBox.endY) / videoRef.current.videoHeight) * 100 + '%',
+                                                width: (Math.abs(selectionBox.endX - selectionBox.startX) / videoRef.current.videoWidth) * 100 + '%',
+                                                height: (Math.abs(selectionBox.endY - selectionBox.startY) / videoRef.current.videoHeight) * 100 + '%',
+                                                border: '2px dashed #00ffcc',
+                                                backgroundColor: 'rgba(0, 255, 204, 0.1)',
+                                                pointerEvents: 'none'
+                                            }}
+                                        />
+                                    )}
+                                </div>
+                            )}
+                            {isConstantCapture && (
+                                <div className="capture-timer" style={{
+                                    fontSize: '1.2em',
+                                    fontWeight: 'bold',
+                                    color: 'var(--title-color)',
+                                    margin: '10px 0'
+                                }}>
+                                    Next capture in: {captureTimer > 0 ? captureTimer : 3} seconds
+                                </div>
+                            )}
+                            <div className="capture-buttons">
+                                <button 
+                                    className="constant-capture-button" 
+                                    onClick={handleConstantCapture}
+                                    style={{ 
+                                        backgroundColor: isConstantCapture ? '#f44336' : 'var(--button-color)',
+                                        color: '#0d0d0d',
+                                        border: 'none',
+                                        padding: '7px 20px',
+                                        borderRadius: '5px',
+                                        cursor: 'pointer',
+                                        fontFamily: 'inherit',
+                                        fontSize: '16px',
+                                        transition: 'background-color 0.3s, color 0.3s',
+                                        margin: '10px 10px 10px 0',
+                                        display: 'inline-block',
+                                        textAlign: 'center',
+                                        textDecoration: 'none',
+                                        whiteSpace: 'nowrap'
+                                    }}
+                                >
+                                    {isConstantCapture ? 'Stop Constant Capture' : 'Start Constant Capture'}
+                                </button>
+                                <button 
+                                    className="adjust-speed-button"
+                                    onClick={handleSpeedAdjustment}
+                                style={{ 
+                                backgroundColor: 'var(--button-color)',
+                                        color: '#0d0d0d',
+                                        border: 'none',
+                                        padding: '7px 20px',
+                                        borderRadius: '5px',
+                                        cursor: 'pointer',
+                                        fontFamily: 'inherit',
+                                        fontSize: '16px',
+                                        transition: 'background-color 0.3s, color 0.3s',
+                                        margin: '10px 10px 10px 0',
+                                        display: 'inline-block',
+                                        textAlign: 'center',
+                                        textDecoration: 'none',
+                                        whiteSpace: 'nowrap'
+                                    }}
+                                >
+                                    Adjust Speed
+                                </button>
+                            <button 
+                                className="add-entry-button" 
+                                style={{ marginTop: '10px' }}
+                                onClick={addOCRToManifest}
+                                disabled={ocrResults.length === 0} // Disable button if no results
+                            >
+                                Add to Manifest
+                            </button>
+                                <button 
+                                    className="undo-ocr-button" 
+                                    onClick={undoLastOcrCapture}
+                                    disabled={ocrCaptureHistory.length === 0} // This line disables the button when there's no history
+                                    style={{ 
+                                backgroundColor: '#ff6666',
+                                        color: '#0d0d0d',
+                                        border: 'none',
+                                        padding: '7px 20px',
+                                        borderRadius: '5px',
+                                        cursor: 'pointer',
+                                        fontFamily: 'inherit',
+                                        fontSize: '16px',
+                                        transition: 'background-color 0.3s, color 0.3s',
+                                        margin: '10px 0',
+                                        display: 'inline-block',
+                                        textAlign: 'center',
+                                        textDecoration: 'none',
+                                        whiteSpace: 'nowrap',
+                                        marginLeft: '10px'
+                                    }}
+                                >
+                                    Undo Mistake - OCR
+                                </button>
+                            </div>
+                        </div>
+                        <div id="process-log" className="process-log">
+                            {ocrResults.length > 0 && (
+                                <>
+                                    <div className="ocr-counters">
+                                        <div className="ocr-counter">
+                                            <strong>Total Entries:</strong> {ocrResults.length}
+                                        </div>
+                                        <div className="ocr-counter">
+                                            <strong>Total SCU:</strong> {ocrResults.reduce((total, result) => {
+                                                const quantity = parseInt(result.quantity.split('/')[0], 10) || 0;
+                                                return total + quantity;
+                                            }, 0)}
+                                        </div>
+                                    </div>
+                                    <h4>OCR Process Log:</h4>
+                                    <h4>Results Table:</h4>
+                                    <table className="ocr-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Commodity</th>
+                                                <th>Quantity</th>
+                                                <th>Pickup</th>
+                                                <th>Drop Off</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {ocrResults.map((result, index) => {
+                                                // Use fuzzy matching to find the closest matches
+                                                const matchedCommodity = findClosestMatch(result.commodity, data.commodities) || result.commodity;
+                                                const matchedPickup = findClosestMatch(result.pickup, [
+                                                    ...data.pickupPoints,
+                                                    ...Object.values(data.Dropoffpoints).flat(),
+                                                    ...Object.values(data.moons).flatMap(moon => Object.values(moon)).flat()
+                                                ]) || result.pickup;
+                                                const matchedDropoff = findClosestMatch(result.dropoff, [
+                                                    ...data.pickupPoints,
+                                                    ...Object.values(data.Dropoffpoints).flat(),
+                                                    ...Object.values(data.moons).flatMap(moon => Object.values(moon)).flat()
+                                                ]) || result.dropoff;
+
+                                                // Check if the matches are valid
+                                                const isValidCommodity = data.commodities.includes(matchedCommodity);
+                                                const isValidPickup = data.pickupPoints.includes(matchedPickup) || 
+                                                    Object.values(data.Dropoffpoints).flat().includes(matchedPickup) ||
+                                                    Object.values(data.moons).flatMap(moon => Object.values(moon)).flat().includes(matchedPickup);
+                                                const isValidDropoff = data.pickupPoints.includes(matchedDropoff) || 
+                                                    Object.values(data.Dropoffpoints).flat().includes(matchedDropoff) ||
+                                                    Object.values(data.moons).flatMap(moon => Object.values(moon)).flat().includes(matchedDropoff);
+
+                                                return (
+                                                    <tr key={index}>
+                                                        <td style={{ color: isValidCommodity ? 'inherit' : 'red' }}>
+                                                            {matchedCommodity}
+                                                        </td>
+                                                        <td>
+                                                            {editedQuantities[index] !== undefined ? (
+                                                                <input
+                                                                    type="text"
+                                                                    value={editedQuantities[index]}
+                                                                    onChange={(e) => handleQuantityEdit(index, e.target.value)}
+                                                                    onKeyPress={(e) => {
+                                                                        if (e.key === 'Enter') {
+                                                                            saveQuantityEdit(index);
+                                                                        }
+                                                                    }}
+                                                                    style={{ 
+                                                                        width: '50px',
+                                                                        border: '1px solid #ccc',
+                                                                        padding: '2px',
+                                                                        borderRadius: '3px'
+                                                                    }}
+                                                                    autoFocus
+                                                                />
+                                                            ) : (
+                                                                <span 
+                                                                    onClick={() => handleQuantityEdit(index, result.quantity)}
+                                                                    style={{ 
+                                                                        cursor: 'pointer', 
+                                                                        textDecoration: 'underline',
+                                                                        padding: '2px 5px'
+                                                                    }}
+                                                                >
+                                                                    {result.quantity}
+                                                                </span>
+                                                            )}
+                                                        </td>
+                                                        <td style={{ color: isValidPickup ? 'inherit' : 'red' }}>
+                                                            {matchedPickup}
+                                                        </td>
+                                                        <td style={{ color: isValidDropoff ? 'inherit' : 'red' }}>
+                                                            {matchedDropoff}
+                                                        </td>
+                                                    </tr>
+                                                );
+                                            })}
+                                        </tbody>
+                                    </table>
+                                </>
+                            )}
+                        </div>
                     </div>
                 )}
                 {activeTab === 'Hauling Missions' && (
                     <div className="hauling-missions">
                         <div className="form-row">
                             <div className="form-group">
-                                <label>Pickup Point</label> {/* Renamed from First Dropdown */}
+                                <label>Pickup Point</label>
                                 <Select
                                     components={{ DropdownIndicator: null, IndicatorSeparator: null }}
                                     options={pickupPointOptions}
@@ -2026,7 +2629,7 @@ const App = () => {
                                 />
                             </div>
                             <div className="form-group">
-                                <label>Quick Lookup</label> {/* Renamed from Second Dropdown */}
+                                <label>Quick Lookup</label>
                                 <Select
                                     components={{ DropdownIndicator: null, IndicatorSeparator: null }}
                                     options={quickLookupOptions}
@@ -2172,8 +2775,17 @@ const App = () => {
                             </div>
                             <div className="form-group button-group">
                                 <button className="add-entry-button" onClick={addEntry}>Add Entry</button>
-                                <button className="clear-log-button" onClick={clearLog}>Clear Log</button>
-                                <button className="table-view-button" onClick={toggleTableView}>Table View</button>
+                                <button className="process-orders-button" onClick={processOrders}>Process Orders</button>
+                                <button className="table-view-button" onClick={toggleTableView}>
+                                    {isAlternateTable ? 'Manifest' : 'Missions'}
+                                </button>
+                                <button
+                                    className="clear-log-button"
+                                    onClick={clearLog}
+                                    style={{ backgroundColor: needsClearConfirmation ? '#ff3333' : '#ff6666' }}
+                                >
+                                    {needsClearConfirmation ? 'Confirm Clear' : 'Clear Log'}
+                                </button>
                                 <div className="scu-container">
                                     <span className="scu-label">SCU<br/>TOTAL</span>
                                 </div>
@@ -2202,12 +2814,7 @@ const App = () => {
                                                 </thead>
                                                 <tbody>
                                                     {missionEntries[missionIndex].map((entry, index) => (
-                                                        <tr key={index}>
-                                                            <td>{entry.dropOffPoint}</td>
-                                                            <td>{entry.commodity}</td>
-                                                            <td>{entry.currentAmount}/{entry.originalAmount}</td>
-                                                            <td>{entry.status}</td>
-                                                        </tr>
+                                                        <tr key={index}><td>{entry.dropOffPoint}</td><td>{entry.commodity}</td><td>{entry.currentAmount}/{entry.originalAmount}</td><td>{entry.status}</td></tr>
                                                     ))}
                                                 </tbody>
                                             </table>
@@ -2246,15 +2853,19 @@ const App = () => {
                                                 <tbody>
                                                     {entries.filter(entry => entry.dropOffPoint === dropOffPoint).map((entry, index) => (
                                                         <tr key={index}>
-                                                            <td className="pickup">{entry.pickupPoint}</td> {/* Display selected pickup point per commodity */}
+                                                            <td className="pickup">{entry.pickupPoint}</td>
                                                             <td className="commodity">{entry.commodity}</td>
                                                             <td className="amount">{entry.currentAmount}/{entry.originalAmount}</td>
                                                             <td className="actions">
-                                                                <input type="text" defaultValue={entry.currentAmount} size="10" onBlur={(e) => handleAmountChange(index, e.target.value)} onKeyPress={(e) => handleAmountKeyPress(e, index)} />
+                                                                <input type="text" defaultValue={entry.currentAmount} size="10" 
+                                                                       onBlur={(e) => handleAmountChange(index, e.target.value)} 
+                                                                       onKeyPress={(e) => handleAmountKeyPress(e, index)} />
                                                                 <button onClick={() => updateCargo(index, entry.currentAmount)}>Update Cargo</button>
-                                                                <button className="remove-cargo-button" onClick={() => removeCargo(index)} style={{ color: 'black' }}>Remove Cargo</button>
+                                                                <button className="remove-cargo-button" onClick={() => removeCargo(index)}>Remove Cargo</button>
                                                             </td>
-                                                            <td className="status" style={{ color: entry.status === 'Delivered' ? 'green' : 'inherit' }}>{entry.status}</td>
+                                                            <td className="status" style={{ color: entry.status === 'Delivered' ? 'green' : 'inherit' }}>
+                                                                {entry.status}
+                                                            </td>
                                                         </tr>
                                                     ))}
                                                 </tbody>
@@ -2308,7 +2919,7 @@ const App = () => {
                                 </div>
                             </div>
                             <div className="preferences-box location-box">
-                                <h3>Location</h3>
+                                <h3>General</h3>
                                 <div className="form-group" style={{ marginBottom: '15px' }}>
                                     <label>Dropdown Label Color</label>
                                     <div style={{ display: 'flex', alignItems: 'center' }}>
@@ -2337,16 +2948,199 @@ const App = () => {
                                         <button onClick={resetTitleColor} style={{ marginLeft: '10px' }}>Reset</button>
                                     </div>
                                 </div>
+                                <div className="form-group" style={{ marginBottom: '15px' }}>
+                                    <label>Font</label>
+                                    <Select
+                                        options={fontOptions}
+                                        value={fontOptions.find(option => option.value === selectedFont)}
+                                        onChange={(selectedOption) => setSelectedFont(selectedOption.value)}
+                                        className="font-select"
+                                        classNamePrefix="react-select"
+                                        styles={customStyles}
+                                    />
+                                </div>
+                            </div>
+                            <div className="preferences-box new-group-box">
+                                <h3>Data Management</h3>
+                                <div className="form-group" style={{ marginBottom: '15px' }}>
+                                    <label htmlFor="file-upload">Import Data</label>
+                                    <input 
+                                        id="file-upload" 
+                                        type="file" 
+                                        accept=".json,.csv,.xls,.xlsx" 
+                                        onChange={handleImport} 
+                                    />
+                                </div>
+                                <div className="form-group" style={{ marginBottom: '15px' }}>
+                                    <button 
+                                        className="export-data-button" 
+                                        onClick={() => handleExport('history')} 
+                                        style={{ display: 'block', marginTop: '10px' }}
+                                    >
+                                        Export History
+                                    </button>
+                                    <button 
+                                        className="export-data-button" 
+                                        onClick={() => handleExport('payouts')} 
+                                        style={{ display: 'block', marginTop: '10px' }}
+                                    >
+                                        Export Payouts
+                                    </button>
+                                </div>
+                                <div className="form-group" style={{ marginBottom: '15px' }}>
+                                    <button 
+                                        className="clear-history-log-button" 
+                                        onClick={clearHistoryLogDebug} 
+                                        style={{ 
+                                            display: 'block', 
+                                            marginTop: '10px',
+                                            backgroundColor: needsHistoryClearConfirmation ? '#ff3333' : '#ff6666'
+                                        }}
+                                    >
+                                        {needsHistoryClearConfirmation ? 'Confirm Clear' : 'Clear History Log'}
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
                 )}
-                {activeTab === 'Test Features' && (
-                    <div className="test-features">
-                        <TestFeatures />
+                {activeTab === 'History' && (
+                    <div className="history-container">
+                        <div className="history-group-box">
+                            {Object.keys(historyEntries.reduce((acc, entry) => {
+                                const date = new Date(entry.timestamp).toLocaleDateString();
+                                acc[date] = true;
+                                return acc;
+                            }, {})).map(date => (
+                                <div key={date} className="history-date-group">
+                                    <div
+                                        className="history-date-header"
+                                        onClick={() => toggleCollapse(date)}
+                                    >
+                                        <span>{date}</span>
+                                        <span>{collapsed[date] ? '▲' : '▼'}</span>
+                                    </div>
+                                    {!collapsed[date] && (
+                                        <div className="commodity-group">
+                                            {Object.entries(
+                                                historyEntries
+                                                    .filter(entry => new Date(entry.timestamp).toLocaleDateString() === date)
+                                                    .reduce((acc, group) => {
+                                                        if (!acc[group.dropOffPoint]) {
+                                                            acc[group.dropOffPoint] = [];
+                                                        }
+                                                        group.entries.forEach(entry => {
+                                                            acc[group.dropOffPoint].push({
+                                                                ...entry,
+                                                                dropOffPoint: group.dropOffPoint
+                                                            });
+                                                        });
+                                                        return acc;
+                                                    }, {})
+                                            ).map(([dropOffPoint, entries]) => (
+                                                <div key={dropOffPoint} className="commodity-group">
+                                                    <div 
+                                                        className="commodity-header" 
+                                                        onClick={() => toggleCollapse(dropOffPoint)}
+                                                    >
+                                                        <span>{dropOffPoint}</span>
+                                                        <span>{collapsed[dropOffPoint] ? '▲' : '▼'}</span>
+                                                    </div>
+                                                    {!collapsed[dropOffPoint] && (
+                                                        <table className="history-table">
+                                                            <thead>
+                                                                <tr>
+                                                                    <th>Commodity</th>
+                                                                    <th>QTY (Current/Original)</th>
+                                                                </tr>
+                                                            </thead>
+                                                            <tbody>
+                                                                {entries.map((entry, index) => (
+                                                                    <tr key={index}>
+                                                                        <td>{entry.commodity}</td>
+                                                                        <td>{entry.currentAmount}/{entry.originalAmount}</td>
+                                                                    </tr>
+                                                                ))}
+                                                            </tbody>
+                                                        </table>
+                                                    )}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
                     </div>
                 )}
-                {/* Add content for other tabs here */}
+                {activeTab === 'Payouts' && (
+                    <div className="payouts-container">
+                        <div className="payouts-group-box">
+                            {Object.keys(historyEntries.reduce((acc, entry) => {
+                                const date = new Date(entry.timestamp).toLocaleDateString();
+                                acc[date] = true;
+                                return acc;
+                            }, {})).map(date => (
+                                <div key={date} className="payouts-date-group">
+                                    <div
+                                        className="payouts-date-header"
+                                        onClick={() => toggleCollapse(date)}
+                                    >
+                                        <span>{date}</span>
+                                        <span>{collapsed[date] ? '▲' : '▼'}</span>
+                                    </div>
+                                    {!collapsed[date] && (
+                                        <>
+                                            {historyEntries
+                                                .filter(entry => new Date(entry.timestamp).toLocaleDateString() === date)
+                                                .map((group, index) => (
+                                                    <div key={index} className="payouts-mission-group">
+                                                        <div
+                                                            className="payouts-mission-header"
+                                                            onClick={() => toggleCollapse(`${date}-${index}`)}
+                                                        >
+                                                            <span>Mission {index + 1}</span>
+                                                            <input
+                                                                type="text"
+                                                                className="mission-reward-input"
+                                                                placeholder="Enter reward"
+                                                                value={missionRewards[`${date}-${index}`] || ''}
+                                                                onChange={(e) => handleRewardChange(`${date}-${index}`, e.target.value)}
+                                                                onClick={(e) => e.stopPropagation()}
+                                                            />
+                                                            <span>{collapsed[`${date}-${index}`] ? '▲' : '▼'}</span>
+                                                        </div>
+                                                        {!collapsed[`${date}-${index}`] && (
+                                                            <table className="payouts-table">
+                                                                <thead>
+                                                                    <tr>
+                                                                        <th>Pickup</th>
+                                                                        <th>Drop Off</th>
+                                                                        <th>Commodity</th>
+                                                                        <th>QTY</th>
+                                                                    </tr>
+                                                                </thead>
+                                                                <tbody>
+                                                                    {group.entries.map((entry, idx) => (
+                                                                        <tr key={idx}>
+                                                                            <td>{entry.pickupPoint}</td>
+                                                                            <td>{entry.dropOffPoint}</td>
+                                                                            <td>{entry.commodity}</td>
+                                                                            <td>{entry.currentAmount}/{entry.originalAmount}</td>
+                                                                        </tr>
+                                                                    ))}
+                                                                </tbody>
+                                                            </table>
+                                                        )}
+                                                    </div>
+                                                ))}
+                                        </>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     );
@@ -2354,3 +3148,8 @@ const App = () => {
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(<App />);
+
+// Remove any text glow effects being applied via JavaScript
+document.querySelectorAll('*').forEach(element => {
+    element.style.textShadow = 'none';
+});

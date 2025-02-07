@@ -1,14 +1,14 @@
 {
-  "name": "sc-cargo-tracker",
+  "name": "sc-cargo-tracker-react",
   "version": "1.0.0",
-  "homepage": "https://sloshza.github.io/SC-Cargo-Tracker/",
-  "source": "index/index.html",
+  "homepage": "https://sloshza.github.io/SC-Tracker-React/",
+  "source": "index.html",
   "scripts": {
-    "start": "parcel index/index.html",
+    "start": "parcel index.html",
     "clean": "if exist dist rd /s /q dist && if exist .parcel-cache rd /s /q .parcel-cache",
     "predeploy": "npm run clean && npm run build",
     "deploy": "gh-pages -d dist",
-    "build": "parcel build index/index.html --dist-dir dist --public-url ./",
+    "build": "parcel build index.html --dist-dir dist --public-url ./",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": ["star-citizen", "cargo-tracking", "gaming-tools", "react"],
@@ -38,6 +38,6 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/sloshza/SC-Cargo-Tracker"
+    "url": "https://github.com/sloshza/SC-Tracker-React"
   }
 }
