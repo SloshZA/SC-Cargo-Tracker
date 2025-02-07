@@ -1835,37 +1835,22 @@ const App = () => {
 
     const startVideoStream = async () => {
         try {
-            if (videoRef.current && videoRef.current.srcObject) {
-                // If there's an existing stream, re-enable it
-                videoRef.current.play();
-                videoRef.current.srcObject.getTracks().forEach(track => {
-                    track.enabled = true;
-                });
-            } else {
-                // Start new stream only if none exists
-                const stream = await navigator.mediaDevices.getDisplayMedia({
-                    video: {
-                        displaySurface: 'window',
-                        width: { ideal: 1280 },
-                        height: { ideal: 720 }
-                    }
-                });
-                if (videoRef.current) {
-                    videoRef.current.srcObject = stream;
-                    await videoRef.current.play();
+            const stream = await navigator.mediaDevices.getDisplayMedia({
+                video: {
+                    displaySurface: 'application' // Capture application window
                 }
+            });
+            if (videoRef.current) {
+                videoRef.current.srcObject = stream;
             }
         } catch (error) {
             console.error('Error accessing screen stream:', error);
-            setUseVideoStream(false); // Reset the toggle if stream fails
         }
     };
 
     const stopVideoStream = () => {
         if (videoRef.current && videoRef.current.srcObject) {
-            const tracks = videoRef.current.srcObject.getTracks();
-            tracks.forEach(track => track.stop());
-            videoRef.current.srcObject = null; // Clear the video source
+            videoRef.current.srcObject.getTracks().forEach(track => track.stop());
         }
     };
 
@@ -1996,20 +1981,9 @@ const App = () => {
             ]) || result.dropoff
         }));
         
-        // Separate valid and invalid entries
-        const validEntries = [];
-        const invalidEntries = [];
-        
-        correctedResults.forEach(entry => {
-            if (validateEntry(entry)) {
-                validEntries.push(entry);
-            } else {
-                invalidEntries.push(entry);
-            }
-        });
-        
+        // Then validate the corrected entries
+        const validEntries = correctedResults.filter(validateEntry);
         console.log('Valid entries:', validEntries);
-        console.log('Invalid entries:', invalidEntries);
         
         if (validEntries.length === 0) {
             console.log('No valid entries found');
@@ -2047,16 +2021,14 @@ const App = () => {
             localStorage.setItem('missionEntries', JSON.stringify(updatedMissionEntries));
         }
 
-        // Keep only invalid entries in OCR results
-        setOcrResults(invalidEntries);
+        // Clear the OCR results after adding to manifest
+        setOcrResults([]);
+        setCurrentParsedResults([]);
         
         // Update localStorage
         localStorage.setItem('entries', JSON.stringify([...entries, ...newEntries]));
         
-        showBannerMessage(
-            `${validEntries.length} valid entries added to manifest. ${invalidEntries.length} invalid entries remain.`, 
-            true
-        );
+        showBannerMessage(`${validEntries.length} valid entries added to manifest.`, true);
     };
 
     // Add this state variable at the top of the component
@@ -2093,34 +2065,12 @@ const App = () => {
 
     // Modify the handleTabChange function
     const handleTabChange = (tab) => {
-        // If switching away from Capture tab, hide the video but keep it running
-        if (activeTab === 'Capture' && tab !== 'Capture' && useVideoStream) {
-            if (videoRef.current) {
-                videoRef.current.style.display = 'none';
-                // Keep the stream running but hide the container
-                const container = videoRef.current.parentElement;
-                if (container) {
-                    container.style.display = 'none';
-                }
-            }
-        }
-        
-        // If switching to Capture tab and stream was active, show the video
-        if (tab === 'Capture' && activeTab !== 'Capture' && useVideoStream) {
-            if (videoRef.current) {
-                videoRef.current.style.display = 'block';
-                // Show the container
-                const container = videoRef.current.parentElement;
-                if (container) {
-                    container.style.display = 'block';
-                }
-            } else {
-                // If no stream exists, start a new one
-                startVideoStream();
-            }
-        }
-        
         setActiveTab(tab);
+        
+        // Only stop the video stream if explicitly toggled off
+        if (!useVideoStream) {
+            stopVideoStream();
+        }
     };
 
     // Add these state variables at the top of the component
