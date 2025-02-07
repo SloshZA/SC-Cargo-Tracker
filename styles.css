@@ -1580,8 +1580,8 @@ input.second-dropdown {
 
 .video-container {
     position: relative;
-    width: 100%;
-    max-width: 800px;
+    width: 120%; /* Increased from 100% to 120% */
+    max-width: 960px; /* Increased from 800px to 960px */
     margin: 0 auto;
     border: 2px solid var(--table-outline-color);
     border-radius: 5px;
@@ -1590,7 +1590,7 @@ input.second-dropdown {
 }
 
 .video-container video {
-    width: 100%;
+    width: 120%; /* Increased from 100% to 120% */
     height: auto;
     display: block;
 }
@@ -1627,13 +1627,31 @@ input.second-dropdown {
     font-family: 'Orbitron', sans-serif;
 }
 
-/* Remove any text-shadow properties that create glow effects */
-h1, h2, h3, h4, h5, h6, p, span, a {
+/* Remove text shadows globally */
+* {
     text-shadow: none !important;
 }
 
-/* If there are specific classes with glow effects, remove them */
-.glow-text, .text-glow, .glowing-text {
+/* Specific overrides for common text elements */
+h1, h2, h3, h4, h5, h6, p, span, a, div, label, input, select, button, td, th {
+    text-shadow: none !important;
+}
+
+/* Remove any glow effects from custom classes */
+.glow-text, .text-glow, .glowing-text, .title, .header-text, .dropdown-text {
+    text-shadow: none !important;
+}
+
+/* Remove any text effects from table elements */
+.table th, .table td, 
+.history-table th, .history-table td,
+.payouts-table th, .payouts-table td {
+    text-shadow: none !important;
+}
+
+/* Remove text effects from form elements */
+.form-group label, .form-group input,
+.react-select__single-value, .react-select__option {
     text-shadow: none !important;
 }
 
