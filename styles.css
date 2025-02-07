@@ -1,4 +1,5 @@
-z:root {
+/* Root Variables */
+:root {
     --dropdown-label-color: #00ffcc;
     --dropdown-text-color: #00ffcc;
     --button-color: #00ffcc;
@@ -9,11 +10,11 @@ z:root {
     --commodity-text-color: #00ffcc;
     --amount-text-color: #00ffcc;
     --row-text-color: #00ffcc;
-    --mission-text-color: #00ffcc; /* Add this line */
-    --table-outline-color: #00ffcc; /* Add this line */
+    --mission-text-color: #00ffcc;
+    --table-outline-color: #00ffcc;
 }
 
-
+/* Base Styles */
 body {
     font-family: 'Orbitron', sans-serif;
     margin: 0;
@@ -21,11 +22,12 @@ body {
     background-color: #0d0d0d;
     color: #00ffcc;
     transition: background-color 0.3s, color 0.3s;
-    width: 1200px; /* Set specific width */
-    height: 800px; /* Set specific height */
-    margin: 0 auto; /* Center the page horizontally */
+    width: 1200px;
+    height: 800px;
+    margin: 0 auto;
 }
 
+/* Header Styles */
 header {
     display: flex;
     justify-content: space-between;
@@ -42,11 +44,12 @@ header h1 {
     color: var(--title-color);
 }
 
+/* Button Styles */
 button {
     background-color: var(--button-color);
     color: #0d0d0d;
     border: none;
-    padding: 7px 20px; /* Reduce height by 70% */
+    padding: 7px 20px;
     cursor: pointer;
     font-size: 16px;
     border-radius: 5px;
@@ -91,8 +94,8 @@ button:hover {
 
 .clear-log-button {
     background-color: #ff6666;
-    width: 150px; /* Add width */
-    height: 35px; /* Add height */
+    width: 150px;
+    height: 35px;
 }
 
 .clear-log-button:hover {
@@ -101,8 +104,9 @@ button:hover {
 
 .process-orders-button {
     background-color: var(--button-color);
-    width: 150px;
+    width: 180px;
     height: 35px;
+    flex-wrap: nowrap;
 }
 
 .process-orders-button:hover {
@@ -111,8 +115,8 @@ button:hover {
 
 .scu-group {
     display: flex;
-    flex-direction: row; /* Ensure input is in a row */
-    align-items: center; /* Align items horizontally */
+    flex-direction: row;
+    align-items: center;
     gap: 5px;
 }
 
@@ -120,9 +124,9 @@ button:hover {
     color: #00ffcc;
     font-size: 16px;
     text-wrap: wrap;
-    margin-left: 10px; /* Add some space between the button and the label */
+    margin-left: 10px;
     align-items: center;
-    white-space: pre-wrap; /* Ensure text wraps */
+    white-space: pre-wrap;
 }
 
 .scu-total {
@@ -133,7 +137,7 @@ button:hover {
 
 .scu-input {
     width: 30px;
-    background-color: #333; /* Make the input box non-interactable */
+    background-color: #333;
     color: #00ffcc;
     border: 1px solid #333;
     border-radius: 5px;
@@ -141,13 +145,13 @@ button:hover {
 }
 
 .amount-input {
-    width: 30px; /* Add width */
+    width: 30px;
     height: 20px;
-    background-color: #333; /* Background color */
-    color: #00ffcc; /* Text color */
-    border: 1px solid #333; /* Border color */
-    border-radius: 5px; /* Border radius */
-    padding: 10px; /* Padding */
+    background-color: #333;
+    color: #00ffcc;
+    border: 1px solid #333;
+    border-radius: 5px;
+    padding: 10px;
 }
 
 .dark-mode {
@@ -205,23 +209,24 @@ p {
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 
+/* Form Elements */
 .form-group {
     display: flex;
     flex-direction: column;
     gap: 5px;
-    align-items: center; /* Center align items */
+    align-items: center;
 }
 
 .form-group label:not(.preferences label) {
     color: var(--dropdown-label-color);
-    text-align: center; /* Center text */
+    text-align: center;
 }
 
 .form-group label[for="location-type"] {
     white-space: nowrap;
 }
 
-/* Styles for Location Type dropdown */
+/* Dropdown Styles */
 select.location-type {
     width: 85px;
     background-color: #333;
@@ -237,7 +242,6 @@ select.location-type option {
     white-space: nowrap;
 }
 
-/* Styles for Location dropdown */
 select.location {
     width: 110px;
     background-color: #333;
@@ -248,7 +252,6 @@ select.location {
     font-family: 'Orbitron', sans-serif;
 }
 
-/* Styles for Moon dropdown */
 select.moon {
     width: 110px;
     background-color: #333;
@@ -259,7 +262,6 @@ select.moon {
     font-family: 'Orbitron', sans-serif;
 }
 
-/* Styles for Drop off points dropdown */
 select.drop-off {
     width: 300px;
     background-color: #333;
@@ -270,7 +272,6 @@ select.drop-off {
     font-family: 'Orbitron', sans-serif;
 }
 
-/* Styles for Commodity dropdown */
 select.commodity {
     width: 120px;
     background-color: #333;
@@ -281,7 +282,6 @@ select.commodity {
     font-family: 'Orbitron', sans-serif;
 }
 
-/* Styles for First Dropdown */
 select.first-dropdown {
     width: 110px;
     background-color: #333;
@@ -292,7 +292,6 @@ select.first-dropdown {
     font-family: 'Orbitron', sans-serif;
 }
 
-/* Styles for Second Dropdown */
 select.second-dropdown {
     width: 110px;
     background-color: #333;
@@ -303,7 +302,6 @@ select.second-dropdown {
     font-family: 'Orbitron', sans-serif;
 }
 
-/* Styles for Planet dropdown */
 select.planet {
     width: 110px;
     background-color: #333;
@@ -314,12 +312,10 @@ select.planet {
     font-family: 'Orbitron', sans-serif;
 }
 
-/* Styles for selectable options */
 .selectable-option {
-    padding-right: 10px; /* Add padding to the right */
+    padding-right: 10px;
 }
 
-/* Styles for First Dropdown Search Bar */
 input.first-dropdown {
     width: 110px;
     background-color: #333;
@@ -328,10 +324,9 @@ input.first-dropdown {
     border-radius: 5px;
     padding: 10px;
     font-family: 'Orbitron', sans-serif;
-    margin-bottom: 5px; /* Add margin to separate from dropdown */
+    margin-bottom: 5px;
 }
 
-/* Styles for Second Dropdown Search Bar */
 input.second-dropdown {
     width: 110px;
     background-color: #333;
@@ -340,7 +335,7 @@ input.second-dropdown {
     border-radius: 5px;
     padding: 10px;
     font-family: 'Orbitron', sans-serif;
-    margin-bottom: 5px; /* Add margin to separate from dropdown */
+    margin-bottom: 5px;
 }
 
 .form-row {
@@ -351,19 +346,18 @@ input.second-dropdown {
 
 .button-group {
     display: flex;
-    width: 700px;
+    width: 750px;
     gap: 10px;
-    padding: 10px; /* Adjust padding */
+    padding: 10px;
     margin-left: 10px;
     margin-top: 20px;
     background-color: #1a1a1a;
     border: 1px solid #333;
     border-radius: 10px;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-    flex-direction: row; /* Ensure buttons are in a row */
-    flex-wrap: wrap; /* Allow wrapping */
-    align-items: center; /* Center align items */
-    
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
 }
 
 .actions {
@@ -375,7 +369,7 @@ input.second-dropdown {
     background-color: var(--button-color);
     color: #0d0d0d;
     border: none;
-    padding: 7px 20px; /* Reduce height by 70% */
+    padding: 7px 20px;
     cursor: pointer;
     font-size: 16px;
     border-radius: 5px;
@@ -398,24 +392,23 @@ input.second-dropdown {
 
 .actions .form-group input {
     width: 100px;
-    background-color: #333; /* Make the input box non-interactable */
+    background-color: #333;
     color: #00ffcc;
 }
 
 .scu-container {
     display: flex;
-    flex-direction: column; /* Stack items vertically */
-    align-items: center; /* Center align items */
-    text-align: center; /* Center text */
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
     gap: 5px;
 }
 
 .scu-label {
     color: #00ffcc;
     font-size: 15px;
-    margin-left: 10px; /* Add some space between the button and the label */
-    white-space: pre-wrap; /* Ensure text wraps */
-
+    margin-left: 10px;
+    white-space: pre-wrap;
 }
 
 .scu-total {
@@ -423,49 +416,49 @@ input.second-dropdown {
     font-size: 14px;
 }
 
-/* ...existing code... */
-
+/* Table Styles */
 .table-container {
     margin-top: 20px;
     overflow-x: auto;
-    border-radius: 10px; /* Add rounded edges to the container */
+    border-radius: 10px;
 }
 
 .table {
     width: 100%;
-    border-collapse: separate; /* Change to separate to allow border-radius */
+    border-collapse: separate;
     background-color: #1a1a1a;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-    border: 1px solid var(--table-outline-color); /* Update this line */
-    border-radius: 10px; /* Add rounded edges */
-    overflow: hidden; /* Ensure rounded corners are visible */
+    border: 1px solid var(--table-outline-color);
+    border-radius: 10px;
+    overflow: hidden;
 }
 
 .table th, .table td {
     padding: 10px;
     text-align: left;
-    border: 1px solid var(--table-outline-color); /* Update this line */
+    border: 1px solid var(--table-outline-color);
 }
 
 .table th.pickup, .table td.pickup {
     width: 370px;
-    font-size: 14px; /* Set text size */
+    font-size: 14px;
     text-align: center;
     color: var(--pickup-text-color);
-    padding: 5px; /* Reduce padding */
+    padding: 5px;
 }
 
 .table th.commodity, .table td.commodity {
-    width: 160px !important; /* Added !important to override any conflicting styles */    text-align: center;
+    width: 160px !important;
+    text-align: center;
     color: var(--commodity-text-color);
-    white-space: nowrap; /* Prevents text wrapping */
-    overflow: hidden; /* Hides overflow text */
-    text-overflow: ellipsis; /* Adds ... for overflow text */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .table th.amount, .table td.amount {
     width: 80px;
-    font-size: 14px; /* Set text size */
+    font-size: 14px;
     text-align: center;
     color: var(--amount-text-color);
 }
@@ -477,7 +470,6 @@ input.second-dropdown {
 .table th.status, .table td.status {
     width: 90px;
     text-align: center;
-    
 }
 
 .table td:not(.status):not(.actions) {
@@ -502,7 +494,7 @@ input.second-dropdown {
     border: none;
     padding: 5px 10px;
     cursor: pointer;
-    font-size: 13px; /* Reduce text size */
+    font-size: 13px;
     border-radius: 5px;
     transition: background-color 0.3s, color 0.3s;
 }
@@ -512,27 +504,26 @@ input.second-dropdown {
 }
 
 .table .actions .remove-cargo-button {
-    background-color: #ff6666; /* Change to red */
-    color: #0d0d0d; /* Change text color to black */
-    font-size: 12px; /* Reduce text size */
+    background-color: #ff6666;
+    color: #0d0d0d;
+    font-size: 12px;
 }
 
 .table .actions .remove-cargo-button:hover {
-    background-color: #ff3333; /* Change to darker red */
+    background-color: #ff3333;
 }
-
-/* ...existing code... */
 
 .table .actions input[type="text"] {
-    width: 40px; /* Set width */
-    background-color: #333; /* Background color */
-    color: #00ffcc; /* Text color */
-    border: 1px solid #333; /* Border color */
-    border-radius: 5px; /* Border radius */
-    padding: 5px; /* Padding */
-    font-family: 'Orbitron', sans-serif; /* Font family */
+    width: 40px;
+    background-color: #333;
+    color: #00ffcc;
+    border: 1px solid #333;
+    border-radius: 5px;
+    padding: 5px;
+    font-family: 'Orbitron', sans-serif;
 }
 
+/* Header Components */
 .drop-off-header {
     padding: 10px;
     background-color: #1a1a1a;
@@ -544,13 +535,13 @@ input.second-dropdown {
     justify-content: space-between;
     align-items: center;
     color: var(--drop-off-header-text-color);
-    transition: background-color 0.3s, color 0.3s; /* Add transition for smooth color change */
-    font-size: 20px; /* Increase text size */
+    transition: background-color 0.3s, color 0.3s;
+    font-size: 20px;
 }
 
 .drop-off-header:hover {
     background-color: #333;
-    color: #00cc99; /* Change text color on hover */
+    color: #00cc99;
 }
 
 .drop-off-header .left-box {
@@ -603,20 +594,18 @@ input.second-dropdown {
     background-color: #00cc99;
 }
 
-/* ...existing code... */
-
+/* Checkbox Group */
 .checkbox-group {
     display: flex;
     flex-wrap: wrap;
     gap: 5px;
-    margin-left: 70px; /* Add extra 20px space on the left */
+    margin-left: 70px;
     margin-top: -50px;
     margin-bottom: -20px;
-    border: 1px solid #00ffcc; /* Add border */
-    padding: 10px; /* Add padding */
-    border-radius: 5px; /* Add border radius */
+    border: 1px solid #00ffcc;
+    padding: 10px;
+    border-radius: 5px;
     width: 210px;
-
 }
 
 .checkbox-group .column {
@@ -626,19 +615,19 @@ input.second-dropdown {
 }
 
 .checkbox-group label {
-    color: var(--mission-text-color); /* Update this line */
+    color: var(--mission-text-color);
     font-size: 14px;
-    position: relative; /* Add position relative for tooltip */
+    position: relative;
 }
 
 .checkbox-group label:hover .tooltip {
-    display: block; /* Show tooltip on hover */
+    display: block;
 }
 
 .tooltip {
-    display: none; /* Hide tooltip by default */
+    display: none;
     position: absolute;
-    right: 100%; /* Display to the left */
+    right: 100%;
     top: 0;
     background-color: #1a1a1a;
     color: #00ffcc;
@@ -646,16 +635,14 @@ input.second-dropdown {
     padding: 10px;
     border-radius: 5px;
     z-index: 10;
-    width: 700px; /* Increase width for the tooltip */
-    max-height: 500px; /* Increase maximum height for the tooltip */
-    min-height: 50px; /* Ensure minimum height to show column headers */
-    overflow: auto; /* Add scroll if content overflows */
-    transition: height 0.3s ease; /* Smooth transition for height */
+    width: 700px;
+    max-height: 500px;
+    min-height: 50px;
+    overflow: auto;
+    transition: height 0.3s ease;
 }
 
-/* ...existing code... */
-
-/* Styles for React Select */
+/* React Select Custom Styles */
 .react-select__control {
     background-color: #333;
     border: 1px solid #333;
@@ -663,7 +650,7 @@ input.second-dropdown {
     padding: 5px;
     font-family: 'Orbitron', sans-serif;
     color: var(--dropdown-text-color);
-    font-size: 14px; /* Add text size */
+    font-size: 14px;
 }
 
 .react-select__menu {
@@ -688,7 +675,6 @@ input.second-dropdown {
     color: var(--dropdown-text-color);
 }
 
-/* Specific styles for each dropdown */
 .first-dropdown-select .react-select__control {
     width: 350px;
 }
@@ -718,45 +704,37 @@ input.second-dropdown {
     width: 154px;
 }
 
-/* Styles for Station dropdown */
 .station-select .react-select__control {
     width: 119px;
     margin-left: -20px;
 }
 
-/* ...existing code... */
-
 .react-select__menu-list {
-    scrollbar-width: none; /* For Firefox */
-    -ms-overflow-style: none; /* For Internet Explorer and Edge */
+    scrollbar-width: none;
+    -ms-overflow-style: none;
 }
 
 .react-select__menu-list::-webkit-scrollbar {
-    display: none; /* For Chrome, Safari, and Opera */
+    display: none;
 }
-
-/* ...existing code... */
 
 .react-select__input input {
-    color: white; /* Set text color to white */
+    color: white;
 }
 
-/* ...existing code... */
-
+/* Preferences Panel */
 .preferences {
-    color: #00ffcc; /* Set a fixed color for text under Preferences tab */
-    text-align: left; /* Align text to the left */
+    color: #00ffcc;
+    text-align: left;
 }
 
 .preferences .form-group {
-    align-items: flex-start; /* Align form groups to the left */
+    align-items: flex-start;
 }
 
 .preferences input[type="color"] {
     margin-left: 10px;
 }
-
-/* ...existing code... */
 
 .preferences-box {
     width: 250px;
@@ -775,11 +753,9 @@ input.second-dropdown {
 }
 
 .preferences-box h3 {
-    border-bottom: 2px solid #00ffcc; /* Add underline */
-    padding-bottom: 5px; /* Add some space between the text and the underline */
+    border-bottom: 2px solid #00ffcc;
+    padding-bottom: 5px;
 }
-
-/* ...existing code... */
 
 .preferences-container {
     background-color: #1a1a1a;
@@ -789,10 +765,11 @@ input.second-dropdown {
     margin-bottom: 20px;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
     display: flex;
-    flex-direction: row; /* Change to row to position boxes side by side */
+    flex-direction: row;
     gap: 20px;
 }
 
+/* Banner and Notifications */
 .banner {
     background-color: #ff6666;
     color: #0d0d0d;
@@ -816,8 +793,6 @@ input.second-dropdown {
         transform: translateY(0);
     }
 }
-
-/* ...existing code... */
 
 .location-box {
     background-color: #2a2a2a;
@@ -850,7 +825,7 @@ input.second-dropdown {
     border-color: #00cc99;
 }
 
-/* History Table Styles */
+/* History Section */
 .history-container {
     padding: 20px;
     background-color: #1a1a1a;
@@ -954,7 +929,6 @@ input.second-dropdown {
     background-color: #333;
 }
 
-/* Responsive adjustments */
 @media (max-width: 768px) {
     .history-date-header {
         font-size: 16px;
@@ -972,21 +946,20 @@ input.second-dropdown {
     }
 }
 
-/* ...existing code... */
 .preferences-box input[type="file"] {
-    display: none; /* Hide the default file input */
+    display: none;
 }
 
 .preferences-box label[for="file-upload"] {
     background-color: var(--button-color);
     color: #0d0d0d;
     border: none;
-    padding: 7px 20px; /* Match other buttons */
+    padding: 7px 20px;
     cursor: pointer;
     font-size: 16px;
     border-radius: 5px;
     transition: background-color 0.3s, color 0.3s;
-    display: inline-block; /* Ensure it behaves like a button */
+    display: inline-block;
 }
 
 .preferences-box label[for="file-upload"]:hover {
@@ -994,7 +967,7 @@ input.second-dropdown {
 }
 
 .preferences-box button.export-data-button {
-    width: 180px; /* Increased width */
+    width: 180px;
     background-color: var(--button-color);
     color: #0d0d0d;
     border: none;
@@ -1026,262 +999,258 @@ input.second-dropdown {
     background-color: #ff3333;
 }
 
-/* ...existing code... */
-
 @media (max-width: 1090px) {
     body {
-        transform: scale(1); /* Scale to 100% */
-        transform-origin: top left; /* Keep the top left corner fixed */
-        transition: transform 0.3s ease; /* Smooth transition */
+        transform: scale(1);
+        transform-origin: top left;
+        transition: transform 0.3s ease;
     }
 }
 
 @media (max-width: 1080px) {
     body {
-        transform: scale(0.99); /* Scale to 99% */
-        transform-origin: top left; /* Keep the top left corner fixed */
-        transition: transform 0.3s ease; /* Smooth transition */
+        transform: scale(0.99);
+        transform-origin: top left;
+        transition: transform 0.3s ease;
     }
 }
 
 @media (max-width: 1070px) {
     body {
-        transform: scale(0.98); /* Scale to 98% */
-        transform-origin: top left; /* Keep the top left corner fixed */
-        transition: transform 0.3s ease; /* Smooth transition */
+        transform: scale(0.98);
+        transform-origin: top left;
+        transition: transform 0.3s ease;
     }
 }
 
 @media (max-width: 1060px) {
     body {
-        transform: scale(0.97); /* Scale to 97% */
-        transform-origin: top left; /* Keep the top left corner fixed */
-        transition: transform 0.3s ease; /* Smooth transition */
+        transform: scale(0.97);
+        transform-origin: top left;
+        transition: transform 0.3s ease;
     }
 }
 
 @media (max-width: 1050px) {
     body {
-        transform: scale(0.96); /* Scale to 96% */
-        transform-origin: top left; /* Keep the top left corner fixed */
-        transition: transform 0.3s ease; /* Smooth transition */
+        transform: scale(0.96);
+        transform-origin: top left;
+        transition: transform 0.3s ease;
     }
 }
 
 @media (max-width: 1040px) {
     body {
-        transform: scale(0.95); /* Scale to 95% */
-        transform-origin: top left; /* Keep the top left corner fixed */
-        transition: transform 0.3s ease; /* Smooth transition */
+        transform: scale(0.95);
+        transform-origin: top left;
+        transition: transform 0.3s ease;
     }
 }
 
 @media (max-width: 1030px) {
     body {
-        transform: scale(0.94); /* Scale to 94% */
-        transform-origin: top left; /* Keep the top left corner fixed */
-        transition: transform 0.3s ease; /* Smooth transition */
+        transform: scale(0.94);
+        transform-origin: top left;
+        transition: transform 0.3s ease;
     }
 }
 
 @media (max-width: 1020px) {
     body {
-        transform: scale(0.93); /* Scale to 93% */
-        transform-origin: top left; /* Keep the top left corner fixed */
-        transition: transform 0.3s ease; /* Smooth transition */
+        transform: scale(0.93);
+        transform-origin: top left;
+        transition: transform 0.3s ease;
     }
 }
 
 @media (max-width: 1010px) {
     body {
-        transform: scale(0.92); /* Scale to 92% */
-        transform-origin: top left; /* Keep the top left corner fixed */
-        transition: transform 0.3s ease; /* Smooth transition */
+        transform: scale(0.92);
+        transform-origin: top left;
+        transition: transform 0.3s ease;
     }
 }
 
 @media (max-width: 1000px) {
     body {
-        transform: scale(0.91); /* Scale to 91% */
-        transform-origin: top left; /* Keep the top left corner fixed */
-        transition: transform 0.3s ease; /* Smooth transition */
+        transform: scale(0.91);
+        transform-origin: top left;
+        transition: transform 0.3s ease;
     }
 }
 
 @media (max-width: 990px) {
     body {
-        transform: scale(0.90); /* Scale to 90% */
-        transform-origin: top left; /* Keep the top left corner fixed */
-        transition: transform 0.3s ease; /* Smooth transition */
+        transform: scale(0.90);
+        transform-origin: top left;
+        transition: transform 0.3s ease;
     }
 }
 
 @media (max-width: 980px) {
     body {
-        transform: scale(0.89); /* Scale to 89% */
-        transform-origin: top left; /* Keep the top left corner fixed */
-        transition: transform 0.3s ease; /* Smooth transition */
+        transform: scale(0.89);
+        transform-origin: top left;
+        transition: transform 0.3s ease;
     }
 }
 
 @media (max-width: 970px) {
     body {
-        transform: scale(0.88); /* Scale to 88% */
-        transform-origin: top left; /* Keep the top left corner fixed */
-        transition: transform 0.3s ease; /* Smooth transition */
+        transform: scale(0.88);
+        transform-origin: top left;
+        transition: transform 0.3s ease;
     }
 }
 
 @media (max-width: 960px) {
     body {
-        transform: scale(0.87); /* Scale to 87% */
-        transform-origin: top left; /* Keep the top left corner fixed */
-        transition: transform 0.3s ease; /* Smooth transition */
+        transform: scale(0.87);
+        transform-origin: top left;
+        transition: transform 0.3s ease;
     }
 }
 
 @media (max-width: 950px) {
     body {
-        transform: scale(0.86); /* Scale to 86% */
-        transform-origin: top left; /* Keep the top left corner fixed */
-        transition: transform 0.3s ease; /* Smooth transition */
+        transform: scale(0.86);
+        transform-origin: top left;
+        transition: transform 0.3s ease;
     }
 }
 
 @media (max-width: 940px) {
     body {
-        transform: scale(0.85); /* Scale to 85% */
-        transform-origin: top left; /* Keep the top left corner fixed */
-        transition: transform 0.3s ease; /* Smooth transition */
+        transform: scale(0.85);
+        transform-origin: top left;
+        transition: transform 0.3s ease;
     }
 }
 
 @media (max-width: 930px) {
     body {
-        transform: scale(0.84); /* Scale to 84% */
-        transform-origin: top left; /* Keep the top left corner fixed */
-        transition: transform 0.3s ease; /* Smooth transition */
+        transform: scale(0.84);
+        transform-origin: top left;
+        transition: transform 0.3s ease;
     }
 }
 
 @media (max-width: 920px) {
     body {
-        transform: scale(0.83); /* Scale to 83% */
-        transform-origin: top left; /* Keep the top left corner fixed */
-        transition: transform 0.3s ease; /* Smooth transition */
+        transform: scale(0.83);
+        transform-origin: top left;
+        transition: transform 0.3s ease;
     }
 }
 
 @media (max-width: 910px) {
     body {
-        transform: scale(0.82); /* Scale to 82% */
-        transform-origin: top left; /* Keep the top left corner fixed */
-        transition: transform 0.3s ease; /* Smooth transition */
+        transform: scale(0.82);
+        transform-origin: top left;
+        transition: transform 0.3s ease;
     }
 }
 
 @media (max-width: 900px) {
     body {
-        transform: scale(0.81); /* Scale to 81% */
-        transform-origin: top left; /* Keep the top left corner fixed */
-        transition: transform 0.3s ease; /* Smooth transition */
+        transform: scale(0.81);
+        transform-origin: top left;
+        transition: transform 0.3s ease;
     }
 }
 
 @media (max-width: 890px) {
     body {
-        transform: scale(0.80); /* Scale to 80% */
-        transform-origin: top left; /* Keep the top left corner fixed */
-        transition: transform 0.3s ease; /* Smooth transition */
+        transform: scale(0.80);
+        transform-origin: top left;
+        transition: transform 0.3s ease;
     }
 }
 
 @media (max-width: 880px) {
     body {
-        transform: scale(0.79); /* Scale to 79% */
-        transform-origin: top left; /* Keep the top left corner fixed */
-        transition: transform 0.3s ease; /* Smooth transition */
+        transform: scale(0.79);
+        transform-origin: top left;
+        transition: transform 0.3s ease;
     }
 }
 
 @media (max-width: 870px) {
     body {
-        transform: scale(0.78); /* Scale to 78% */
-        transform-origin: top left; /* Keep the top left corner fixed */
-        transition: transform 0.3s ease; /* Smooth transition */
+        transform: scale(0.78);
+        transform-origin: top left;
+        transition: transform 0.3s ease;
     }
 }
 
 @media (max-width: 860px) {
     body {
-        transform: scale(0.77); /* Scale to 77% */
-        transform-origin: top left; /* Keep the top left corner fixed */
-        transition: transform 0.3s ease; /* Smooth transition */
+        transform: scale(0.77);
+        transform-origin: top left;
+        transition: transform 0.3s ease;
     }
 }
 
 @media (max-width: 850px) {
     body {
-        transform: scale(0.76); /* Scale to 76% */
-        transform-origin: top left; /* Keep the top left corner fixed */
-        transition: transform 0.3s ease; /* Smooth transition */
+        transform: scale(0.76);
+        transform-origin: top left;
+        transition: transform 0.3s ease;
     }
 }
 
 @media (max-width: 840px) {
     body {
-        transform: scale(0.75); /* Scale to 75% */
-        transform-origin: top left; /* Keep the top left corner fixed */
-        transition: transform 0.3s ease; /* Smooth transition */
+        transform: scale(0.75);
+        transform-origin: top left;
+        transition: transform 0.3s ease;
     }
 }
 
 @media (max-width: 830px) {
     body {
-        transform: scale(0.74); /* Scale to 74% */
-        transform-origin: top left; /* Keep the top left corner fixed */
-        transition: transform 0.3s ease; /* Smooth transition */
+        transform: scale(0.74);
+        transform-origin: top left;
+        transition: transform 0.3s ease;
     }
 }
 
 @media (max-width: 820px) {
     body {
-        transform: scale(0.73); /* Scale to 73% */
-        transform-origin: top left; /* Keep the top left corner fixed */
-        transition: transform 0.3s ease; /* Smooth transition */
+        transform: scale(0.73);
+        transform-origin: top left;
+        transition: transform 0.3s ease;
     }
 }
 
 @media (max-width: 810px) {
     body {
-        transform: scale(0.72); /* Scale to 72% */
-        transform-origin: top left; /* Keep the top left corner fixed */
-        transition: transform 0.3s ease; /* Smooth transition */
+        transform: scale(0.72);
+        transform-origin: top left;
+        transition: transform 0.3s ease;
     }
 }
 
 @media (max-width: 800px) {
     body {
-        transform: scale(0.71); /* Scale to 71% */
-        transform-origin: top left; /* Keep the top left corner fixed */
-        transition: transform 0.3s ease; /* Smooth transition */
+        transform: scale(0.71);
+        transform-origin: top left;
+        transition: transform 0.3s ease;
     }
 }
 
 @media (max-width: 790px) {
     body {
-        transform: scale(0.70); /* Scale to 70% */
-        transform-origin: top left; /* Keep the top left corner fixed */
-        transition: transform 0.3s ease; /* Smooth transition */
+        transform: scale(0.70);
+        transform-origin: top left;
+        transition: transform 0.3s ease;
     }
 }
-
-/* ...existing code... */
 
 .flex-center {
     display: flex;
     align-items: center;
-    gap: 10px; /* Add spacing between elements */
+    gap: 10px;
 }
 
 .form-group {
@@ -1329,6 +1298,7 @@ input.second-dropdown {
     font-weight: bold;
 }
 
+/* Payouts Section */
 .payouts-container {
     padding: 20px;
     background-color: #1a1a1a;
@@ -1394,14 +1364,14 @@ input.second-dropdown {
 
 .mission-reward-input {
     flex: 1;
-    max-width: 136px; /* 80px * 1.7 */
-    padding: 3.4px 6.8px; /* 2px * 1.7 and 4px * 1.7 */
+    max-width: 136px;
+    padding: 3.4px 6.8px;
     background-color: #333;
     color: var(--dropdown-text-color);
     border: 1px solid #555;
-    border-radius: 5.1px; /* 3px * 1.7 */
+    border-radius: 5.1px;
     font-family: 'Orbitron', sans-serif;
-    font-size: 17px; /* 10px * 1.7 */
+    font-size: 17px;
     text-align: left;
 }
 
@@ -1449,9 +1419,8 @@ input.second-dropdown {
     background-color: #333;
 }
 
-/* Add this to your existing CSS */
 #capture-mode-btn {
-    background-color: #4CAF50; /* Green background */
+    background-color: #4CAF50;
     color: white;
     padding: 10px 20px;
     border: none;
@@ -1462,14 +1431,14 @@ input.second-dropdown {
 }
 
 #capture-mode-btn:hover {
-    background-color: #45a049; /* Darker green on hover */
+    background-color: #45a049;
 }
 
 #capture-mode-btn:active {
-    background-color: #3d8b40; /* Even darker green when clicked */
+    background-color: #3d8b40;
 }
 
-/* Add this to your existing CSS */
+/* Capture Mode */
 .capture-tab {
     padding: 20px;
     background-color: #1a1a1a;
@@ -1488,45 +1457,44 @@ input.second-dropdown {
     color: var(--row-text-color);
 }
 
-/* Update the OCR results styles */
+/* OCR Results */
 .ocr-results {
     margin-top: 20px;
     padding: 15px;
-    background-color: #1a1a1a; /* Dark background */
-    border: 1px solid #333; /* Darker border */
-    border-radius: 5px; /* Rounded corners */
-    color: #00ffcc; /* Neon green text */
-    font-family: 'Orbitron', sans-serif; /* Consistent font */
+    background-color: #1a1a1a;
+    border: 1px solid #333;
+    border-radius: 5px;
+    color: #00ffcc;
+    font-family: 'Orbitron', sans-serif;
     max-height: 300px;
     overflow-y: auto;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* Subtle shadow */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 
-/* Update the process log styles */
 .process-log {
     margin-top: 20px;
     padding: 15px;
-    background-color: #1a1a1a; /* Dark background */
-    border: 1px solid #333; /* Darker border */
-    border-radius: 5px; /* Rounded corners */
-    color: #00ffcc; /* Neon green text */
-    font-family: 'Orbitron', sans-serif; /* Consistent font */
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* Subtle shadow */
+    background-color: #1a1a1a;
+    border: 1px solid #333;
+    border-radius: 5px;
+    color: #00ffcc;
+    font-family: 'Orbitron', sans-serif;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 
 .process-log h4 {
     margin-top: 0;
-    color: #00ffcc; /* Neon green text */
+    color: #00ffcc;
 }
 
 .process-log p {
     margin: 5px 0;
-    color: #00ffcc; /* Neon green text */
+    color: #00ffcc;
 }
 
 .highlight {
-    background-color: #00ffcc; /* Neon green background */
-    color: #000; /* Black text */
+    background-color: #00ffcc;
+    color: #000;
     padding: 2px 4px;
     border-radius: 3px;
     font-weight: bold;
@@ -1578,6 +1546,7 @@ input.second-dropdown {
     accent-color: var(--button-color);
 }
 
+/* Video Container */
 .video-container {
     position: relative;
     width: 100%;
@@ -1595,6 +1564,7 @@ input.second-dropdown {
     display: block;
 }
 
+/* Keybinding Controls */
 .keybinding-control {
     margin-left: 20px;
     display: flex;
@@ -1627,17 +1597,16 @@ input.second-dropdown {
     font-family: 'Orbitron', sans-serif;
 }
 
-/* Remove any text-shadow properties that create glow effects */
 h1, h2, h3, h4, h5, h6, p, span, a {
     text-shadow: none !important;
 }
 
-/* If there are specific classes with glow effects, remove them */
 .glow-text, .text-glow, .glowing-text {
     text-shadow: none !important;
 }
 
-.font-select .react-select__control {
+/* Font Styles */
+.font-select {
     background-color: #333;
     border: 1px solid #333;
     color: var(--dropdown-text-color);
@@ -1678,5 +1647,9 @@ h1, h2, h3, h4, h5, h6, p, span, a {
 
 .ocr-counter strong {
     margin-right: 5px;
+}
+
+.form-group.button-group {
+    width: 750px;
 }
 

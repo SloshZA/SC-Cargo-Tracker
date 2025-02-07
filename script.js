@@ -58,9 +58,9 @@ const data = {
         Arccorp: ['--City--','Area 18'],
         Crusader: ['--City--','Orison'],
         Hurston: [
-            '--City--',//
+            '--City--',
             'Lorville',
-            '--Distribution Center--',//
+            '--Distribution Center--',
             'Covalex Distribution Centre S1DC06',
             'Greycat Stanton 1 Production Complex-B',
             'HDPC-Cassillo',
@@ -379,15 +379,15 @@ const customStyles = {
         padding: '5px',
         fontFamily: 'Orbitron, sans-serif',
         color: 'var(--dropdown-text-color)',
-        fontSize: '14px' // Add text size
+        fontSize: '14px'
     }),
     menu: (provided) => ({
         ...provided,
         backgroundColor: '#333',
         color: 'var(--dropdown-text-color)',
         fontSize: '14px',
-        minWidth: '300px', // Make dropdown wider than input
-        maxHeight: '400px', // Add scroll for long lists
+        minWidth: '300px', 
+        maxHeight: '400px', 
         padding: '8px',
         marginTop: '4px',
         borderRadius: '4px',
@@ -399,27 +399,25 @@ const customStyles = {
             ...provided,
             backgroundColor: state.isFocused && !isUnselectable ? '#444' : '#333',
             color: isUnselectable ? 'white' : 'var(--dropdown-text-color)',
-            fontSize: '14px', // Add text size
-            fontWeight: isUnselectable ? 'bold' : 'normal', // Bold for unselectable options
-            fontStyle: isUnselectable ? 'italic' : 'normal', // Italic for unselectable options
-            cursor: isUnselectable ? 'not-allowed' : 'default', // Not-allowed cursor for unselectable options
-            pointerEvents: isUnselectable ? 'none' : 'auto' // Disable pointer events for unselectable options
+            fontSize: '14px', 
+            fontWeight: isUnselectable ? 'bold' : 'normal', 
+            fontStyle: isUnselectable ? 'italic' : 'normal', 
+            cursor: isUnselectable ? 'not-allowed' : 'default', 
+            pointerEvents: isUnselectable ? 'none' : 'auto' 
         };
     },
     singleValue: (provided) => ({
         ...provided,
         color: 'var(--dropdown-text-color)',
-        fontSize: '14px' // Add text size
+        fontSize: '14px'
     }),
 };
 
 const STATUS_OPTIONS = ['Pending', 'In Progress', 'Delivered', 'Failed'];
 
-// Add this function at the top of the file
 function findClosestMatch(input, options) {
     if (!input || !options || options.length === 0) return null;
 
-    // Remove special characters and normalize case
     const cleanInput = input.replace(/[^a-zA-Z0-9\s]/g, '').toLowerCase();
     
     let bestMatch = null;
@@ -428,17 +426,14 @@ function findClosestMatch(input, options) {
     options.forEach(option => {
         const cleanOption = option.replace(/[^a-zA-Z0-9\s]/g, '').toLowerCase();
         
-        // Calculate similarity score
         let score = 0;
         const inputWords = cleanInput.split(' ');
         const optionWords = cleanOption.split(' ');
         
-        // Compare word by word
         inputWords.forEach(word => {
             if (optionWords.includes(word)) {
-                score += word.length * 2; // Higher weight for exact word matches
+                score += word.length * 2;
             } else {
-                // Check for partial matches
                 optionWords.forEach(optionWord => {
                     if (optionWord.includes(word) || word.includes(optionWord)) {
                         score += Math.min(word.length, optionWord.length);
@@ -447,21 +442,19 @@ function findClosestMatch(input, options) {
             }
         });
 
-        // Prefer shorter matches when scores are equal
         if (score > bestScore || (score === bestScore && cleanOption.length < bestMatch.length)) {
             bestScore = score;
             bestMatch = option;
         }
     });
 
-    // Only return a match if it meets a minimum threshold
     return bestScore >= cleanInput.length * 0.5 ? bestMatch : null;
 }
 
 const App = () => {
     const [darkMode, setDarkMode] = useState(false);
     const [activeTab, setActiveTab] = useState('Hauling Missions');
-    const [isAutoScaling, setIsAutoScaling] = useState(true); // Add state for auto-scaling
+    const [isAutoScaling, setIsAutoScaling] = useState(true);
     const [locationType, setLocationType] = useState('planet');
     const [selectedPlanet, setSelectedPlanet] = useState('');
     const [selectedMoon, setSelectedMoon] = useState('');
@@ -479,8 +472,8 @@ const App = () => {
     const [collapsed, setCollapsed] = useState(() => {
         const savedCollapsed = localStorage.getItem('collapsed');
         return savedCollapsed ? JSON.parse(savedCollapsed) : {};
-    }); // Define collapsed state
-    const amountInputRef = useRef(null); // Reference for amount input
+    });
+    const amountInputRef = useRef(null);
 
     const [dropdownLabelColor, setDropdownLabelColor] = useState(() => localStorage.getItem('dropdownLabelColor') || '#00ffcc');
     const [dropdownTextColor, setDropdownTextColor] = useState(() => localStorage.getItem('dropdownTextColor') || '#00ffcc');
@@ -522,10 +515,8 @@ const App = () => {
     });
 
     const handleRewardChange = (missionId, value) => {
-        // Remove all non-digit characters
         const numericValue = value.replace(/\D/g, '');
         
-        // Format with commas
         const formattedValue = numericValue.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
         
         const updatedRewards = {
@@ -584,7 +575,7 @@ const App = () => {
 
     const toggleAutoScaling = () => {
         setIsAutoScaling(!isAutoScaling);
-        document.body.style.transform = isAutoScaling ? 'scale(1)' : ''; // Toggle scaling
+        document.body.style.transform = isAutoScaling ? 'scale(1)' : '';
     };
 
     useEffect(() => {
@@ -607,8 +598,8 @@ const App = () => {
         document.documentElement.style.setProperty('--drop-off-header-text-color', dropOffHeaderTextColor);
         document.documentElement.style.setProperty('--row-text-color', rowTextColor);
         document.documentElement.style.setProperty('--table-header-text-color', tableHeaderTextColor);
-        document.documentElement.style.setProperty('--mission-text-color', missionTextColor); // Add this line
-        document.documentElement.style.setProperty('--table-outline-color', tableOutlineColor); // Add this line
+        document.documentElement.style.setProperty('--mission-text-color', missionTextColor);
+        document.documentElement.style.setProperty('--table-outline-color', tableOutlineColor);
     }, [dropdownLabelColor, dropdownTextColor, buttonColor, titleColor, dropOffHeaderTextColor, rowTextColor, tableHeaderTextColor, missionTextColor, tableOutlineColor]);
 
     useEffect(() => {
@@ -699,7 +690,6 @@ const App = () => {
         setSelectedDropOffPoint('');
         setSecondDropdownValue('');
         
-        // Reset dropdown options based on new location type
         if (newType === 'planet') {
             setFirstDropdownOptions(planetOptions);
         } else if (newType === 'station') {
@@ -711,23 +701,23 @@ const App = () => {
         setSelectedDropOffPoint(selectedOption ? selectedOption.value : '');
         setSelectedPlanet('');
         setSelectedMoon('');
-        setSecondDropdownValue(''); // Clear quick lookup
+        setSecondDropdownValue('');
     };
 
     const handleMoonSelectChange = (selectedOption) => {
         setSelectedMoon(selectedOption ? selectedOption.value : '');
         setSelectedDropOffPoint('');
-        setSecondDropdownValue(''); // Clear quick lookup
+        setSecondDropdownValue('');
     };
 
     const handleDropOffSelectChange = (selectedOption) => {
         setSelectedDropOffPoint(selectedOption ? selectedOption.value : '');
         handleSelectChange();
-        setSecondDropdownValue(''); // Clear quick lookup
+        setSecondDropdownValue('');
     };
 
     const handleCommoditySelectChange = (selectedOption) => {
-        if (!selectedOption || selectedOption.value.startsWith('--')) return; // Prevent selection of unselectable options
+        if (!selectedOption || selectedOption.value.startsWith('--')) return;
         setSelectedCommodity(selectedOption.value);
     };
 
@@ -745,7 +735,7 @@ const App = () => {
 
     const handleAmountKeyPress = (event, index) => {
         if (event.key === 'Enter') {
-            event.target.blur(); // Unfocus the input box
+            event.target.blur();
         }
     };
 
@@ -764,26 +754,23 @@ const App = () => {
 
     const [bannerMessage, setBannerMessage] = useState('');
 
-    // Modify the showBannerMessage function
     const showBannerMessage = (message, isSuccess = true) => {
         const banner = document.createElement('div');
         banner.className = 'banner-message';
         banner.textContent = message;
-        banner.style.backgroundColor = isSuccess ? '#4CAF50' : '#F44336'; // Green for success, red for failure
-        banner.style.padding = '20px'; // Increased padding
-        banner.style.fontSize = '1.2em'; // Larger font size
-        banner.style.width = '100%'; // Full width
-        banner.style.textAlign = 'center'; // Centered text
+        banner.style.backgroundColor = isSuccess ? '#4CAF50' : '#F44336';
+        banner.style.padding = '20px';
+        banner.style.fontSize = '1.2em';
+        banner.style.width = '100%';
+        banner.style.textAlign = 'center';
         banner.style.position = 'fixed';
         banner.style.top = '0';
         banner.style.left = '0';
         banner.style.zIndex = '1000';
         banner.style.transition = 'opacity 0.5s';
 
-        // Add the banner to the document
         document.body.appendChild(banner);
 
-        // Remove the banner after 3 seconds
         setTimeout(() => {
             banner.style.opacity = '0';
             setTimeout(() => {
@@ -821,8 +808,7 @@ const App = () => {
             setMissionEntries(updatedMissionEntries);
             localStorage.setItem('missionEntries', JSON.stringify(updatedMissionEntries));
 
-            // Update history entries if the status is 'Delivered'
-            if (newEntry.status === STATUS_OPTIONS[2]) { // STATUS_OPTIONS[2] is 'Delivered'
+            if (newEntry.status === STATUS_OPTIONS[2]) {
                 const updatedHistory = historyEntries.map(historyGroup => {
                     return {
                         ...historyGroup,
@@ -860,7 +846,7 @@ const App = () => {
                 if (needsClearConfirmation) {
                     setNeedsClearConfirmation(false);
                 }
-            }, 3000); // Reset after 3 seconds if not confirmed
+            }, 3000);
         }
     };
 
@@ -869,7 +855,6 @@ const App = () => {
         const activeEntries = entries.filter(entry => entry.status !== 'Delivered');
         
         if (deliveredEntries.length > 0) {
-            // Group delivered entries by drop-off point
             const groupedEntries = deliveredEntries.reduce((acc, entry) => {
                 if (!acc[entry.dropOffPoint]) {
                     acc[entry.dropOffPoint] = [];
@@ -882,7 +867,6 @@ const App = () => {
                 return acc;
             }, {});
 
-            // Convert grouped entries to array format
             const updatedHistory = [
                 ...historyEntries,
                 ...Object.entries(groupedEntries).map(([dropOffPoint, entries]) => ({
@@ -892,7 +876,6 @@ const App = () => {
                 }))
             ];
             
-            // Remove delivered entries from missions
             const updatedMissionEntries = missionEntries.map(mission => 
                 mission.filter(missionEntry => 
                     !deliveredEntries.some(deliveredEntry => 
@@ -965,7 +948,6 @@ const App = () => {
     const markAsDelivered = (dropOffPoint) => {
         const updatedEntries = entries.map(entry => {
             if (entry.dropOffPoint === dropOffPoint) {
-                // Update history entries with delivered status
                 const updatedHistory = historyEntries.map(historyGroup => {
                     return {
                         ...historyGroup,
@@ -984,7 +966,6 @@ const App = () => {
                 setHistoryEntries(updatedHistory);
                 localStorage.setItem('historyEntries', JSON.stringify(updatedHistory));
 
-                // Update mission entries with delivered status
                 const updatedMissionEntries = missionEntries.map(mission => 
                     mission.map(missionEntry => {
                         if (missionEntry.dropOffPoint === dropOffPoint) {
@@ -1010,7 +991,6 @@ const App = () => {
 
     const handleFirstDropdownChange = (selectedOption) => {
         setFirstDropdownValue(selectedOption ? selectedOption.value : '');
-        // Update options based on search text
         const searchText = selectedOption ? selectedOption.value.toLowerCase() : '';
         const filteredOptions = data.planets.filter(option => option.toLowerCase().includes(searchText));
         setFirstDropdownOptions(filteredOptions);
@@ -1018,13 +998,11 @@ const App = () => {
 
     const handleSecondDropdownChange = (selectedOption) => {
         setSecondDropdownValue(selectedOption ? selectedOption.value : '');
-        // Update options based on search text
         const searchText = selectedOption ? selectedOption.value.toLowerCase() : '';
         const filteredOptions = data.stations.filter(option => option.toLowerCase().includes(searchText));
         setSecondDropdownOptions(filteredOptions);
     };
 
-    // Add a list of valid locations
     const validLocations = new Set([
         'Everus Harbor', 'Area 18', 'Orison', 'Lorville', 'NB Int Spaceport',
         'Covalex Distribution Centre S1DC06', 'Greycat Stanton 1 Production Complex-B',
@@ -1115,7 +1093,6 @@ const App = () => {
             setSelectedMoon('');
             setSelectedDropOffPoint('');
         }
-        // Clear selection after lookup
         setTimeout(() => {
             setSecondDropdownValue('');
         }, 100);
@@ -1125,15 +1102,83 @@ const App = () => {
         setSelectedPlanet(selectedOption ? selectedOption.value : '');
         setSelectedMoon('');
         setSelectedDropOffPoint('');
-        setSecondDropdownValue(''); // Clear quick lookup
+        setSecondDropdownValue('');
     };
 
     const handleImport = (event) => {
         const file = event.target.files[0];
-        if (file) {
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                const importedData = JSON.parse(e.target.result);
+        if (!file) return;
+
+        const reader = new FileReader();
+        const fileExtension = file.name.split('.').pop().toLowerCase();
+
+        reader.onload = (e) => {
+            try {
+                let importedData = {
+                    entries: [],
+                    missionEntries: Array(10).fill([]),
+                    historyEntries: []
+                };
+
+                switch (fileExtension) {
+                    case 'json':
+                        importedData = JSON.parse(e.target.result);
+                        break;
+
+                    case 'csv':
+                        const csvContent = e.target.result;
+                        const lines = csvContent.split('\n');
+                        const headers = lines[0].split(',');
+                        
+                        for (let i = 1; i < lines.length; i++) {
+                            if (!lines[i].trim()) continue;
+                            
+                            const values = lines[i].split(',');
+                            const entry = {
+                                timestamp: new Date(values[0]).toISOString(),
+                                dropOffPoint: values[1],
+                                entries: [{
+                                    commodity: values[2],
+                                    currentAmount: values[3],
+                                    originalAmount: values[4],
+                                    status: values[5] || 'Completed'
+                                }]
+                            };
+                            
+                            importedData.historyEntries.push(entry);
+                        }
+                        break;
+
+                    case 'xls':
+                    case 'xlsx':
+                        const htmlContent = e.target.result;
+                        const parser = new DOMParser();
+                        const doc = parser.parseFromString(htmlContent, 'text/html');
+                        const rows = doc.querySelectorAll('tr');
+                        
+                        for (let i = 1; i < rows.length; i++) {
+                            const cells = rows[i].querySelectorAll('td');
+                            if (cells.length < 6) continue;
+                            
+                            const entry = {
+                                timestamp: new Date(cells[0].textContent).toISOString(),
+                                dropOffPoint: cells[1].textContent,
+                                entries: [{
+                                    commodity: cells[2].textContent,
+                                    currentAmount: cells[3].textContent,
+                                    originalAmount: cells[4].textContent,
+                                    status: cells[5].textContent || 'Completed'
+                                }]
+                            };
+                            
+                            importedData.historyEntries.push(entry);
+                        }
+                        break;
+
+                    default:
+                        throw new Error('Unsupported file format');
+                }
+
                 setEntries(prevEntries => [...prevEntries, ...(importedData.entries || [])]);
                 setMissionEntries(prevMissionEntries => {
                     const newMissionEntries = [...prevMissionEntries];
@@ -1142,46 +1187,153 @@ const App = () => {
                     });
                     return newMissionEntries;
                 });
-                setHistoryEntries(prevHistoryEntries => [...prevHistoryEntries, ...(importedData.historyEntries || [])]);
-                setCollapsed(prevCollapsed => ({ ...prevCollapsed, ...(importedData.collapsed || {}) }));
-                setCollapsedMissions(prevCollapsedMissions => {
-                    const newCollapsedMissions = [...prevCollapsedMissions];
-                    (importedData.collapsedMissions || []).forEach((collapsed, index) => {
-                        newCollapsedMissions[index] = collapsed;
-                    });
-                    return newCollapsedMissions;
-                });
+                setHistoryEntries(prevHistoryEntries => [...prevHistoryEntries, ...importedData.historyEntries]);
+                
                 showBannerMessage('Data imported successfully.', true);
-            };
+            } catch (error) {
+                console.error('Import error:', error);
+                showBannerMessage('Error importing file. Please check the file format.', false);
+            }
+        };
+
+        if (fileExtension === 'json') {
+            reader.readAsText(file);
+        } else if (fileExtension === 'csv') {
+            reader.readAsText(file);
+        } else if (['xls', 'xlsx'].includes(fileExtension)) {
             reader.readAsText(file);
         }
     };
 
     const handleExport = (type) => {
-        let dataToExport;
-        let fileName;
-        
         if (type === 'history') {
-            dataToExport = {
-                historyEntries
-            };
-            fileName = 'sc-cargo-tracker-history.json';
-        } else if (type === 'payouts') {
-            dataToExport = {
-                payouts: historyEntries.filter(entry => 
-                    entry.entries.some(e => e.status === 'Delivered')
-                )
-            };
-            fileName = 'sc-cargo-tracker-payouts.json';
-        }
+            let htmlContent = `
+                <html>
+                <head>
+                    <meta charset="UTF-8">
+                    <style>
+                        table { border-collapse: collapse; width: 100%; }
+                        th { 
+                            font-weight: bold;
+                            border: 2px solid #000;
+                            background-color: #f2f2f2;
+                            padding: 8px;
+                        }
+                        td {
+                            border: 1px solid #000;
+                            padding: 8px;
+                        }
+                    </style>
+                </head>
+                <body>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Drop Off Point</th>
+                                <th>Commodity</th>
+                                <th>Amount</th>
+                                <th>Original Amount</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+            `;
+            
+            historyEntries.forEach(entry => {
+                const date = new Date(entry.timestamp).toLocaleDateString();
+                entry.entries.forEach(item => {
+                    htmlContent += `
+                        <tr>
+                            <td>${date}</td>
+                            <td>${entry.dropOffPoint}</td>
+                            <td>${item.commodity}</td>
+                            <td>${item.currentAmount}</td>
+                            <td>${item.originalAmount}</td>
+                            <td>${item.status || 'Completed'}</td>
+                        </tr>
+                    `;
+                });
+            });
 
-        const blob = new Blob([JSON.stringify(dataToExport, null, 2)], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = fileName;
-        a.click();
-        URL.revokeObjectURL(url);
+            htmlContent += `
+                        </tbody>
+                    </table>
+                </body>
+                </html>
+            `;
+            
+            const blob = new Blob([htmlContent], { type: 'application/vnd.ms-excel' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'sc-cargo-tracker-history.xls';
+            a.click();
+            URL.revokeObjectURL(url);
+        } 
+        else if (type === 'payouts') {
+            let htmlContent = `
+                <html>
+                <head>
+                    <meta charset="UTF-8">
+                    <style>
+                        table { border-collapse: collapse; width: 100%; }
+                        th { 
+                            font-weight: bold;
+                            border: 2px solid #000;
+                            background-color: #f2f2f2;
+                            padding: 8px;
+                        }
+                        td {
+                            border: 1px solid #000;
+                            padding: 8px;
+                        }
+                    </style>
+                </head>
+                <body>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Drop Off Point</th>
+                                <th>Total Cargo Items</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+            `;
+            
+            const deliveredEntries = historyEntries.filter(entry => 
+                entry.entries.some(e => e.status === 'Delivered')
+            );
+
+            deliveredEntries.forEach(entry => {
+                const date = new Date(entry.timestamp).toLocaleDateString();
+                htmlContent += `
+                    <tr>
+                        <td>${date}</td>
+                        <td>${entry.dropOffPoint}</td>
+                        <td>${entry.entries.length}</td>
+                        <td>Delivered</td>
+                    </tr>
+                `;
+            });
+
+            htmlContent += `
+                        </tbody>
+                    </table>
+                </body>
+                </html>
+            `;
+            
+            const blob = new Blob([htmlContent], { type: 'application/vnd.ms-excel' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'sc-cargo-tracker-payouts.xls';
+            a.click();
+            URL.revokeObjectURL(url);
+        }
     };
 
     const [needsHistoryClearConfirmation, setNeedsHistoryClearConfirmation] = useState(false);
@@ -1198,11 +1350,11 @@ const App = () => {
                 if (needsHistoryClearConfirmation) {
                     setNeedsHistoryClearConfirmation(false);
                 }
-            }, 3000); // Reset after 3 seconds if not confirmed
+            }, 3000);
         }
     };
 
-    const [collapsedCommodities, setCollapsedCommodities] = useState({}); // Add state for collapsed commodities
+    const [collapsedCommodities, setCollapsedCommodities] = useState({});
 
     const toggleCommodityCollapse = (date, commodity) => {
         setCollapsedCommodities({
@@ -1215,7 +1367,6 @@ const App = () => {
         const payoutsTab = document.createElement('div');
         payoutsTab.id = 'payouts-tab';
         
-        // Add header
         const header = document.createElement('div');
         header.className = 'payouts-header';
         header.innerHTML = `
@@ -1224,7 +1375,6 @@ const App = () => {
         `;
         payoutsTab.appendChild(header);
 
-        // Add table
         const table = document.createElement('table');
         table.className = 'payouts-table';
         table.innerHTML = `
@@ -1237,7 +1387,6 @@ const App = () => {
                 </tr>
             </thead>
             <tbody>
-                <!-- Table rows will be added dynamically -->
             </tbody>
         `;
         payoutsTab.appendChild(table);
@@ -1247,41 +1396,30 @@ const App = () => {
         const tabContent = document.createElement('div');
         tabContent.id = 'hualing-missions';
         
-        // Add Capture Mode button
         const captureButton = document.createElement('button');
         captureButton.id = 'capture-mode-btn';
         captureButton.textContent = 'Capture Mode';
-        captureButton.classList.add('mission-button'); // Add existing button styling
+        captureButton.classList.add('mission-button');
         captureButton.addEventListener('click', handleCaptureMode);
         
         tabContent.appendChild(captureButton);
-        
-        // ... rest of the existing tab creation code ...
         
         return tabContent;
     }
 
     function handleCaptureMode() {
-        // Add your capture mode logic here
         console.log('Capture Mode activated');
-        // You can add functionality like:
-        // - Toggling a capture state
-        // - Changing UI elements
-        // - Starting/stopping a capture process
     }
 
     const captureTab = document.getElementById('capture-tab');
 
-    // Update the performOCR function with better error handling
     const performOCR = async (image) => {
         try {
-            // First, verify the image data
             if (!image || typeof image !== 'string' || !image.startsWith('data:image')) {
                 showBannerMessage('Invalid image data', false);
                 throw new Error('Invalid image data');
             }
 
-            // Perform OCR with Tesseract
             const { data: { text } } = await Tesseract.recognize(
                 image,
                 'eng',
@@ -1295,7 +1433,6 @@ const App = () => {
                 }
             );
             
-            // Clean the OCR text - remove periods and commas
             const cleanedText = text.replace(/[.,]/g, '');
             showBannerMessage('OCR capture successful!', true);
             return cleanedText;
@@ -1306,7 +1443,6 @@ const App = () => {
         }
     };
 
-    // Add these state variables at the top of your component
     const [isDrawing, setIsDrawing] = useState(false);
     const [selectionBox, setSelectionBox] = useState(null);
     const videoRef = useRef(null);
@@ -1346,16 +1482,12 @@ const App = () => {
         }));
     };
 
-    // Add this state variable to store OCR results
     const [ocrResults, setOcrResults] = useState([]);
 
-    // Add a new state variable for the current parsed results
     const [currentParsedResults, setCurrentParsedResults] = useState([]);
 
-    // Add this state variable to track edited quantities
     const [editedQuantities, setEditedQuantities] = useState({});
 
-    // Add this function to handle quantity edits
     const handleQuantityEdit = (index, newValue) => {
         setEditedQuantities(prev => ({
             ...prev,
@@ -1363,7 +1495,6 @@ const App = () => {
         }));
     };
 
-    // Add this function to save the edited quantity
     const saveQuantityEdit = (index) => {
         const updatedResults = [...ocrResults];
         updatedResults[index].quantity = editedQuantities[index];
@@ -1375,30 +1506,25 @@ const App = () => {
         });
     };
 
-    // Add this function to apply sharpening to an image
     function sharpenImage(imageData) {
         const width = imageData.width;
         const height = imageData.height;
         const data = imageData.data;
         
-        // Create a copy of the image data
         const output = new ImageData(new Uint8ClampedArray(data), width, height);
         const outputData = output.data;
         
-        // Sharpening kernel
         const kernel = [
             0, -1, 0,
             -1, 5, -1,
             0, -1, 0
         ];
         
-        // Apply the kernel to each pixel
         for (let y = 1; y < height - 1; y++) {
             for (let x = 1; x < width - 1; x++) {
                 const i = (y * width + x) * 4;
                 let r = 0, g = 0, b = 0;
                 
-                // Apply the kernel
                 for (let ky = -1; ky <= 1; ky++) {
                     for (let kx = -1; kx <= 1; kx++) {
                         const ki = ((y + ky) * width + (x + kx)) * 4;
@@ -1410,7 +1536,6 @@ const App = () => {
                     }
                 }
                 
-                // Set the new pixel values
                 outputData[i] = Math.min(255, Math.max(0, r));
                 outputData[i + 1] = Math.min(255, Math.max(0, g));
                 outputData[i + 2] = Math.min(255, Math.max(0, b));
@@ -1420,16 +1545,12 @@ const App = () => {
         return output;
     }
 
-    // Add this state to track OCR capture history
     const [ocrCaptureHistory, setOcrCaptureHistory] = useState([]);
 
-    // Add this function to handle undoing the last OCR capture
     const undoLastOcrCapture = () => {
         if (ocrCaptureHistory.length > 0) {
-            // Get the last capture's entries
             const lastCapture = ocrCaptureHistory[ocrCaptureHistory.length - 1];
             
-            // Remove these entries from the main OCR results
             setOcrResults(prevResults => 
                 prevResults.filter(result => 
                     !lastCapture.some(capture => 
@@ -1441,7 +1562,6 @@ const App = () => {
                 )
             );
             
-            // Remove the last capture from history
             setOcrCaptureHistory(prev => prev.slice(0, -1));
             
             showBannerMessage('Last OCR capture undone.', true);
@@ -1450,7 +1570,6 @@ const App = () => {
         }
     };
 
-    // Modify the handleMouseUp function to track OCR captures
     const handleMouseUp = async () => {
         let canvas;
         
@@ -1458,15 +1577,12 @@ const App = () => {
             if (!useVideoStream || !videoRef.current || !selectionBox) return;
             setIsDrawing(false);
 
-            // Create canvas to capture the selected area
             canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
             
-            // Set canvas dimensions
             canvas.width = Math.abs(selectionBox.endX - selectionBox.startX);
             canvas.height = Math.abs(selectionBox.endY - selectionBox.startY);
             
-            // Draw the selected area
             ctx.drawImage(
                 videoRef.current,
                 Math.min(selectionBox.startX, selectionBox.endX),
@@ -1476,39 +1592,31 @@ const App = () => {
                 0, 0, canvas.width, canvas.height
             );
             
-            // Get the image data and apply sharpening
             const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
             const sharpenedImage = sharpenImage(imageData);
             ctx.putImageData(sharpenedImage, 0, 0);
             
-            // Convert canvas to image
             const image = canvas.toDataURL('image/png', 1.0);
             
-            // Perform OCR
             const ocrText = await performOCR(image);
             
             if (!ocrText) {
                 throw new Error('No text recognized');
             }
             
-            // Parse the OCR results
             const newResults = parseOCRResults(ocrText);
             setCurrentParsedResults(newResults);
             
-            // Add the new results to capture history
             setOcrCaptureHistory(prev => [...prev, newResults]);
             
-            // Update the OCR results
             setOcrResults(prevResults => [...prevResults, ...newResults]);
             
-            // Update the process log
             const processLog = document.getElementById('process-log');
             
-            // Update Parsed Results table
             const parsedTable = processLog.querySelector('.parsed-table');
             if (parsedTable) {
                 const tbody = parsedTable.querySelector('tbody');
-                tbody.innerHTML = ''; // Clear previous results
+                tbody.innerHTML = '';
                 newResults.forEach(result => {
                     const row = document.createElement('tr');
                     row.innerHTML = `
@@ -1521,10 +1629,9 @@ const App = () => {
                 });
             }
             
-            // Update Results Table with new entries
             const resultsTbody = processLog.querySelector('.results-table tbody');
             if (resultsTbody) {
-                resultsTbody.innerHTML = ''; // Clear and rebuild
+                resultsTbody.innerHTML = '';
                 ocrResults.concat(newResults).forEach(result => {
                     const row = document.createElement('tr');
                     row.innerHTML = `
@@ -1546,35 +1653,29 @@ const App = () => {
         }
     };
 
-    // Modify the captureAndOCR function to use the selection box
     async function captureAndOCR() {
         try {
-            // Get screen capture stream
             const stream = await navigator.mediaDevices.getDisplayMedia({
                 video: {
-                    displaySurface: 'window', // or 'monitor'
+                    displaySurface: 'window',
                     width: { ideal: 1280 },
                     height: { ideal: 720 }
                 },
                 audio: false
             });
 
-            // Create video element to capture frame
             const video = document.createElement('video');
             video.srcObject = stream;
             await video.play();
             
-            // Create canvas to capture frame
             const canvas = document.createElement('canvas');
             canvas.width = video.videoWidth;
             canvas.height = video.videoHeight;
             const ctx = canvas.getContext('2d');
             ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
             
-            // Convert canvas to image
             const image = canvas.toDataURL();
             
-            // Create image element to display the captured picture
             const imgElement = document.createElement('img');
             imgElement.src = image;
             imgElement.style.maxWidth = '100%';
@@ -1584,37 +1685,30 @@ const App = () => {
             imgElement.style.userSelect = 'none';
             imgElement.style.pointerEvents = 'none';
             
-            // Display the captured image
             const capturePreview = document.getElementById('capture-preview');
-            capturePreview.innerHTML = ''; // Clear previous content
+            capturePreview.innerHTML = '';
             capturePreview.appendChild(imgElement);
             
-            // If there's a selection box, crop the image
             if (selectionBox) {
                 const tempCanvas = document.createElement('canvas');
                 tempCanvas.width = selectionBox.width;
                 tempCanvas.height = selectionBox.height;
                 const tempCtx = tempCanvas.getContext('2d');
                 
-                // Draw the selected area to the new canvas
                 tempCtx.drawImage(
                     canvas,
                     selectionBox.x, selectionBox.y, selectionBox.width, selectionBox.height,
                     0, 0, selectionBox.width, selectionBox.height
                 );
                 
-                // Use the cropped image for OCR
                 const croppedImage = tempCanvas.toDataURL();
                 const ocrText = await performOCR(croppedImage);
                 
-                // Display OCR results
                 const ocrResults = document.getElementById('ocr-results');
                 ocrResults.innerHTML = ocrText;
                 
-                // Clean up
                 tempCanvas.remove();
             } else {
-                // Use the full image if no selection
                 const ocrText = await performOCR(image);
             }
             
@@ -1628,11 +1722,8 @@ const App = () => {
         }
     }
 
-    // Move parseOCRResults outside of processSelectedArea
     const parseOCRResults = (text) => {
-        //temp         text = text.replace(/S4DC0OS/g, 'S4DC05');
 
-        // First, replace S4DCOS with S4DCO5 in the entire text
         text = text.replace(/S4DCOS/g, 'S4DC05');
         text = text.replace(/$4DC0S/g, 'S4DC05');
         text = text.replace(/S4DCOS/g, 'S4DC05');
@@ -1646,13 +1737,11 @@ const App = () => {
         text = text.replace(/Shubin Mining Facliity SM0-10 I/g, 'Shubin Mining Facility SM0-10');
 
         
-        // Handle $ symbol - remove it and add S if missing
         text = text.replace(/\$(\w+)/g, (match, word) => {
             // Remove the $ and check if the word starts with S
             return word.startsWith('S') ? word : `S${word}`;
         });
 
-        // Remove all types of brackets, punctuation, and pipes
         text = text.replace(/[{}[\]()<>.,|]/g, '');
 
         const lines = text.split('\n').filter(line => line.trim() !== '');
@@ -1858,10 +1947,8 @@ const App = () => {
         if (useVideoStream) {
             startVideoStream();
         }
-        // Don't stop the stream when unmounting or tab changes
     }, [useVideoStream]);
 
-    // Update the state initialization to load from localStorage
     const [captureKey, setCaptureKey] = useState(() => {
         const savedKey = localStorage.getItem('captureKey');
         return savedKey || 'Enter'; // Default to 'Enter' if no key is saved
@@ -2523,7 +2610,7 @@ const App = () => {
                     <div className="hauling-missions">
                         <div className="form-row">
                             <div className="form-group">
-                                <label>Pickup Point</label> {/* Renamed from First Dropdown */}
+                                <label>Pickup Point</label>
                                 <Select
                                     components={{ DropdownIndicator: null, IndicatorSeparator: null }}
                                     options={pickupPointOptions}
@@ -2536,7 +2623,7 @@ const App = () => {
                                 />
                             </div>
                             <div className="form-group">
-                                <label>Quick Lookup</label> {/* Renamed from Second Dropdown */}
+                                <label>Quick Lookup</label>
                                 <Select
                                     components={{ DropdownIndicator: null, IndicatorSeparator: null }}
                                     options={quickLookupOptions}
@@ -2871,7 +2958,12 @@ const App = () => {
                                 <h3>Data Management</h3>
                                 <div className="form-group" style={{ marginBottom: '15px' }}>
                                     <label htmlFor="file-upload">Import Data</label>
-                                    <input id="file-upload" type="file" accept=".json" onChange={handleImport} />
+                                    <input 
+                                        id="file-upload" 
+                                        type="file" 
+                                        accept=".json,.csv,.xls,.xlsx" 
+                                        onChange={handleImport} 
+                                    />
                                 </div>
                                 <div className="form-group" style={{ marginBottom: '15px' }}>
                                     <button 
