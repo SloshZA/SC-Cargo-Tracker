@@ -8,7 +8,7 @@
     "clean": "if exist dist rd /s /q dist && if exist .parcel-cache rd /s /q .parcel-cache",
     "predeploy": "npm run clean && npm run build",
     "deploy": "gh-pages -d dist",
-    "build": "parcel build index.html --public-url https://sloshza.github.io/SC-Tracker-React/",
+    "build": "parcel build index.html --dist-dir dist --public-url ./",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
