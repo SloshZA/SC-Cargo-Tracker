@@ -57,7 +57,7 @@ A comprehensive tool for managing and tracking multiple cargo hauling missions i
 - **Clear History**: Option to wipe history and payouts data (with size-changing confirmation)
 
 ## Usage
-1. **Setup**: Ensure your video capture device is properly configured
+1. **Setup**: Ensure your browser allows you to stream vide from your application
 2. **Capture**: Use the Capture Tab to add missions via OCR
 3. **Organize**: Manage missions in the Hauling Missions Tab
 4. **Track**: Monitor cargo in the Hauling Manifest Table
