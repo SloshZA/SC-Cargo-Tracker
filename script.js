@@ -1964,7 +1964,25 @@ const App = () => {
 
     const addOCRToManifest = () => {
         console.log('Starting addOCRToManifest');
-        const validEntries = ocrResults.filter(validateEntry);
+        
+        // First apply fuzzy matching corrections to OCR results
+        const correctedResults = ocrResults.map(result => ({
+            ...result,
+            commodity: findClosestMatch(result.commodity, data.commodities) || result.commodity,
+            pickup: findClosestMatch(result.pickup, [
+                ...data.pickupPoints,
+                ...Object.values(data.Dropoffpoints).flat(),
+                ...Object.values(data.moons).flatMap(moon => Object.values(moon)).flat()
+            ]) || result.pickup,
+            dropoff: findClosestMatch(result.dropoff, [
+                ...data.pickupPoints,
+                ...Object.values(data.Dropoffpoints).flat(),
+                ...Object.values(data.moons).flatMap(moon => Object.values(moon)).flat()
+            ]) || result.dropoff
+        }));
+        
+        // Then validate the corrected entries
+        const validEntries = correctedResults.filter(validateEntry);
         console.log('Valid entries:', validEntries);
         
         if (validEntries.length === 0) {
@@ -2254,7 +2272,7 @@ const App = () => {
                                             className="keybinding-button"
                                             onClick={() => setShowKeyInput(true)}
                                             style={{ 
-                                                backgroundColor: 'var(--button-color)',
+                                        backgroundColor: 'var(--button-color)',
                                                 color: '#0d0d0d',
                                                 border: 'none',
                                                 padding: '7px 20px',
@@ -2270,7 +2288,7 @@ const App = () => {
                                                 whiteSpace: 'nowrap'
                                             }}
                                         >
-                                            Set Key: {captureKey}
+                                            Set Capture Key: {captureKey.toUpperCase()}
                                         </button>
                                     )}
                                 </div>
@@ -2346,8 +2364,8 @@ const App = () => {
                                 <button 
                                     className="adjust-speed-button"
                                     onClick={handleSpeedAdjustment}
-                                    style={{ 
-                                        backgroundColor: 'var(--button-color)',
+                                style={{ 
+                                backgroundColor: 'var(--button-color)',
                                         color: '#0d0d0d',
                                         border: 'none',
                                         padding: '7px 20px',
@@ -2378,7 +2396,7 @@ const App = () => {
                                     onClick={undoLastOcrCapture}
                                     disabled={ocrCaptureHistory.length === 0} // This line disables the button when there's no history
                                     style={{ 
-                                        backgroundColor: 'var(--button-color)',
+                                backgroundColor: '#ff6666',
                                         color: '#0d0d0d',
                                         border: 'none',
                                         padding: '7px 20px',
