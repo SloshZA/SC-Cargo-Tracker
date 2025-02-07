@@ -76,3 +76,4 @@ yarn.lock
 *.njsproj
 *.sln
 *.sw?
+/.parcel-cache
