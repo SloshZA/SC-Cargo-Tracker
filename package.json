@@ -15,9 +15,9 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
-    "react": "^19.0.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
     "react-color": "^2.19.3",
-    "react-dom": "^19.0.0",
     "react-select": "^5.10.0",
     "react-tesseract": "^1.0.0",
     "react-window": "^1.8.11",
