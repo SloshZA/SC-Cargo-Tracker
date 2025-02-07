@@ -2318,8 +2318,14 @@ const App = () => {
                 </button>
             </header>
             <div className="tabs">
-                {['Capture', 'Hauling Missions', 'Cargo Delivery', 'Test Features', 'History', 'Payouts', 'Preferences'].map(tab => (
-                    <div key={tab} className={`tab ${activeTab === tab ? 'active-tab' : ''}`} onClick={() => handleTabChange(tab)}>{tab}</div>
+                {['Capture', 'Hauling Missions', 'History', 'Payouts', 'Preferences'].map(tab => (
+                    <div 
+                        key={tab} 
+                        className={`tab ${activeTab === tab ? 'active-tab' : ''}`} 
+                        onClick={() => handleTabChange(tab)}
+                    >
+                        {tab}
+                    </div>
                 ))}
             </div>
             <div className="content">
@@ -2996,11 +3002,6 @@ const App = () => {
                                 </div>
                             </div>
                         </div>
-                    </div>
-                )}
-                {activeTab === 'Test Features' && (
-                    <div className="test-features">
-                        <TestFeatures />
                     </div>
                 )}
                 {activeTab === 'History' && (

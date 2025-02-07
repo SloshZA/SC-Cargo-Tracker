@@ -1653,3 +1653,23 @@ h1, h2, h3, h4, h5, h6, p, span, a {
     width: 750px;
 }
 
+/* Remove all text shadows */
+h1, h2, h3, h4, h5, h6, p, span, a, div, label, button, input, select, textarea {
+    text-shadow: none !important;
+}
+
+/* Ensure no text glow effects */
+.glow-text, .text-glow, .glowing-text {
+    text-shadow: none !important;
+}
+
+/* Remove any potential text effects from table elements */
+table, th, td, tr {
+    text-shadow: none !important;
+}
+
+/* Remove text shadows from form elements */
+input, select, textarea, button {
+    text-shadow: none !important;
+}
+
