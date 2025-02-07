@@ -1530,6 +1530,10 @@ input.second-dropdown {
 
 .stream-toggle {
     margin-bottom: 15px;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 15px;
 }
 
 .stream-toggle label {
@@ -1566,9 +1570,10 @@ input.second-dropdown {
 
 /* Keybinding Controls */
 .keybinding-control {
-    margin-left: 20px;
+    margin-left: 0;
     display: flex;
     align-items: center;
+    justify-content: flex-start;
 }
 
 .keybinding-button {
@@ -1580,6 +1585,7 @@ input.second-dropdown {
     cursor: pointer;
     font-family: 'Orbitron', sans-serif;
     transition: background-color 0.3s;
+    margin-right: auto;
 }
 
 .keybinding-button:hover {
