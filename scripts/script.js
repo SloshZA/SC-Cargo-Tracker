@@ -1194,33 +1194,59 @@ const App = () => {
 
     const captureTab = document.getElementById('capture-tab');
 
-    const performOCR = async (image) => {
+    // Initialize Tesseract worker
+    const [worker, setWorker] = useState(null);
+
+    // Initialize Tesseract worker
+    useEffect(() => {
+        const initializeWorker = async () => {
+            try {
+                const newWorker = await Tesseract.createWorker({
+                    logger: m => console.log(m)
+                });
+                
+                await newWorker.loadLanguage('eng');
+                await newWorker.initialize('eng');
+                
+                setWorker(newWorker);
+            } catch (error) {
+                console.error('Failed to initialize Tesseract worker:', error);
+                showBannerMessage('Failed to initialize OCR system', false);
+            }
+        };
+
+        initializeWorker();
+
+        // Cleanup worker on unmount
+        return () => {
+            if (worker) {
+                worker.terminate();
+            }
+        };
+    }, []); // Empty dependency array means this runs once on mount
+
+    // Update the OCR function to use the worker
+    const performOCR = async (imageData) => {
         try {
-            if (!image || typeof image !== 'string' || !image.startsWith('data:image')) {
-                showBannerMessage('Invalid image data', false);
-                throw new Error('Invalid image data');
+            if (!imageData) {
+                throw new Error('No image data provided');
+            }
+            
+            if (!worker) {
+                throw new Error('OCR system not initialized');
             }
 
-            const { data: { text } } = await Tesseract.recognize(
-                image,
-                'eng',
-                {
-                    logger: m => console.log(m),
-                    errorHandler: (err) => {
-                        console.error('Tesseract Error:', err);
-                        showBannerMessage('OCR processing error', false);
-                        throw err;
-                    }
-                }
-            );
+            const { data: { text } } = await worker.recognize(imageData);
             
-            const cleanedText = text.replace(/[.,]/g, '');
-            showBannerMessage('OCR capture successful!', true);
-            return cleanedText;
+            if (!text || text.trim() === '') {
+                throw new Error('No text recognized');
+            }
+            
+            return text;
         } catch (error) {
             console.error('OCR Error:', error);
-            showBannerMessage('Error processing image. Please try again.', false);
-            return '';
+            showBannerMessage('OCR Error: ' + error.message, false);
+            throw error;
         }
     };
 
