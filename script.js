@@ -238,7 +238,7 @@ const data = {
         'Shubin Mining Facility SM0-18',
         'Shubin Mining Facility SM0-22',
         'Covalex Distribution Centre S1DC06',
-        'Greycat Stanton I Production Complex-B',
+        'Greycat Stanton 1 Production Complex-B',
         'HDPC-Cassillo',
         'HDPC-Farnesway',
         'Sakura Sun Magnolia Workcenter',
@@ -789,7 +789,17 @@ const App = () => {
             showBannerMessage('Please enter a valid amount greater than 0.');
             return;
         }
+
+        // Generate a unique ID for this entry
+        const entryId = `entry_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        
+        // Get the selected mission index
+        const selectedMissionIndex = selectedMissions.findIndex(mission => mission);
+        const isMissionEntry = selectedMissionIndex !== -1;
+        
         const newEntry = {
+            id: entryId,
+            missionIndex: isMissionEntry ? selectedMissionIndex : null,
             dropOffPoint: selectedDropOffPoint,
             commodity: selectedCommodity,
             originalAmount: amountValue,
@@ -797,37 +807,31 @@ const App = () => {
             status: STATUS_OPTIONS[0],
             pickupPoint: firstDropdownValue,
             planet: selectedPlanet,
-            moon: selectedMoon
+            moon: selectedMoon,
+            isMissionEntry
         };
-        setEntries([...entries, newEntry]);
+        
+        // Add to main entries
+        setEntries(prevEntries => {
+            const updatedEntries = [...prevEntries, newEntry];
+            localStorage.setItem('entries', JSON.stringify(updatedEntries));
+            return updatedEntries;
+        });
 
-        const selectedMissionIndex = selectedMissions.findIndex(mission => mission);
-        if (selectedMissionIndex !== -1) {
+        // Only add to mission entries if it's a mission entry
+        if (isMissionEntry) {
             const updatedMissionEntries = [...missionEntries];
-            updatedMissionEntries[selectedMissionIndex] = [...updatedMissionEntries[selectedMissionIndex], newEntry];
+            updatedMissionEntries[selectedMissionIndex] = [
+                ...updatedMissionEntries[selectedMissionIndex], 
+                { ...newEntry }
+            ];
             setMissionEntries(updatedMissionEntries);
             localStorage.setItem('missionEntries', JSON.stringify(updatedMissionEntries));
+        }
 
-            if (newEntry.status === STATUS_OPTIONS[2]) {
-                const updatedHistory = historyEntries.map(historyGroup => {
-                    return {
-                        ...historyGroup,
-                        entries: historyGroup.entries.map(historyEntry => {
-                            if (historyEntry.dropOffPoint === newEntry.dropOffPoint && 
-                                historyEntry.commodity === newEntry.commodity) {
-                                return {
-                                    ...historyEntry,
-                                    status: STATUS_OPTIONS[2]
-                                };
-                            }
-                            return historyEntry;
-                        })
-                    };
-                });
-                
-                setHistoryEntries(updatedHistory);
-                localStorage.setItem('historyEntries', JSON.stringify(updatedHistory));
-            }
+        if (amountInputRef.current) {
+            amountInputRef.current.focus();
+            amountInputRef.current.select();
         }
     };
 
@@ -855,11 +859,15 @@ const App = () => {
         const activeEntries = entries.filter(entry => entry.status !== 'Delivered');
         
         if (deliveredEntries.length > 0) {
+            console.log('Processing orders from table:', isAlternateTable ? 'Missions Table' : 'Manifest Table');
+            
+            // Group entries by dropoff point and mission status
             const groupedEntries = deliveredEntries.reduce((acc, entry) => {
-                if (!acc[entry.dropOffPoint]) {
-                    acc[entry.dropOffPoint] = [];
+                const key = `${entry.dropOffPoint}-${entry.isMissionEntry ? 'mission' : 'regular'}`;
+                if (!acc[key]) {
+                    acc[key] = [];
                 }
-                acc[entry.dropOffPoint].push({
+                acc[key].push({
                     ...entry,
                     timestamp: new Date().toISOString(),
                     status: 'Delivered'
@@ -867,35 +875,39 @@ const App = () => {
                 return acc;
             }, {});
 
+            // Create history entries
             const updatedHistory = [
                 ...historyEntries,
-                ...Object.entries(groupedEntries).map(([dropOffPoint, entries]) => ({
-                    dropOffPoint,
-                    entries,
-                    timestamp: new Date().toISOString()
-                }))
+                ...Object.entries(groupedEntries).map(([key, entries]) => {
+                    const [dropOffPoint, type] = key.split('-');
+                    return {
+                        dropOffPoint,
+                        entries,
+                        timestamp: new Date().toISOString(),
+                        isMissionEntry: type === 'mission'
+                    };
+                })
             ];
             
-            const updatedMissionEntries = missionEntries.map(mission => 
-                mission.filter(missionEntry => 
-                    !deliveredEntries.some(deliveredEntry => 
-                        deliveredEntry.dropOffPoint === missionEntry.dropOffPoint &&
-                        deliveredEntry.commodity === missionEntry.commodity &&
-                        deliveredEntry.originalAmount === missionEntry.originalAmount
-                    )
-                )
-            );
-            
             setHistoryEntries(updatedHistory);
-            setEntries(activeEntries);
-            setMissionEntries(updatedMissionEntries);
-            
-            localStorage.setItem('entries', JSON.stringify(activeEntries));
             localStorage.setItem('historyEntries', JSON.stringify(updatedHistory));
+            
+            // Always update both mission entries and main entries regardless of current view
+            // Remove delivered entries from missionEntries
+            const updatedMissionEntries = missionEntries.map(missionGroup => 
+                missionGroup.filter(entry => !entry.status || entry.status !== 'Delivered')
+            );
+            setMissionEntries(updatedMissionEntries);
             localStorage.setItem('missionEntries', JSON.stringify(updatedMissionEntries));
+            
+            // Remove delivered entries from main entries array
+            const updatedEntries = entries.filter(entry => !entry.status || entry.status !== 'Delivered');
+            setEntries(updatedEntries);
+            localStorage.setItem('entries', JSON.stringify(updatedEntries));
             
             showBannerMessage(`${deliveredEntries.length} orders processed and moved to history.`);
         } else {
+            console.log('No delivered orders to process');
             showBannerMessage('No delivered orders to process.');
         }
     };
@@ -946,47 +958,42 @@ const App = () => {
     };
 
     const markAsDelivered = (dropOffPoint) => {
+        // Update all entries for this dropoff point
         const updatedEntries = entries.map(entry => {
             if (entry.dropOffPoint === dropOffPoint) {
-                const updatedHistory = historyEntries.map(historyGroup => {
-                    return {
-                        ...historyGroup,
-                        entries: historyGroup.entries.map(historyEntry => {
-                            if (historyEntry.dropOffPoint === dropOffPoint) {
-                                return {
-                                    ...historyEntry,
-                                    status: STATUS_OPTIONS[2]
-                                };
-                            }
-                            return historyEntry;
-                        })
-                    };
-                });
-                
-                setHistoryEntries(updatedHistory);
-                localStorage.setItem('historyEntries', JSON.stringify(updatedHistory));
-
-                const updatedMissionEntries = missionEntries.map(mission => 
-                    mission.map(missionEntry => {
-                        if (missionEntry.dropOffPoint === dropOffPoint) {
-                            return {
-                                ...missionEntry,
-                                status: STATUS_OPTIONS[2]
-                            };
-                        }
-                        return missionEntry;
-                    })
-                );
-                
-                setMissionEntries(updatedMissionEntries);
-                localStorage.setItem('missionEntries', JSON.stringify(updatedMissionEntries));
-                
-                return { ...entry, status: STATUS_OPTIONS[2] };
+                return { ...entry, status: STATUS_OPTIONS[2] }; // Delivered
             }
             return entry;
         });
         setEntries(updatedEntries);
         localStorage.setItem('entries', JSON.stringify(updatedEntries));
+
+        // Update all mission entries for this dropoff point
+        const updatedMissionEntries = missionEntries.map(missionGroup =>
+            missionGroup.map(entry => {
+                if (entry.dropOffPoint === dropOffPoint) {
+                    return { ...entry, status: STATUS_OPTIONS[2] };
+                }
+                return entry;
+            })
+        );
+
+        setMissionEntries(updatedMissionEntries);
+        localStorage.setItem('missionEntries', JSON.stringify(updatedMissionEntries));
+
+        // Update history entries
+        const updatedHistory = historyEntries.map(historyGroup => ({
+            ...historyGroup,
+            entries: historyGroup.entries.map(entry => {
+                if (entry.dropOffPoint === dropOffPoint) {
+                    return { ...entry, status: STATUS_OPTIONS[2] };
+                }
+                return entry;
+            })
+        }));
+
+        setHistoryEntries(updatedHistory);
+        localStorage.setItem('historyEntries', JSON.stringify(updatedHistory));
     };
 
     const handleFirstDropdownChange = (selectedOption) => {
@@ -1015,6 +1022,15 @@ const App = () => {
     ]);
 
     const validatePickupPoint = (pickup) => {
+        // Return early if pickup is empty or undefined
+        if (!pickup || pickup.trim() === '') {
+            return {
+                pickup: '',
+                isValid: false,
+                message: 'Empty pickup point provided'
+            };
+        }
+
         const validPickupPoints = [
             ...data.pickupPoints,
             ...Object.values(data.Dropoffpoints).flat(),
@@ -1032,13 +1048,16 @@ const App = () => {
     const handlePickupPointChange = (selectedOption) => {
         if (selectedOption) {
             const location = selectedOption.value;
-            const validation = validatePickupPoint(location);
-            
-            if (!validation.isValid) {
-                console.warn(validation);
-                alert(`Warning: "${location}" is not a recognized location. Please check your spelling.`);
+            // Only validate if there's a location value
+            if (location && location.trim() !== '') {
+                const validation = validatePickupPoint(location);
+                
+                if (!validation.isValid) {
+                    console.warn(validation.message);
+                    showBannerMessage(`Warning: "${location}" is not a recognized location. Please check your spelling.`, false);
+                }
+                setFirstDropdownValue(location);
             }
-            setFirstDropdownValue(location);
         } else {
             setFirstDropdownValue('');
         }
@@ -1105,104 +1124,151 @@ const App = () => {
         setSecondDropdownValue('');
     };
 
-    const handleImport = (event) => {
+    const handleImport = (event, type) => {
         const file = event.target.files[0];
         if (!file) return;
 
         const reader = new FileReader();
-        const fileExtension = file.name.split('.').pop().toLowerCase();
-
         reader.onload = (e) => {
             try {
-                let importedData = {
-                    entries: [],
-                    missionEntries: Array(10).fill([]),
-                    historyEntries: []
-                };
-
-                switch (fileExtension) {
-                    case 'json':
-                        importedData = JSON.parse(e.target.result);
-                        break;
-
-                    case 'csv':
-                        const csvContent = e.target.result;
-                        const lines = csvContent.split('\n');
-                        const headers = lines[0].split(',');
-                        
-                        for (let i = 1; i < lines.length; i++) {
-                            if (!lines[i].trim()) continue;
-                            
-                            const values = lines[i].split(',');
-                            const entry = {
-                                timestamp: new Date(values[0]).toISOString(),
-                                dropOffPoint: values[1],
-                                entries: [{
-                                    commodity: values[2],
-                                    currentAmount: values[3],
-                                    originalAmount: values[4],
-                                    status: values[5] || 'Completed'
-                                }]
-                            };
-                            
-                            importedData.historyEntries.push(entry);
-                        }
-                        break;
-
-                    case 'xls':
-                    case 'xlsx':
-                        const htmlContent = e.target.result;
-                        const parser = new DOMParser();
-                        const doc = parser.parseFromString(htmlContent, 'text/html');
-                        const rows = doc.querySelectorAll('tr');
-                        
-                        for (let i = 1; i < rows.length; i++) {
-                            const cells = rows[i].querySelectorAll('td');
-                            if (cells.length < 6) continue;
-                            
-                            const entry = {
-                                timestamp: new Date(cells[0].textContent).toISOString(),
-                                dropOffPoint: cells[1].textContent,
-                                entries: [{
-                                    commodity: cells[2].textContent,
-                                    currentAmount: cells[3].textContent,
-                                    originalAmount: cells[4].textContent,
-                                    status: cells[5].textContent || 'Completed'
-                                }]
-                            };
-                            
-                            importedData.historyEntries.push(entry);
-                        }
-                        break;
-
-                    default:
-                        throw new Error('Unsupported file format');
+                const content = e.target.result;
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(content, 'text/html');
+                const table = doc.querySelector('table');
+                
+                if (!table) {
+                    throw new Error('No table found in the imported file');
                 }
 
-                setEntries(prevEntries => [...prevEntries, ...(importedData.entries || [])]);
-                setMissionEntries(prevMissionEntries => {
-                    const newMissionEntries = [...prevMissionEntries];
-                    (importedData.missionEntries || []).forEach((mission, index) => {
-                        newMissionEntries[index] = [...newMissionEntries[index], ...mission];
-                    });
-                    return newMissionEntries;
-                });
-                setHistoryEntries(prevHistoryEntries => [...prevHistoryEntries, ...importedData.historyEntries]);
-                
-                showBannerMessage('Data imported successfully.', true);
+                const rows = table.getElementsByTagName('tr');
+                const importedEntries = [];
+                let currentGroup = null;
+
+                // Skip header row
+                for (let i = 1; i < rows.length; i++) {
+                    const cells = rows[i].getElementsByTagName('td');
+                    
+                    if (type === 'history') {
+                        if (cells.length < 7) continue;
+
+                        const tableIdentifier = cells[0].textContent.trim();
+                        if (!tableIdentifier.startsWith('history_table_')) {
+                            throw new Error('Invalid file format: Not a history table export');
+                        }
+
+                        const date = cells[1].textContent.trim();
+                        const dropOffPoint = cells[2].textContent.trim();
+                        const commodity = cells[3].textContent.trim();
+                        const currentAmount = cells[4].textContent.trim();
+                        const originalAmount = cells[5].textContent.trim();
+                        const status = cells[6].textContent.trim();
+
+                        const entry = {
+                            timestamp: new Date(date).toISOString(),
+                            dropOffPoint,
+                            entries: [{
+                                commodity,
+                                currentAmount,
+                                originalAmount,
+                                status,
+                                pickupPoint: '',
+                                isMissionEntry: false
+                            }]
+                        };
+                        importedEntries.push(entry);
+                    } else if (type === 'payouts') {
+                        if (cells.length < 5) continue;
+
+                        const tableIdentifier = cells[0].textContent.trim();
+                        if (!tableIdentifier.startsWith('payouts_table_')) {
+                            throw new Error('Invalid file format: Not a payouts table export');
+                        }
+
+                        const date = cells[1].textContent.trim();
+                        const dropOffPoint = cells[2].textContent.trim();
+                        const cargoItems = parseInt(cells[3].textContent.trim(), 10);
+                        const reward = cells[4].textContent.trim();
+
+                        // Create a unique mission ID for the imported payout
+                        const missionId = `${date}-${Math.floor(Math.random() * 1000)}`;
+
+                        // Get the mission entries from the payouts table
+                        const missionEntries = [];
+                        let i = 1;
+                        while (i < rows.length && missionEntries.length < cargoItems) {
+                            const detailCells = rows[i].getElementsByTagName('td');
+                            if (detailCells.length >= 4) { // Assuming format: Pickup, Drop Off, Commodity, QTY
+                                missionEntries.push({
+                                    commodity: detailCells[2].textContent.trim(),
+                                    currentAmount: detailCells[3].textContent.trim(),
+                                    originalAmount: detailCells[3].textContent.trim(),
+                                    status: 'Delivered',
+                                    pickupPoint: detailCells[0].textContent.trim(),
+                                    isMissionEntry: true
+                                });
+                            }
+                            i++;
+                        }
+
+                        const entry = {
+                            timestamp: new Date(date).toISOString(),
+                            dropOffPoint,
+                            entries: missionEntries.length > 0 ? missionEntries : Array(cargoItems).fill().map(() => ({
+                                commodity: 'Mission Cargo',
+                                currentAmount: '1',
+                                originalAmount: '1',
+                                status: 'Delivered',
+                                pickupPoint: '',
+                                isMissionEntry: true
+                            })),
+                            isMissionEntry: true
+                        };
+
+                        // Add the reward to missionRewards
+                        setMissionRewards(prev => {
+                            const updated = {
+                                ...prev,
+                                [missionId]: reward
+                            };
+                            localStorage.setItem('missionRewards', JSON.stringify(updated));
+                            return updated;
+                        });
+
+                        importedEntries.push(entry);
+                    }
+                }
+
+                if (importedEntries.length > 0) {
+                    if (type === 'history') {
+                        setHistoryEntries(prevHistory => {
+                            const updatedHistory = [...prevHistory, ...importedEntries];
+                            localStorage.setItem('historyEntries', JSON.stringify(updatedHistory));
+                            return updatedHistory;
+                        });
+                    } else if (type === 'payouts') {
+                        // Update both historyEntries and missionRewards
+                        setHistoryEntries(prevHistory => {
+                            const updatedHistory = [...prevHistory, ...importedEntries];
+                            localStorage.setItem('historyEntries', JSON.stringify(updatedHistory));
+                            return updatedHistory;
+                        });
+
+                        // Save mission rewards to localStorage
+                        localStorage.setItem('missionRewards', JSON.stringify(missionRewards));
+                    }
+                    showBannerMessage(`Successfully imported ${importedEntries.length} entries to ${type}.`, true);
+                } else {
+                    showBannerMessage('No valid entries found in import file.', false);
+                }
+
             } catch (error) {
                 console.error('Import error:', error);
-                showBannerMessage('Error importing file. Please check the file format.', false);
+                showBannerMessage(error.message, false);
             }
         };
 
-        if (fileExtension === 'json') {
-            reader.readAsText(file);
-        } else if (fileExtension === 'csv') {
-            reader.readAsText(file);
-        } else if (['xls', 'xlsx'].includes(fileExtension)) {
-            reader.readAsText(file);
-        }
+        reader.readAsText(file, 'windows-1252');
+        event.target.value = '';
     };
 
     const handleExport = (type) => {
@@ -1229,6 +1295,7 @@ const App = () => {
                     <table>
                         <thead>
                             <tr>
+                                <th style="display: none;">TableIdentifier</th>
                                 <th>Date</th>
                                 <th>Drop Off Point</th>
                                 <th>Commodity</th>
@@ -1245,6 +1312,7 @@ const App = () => {
                 entry.entries.forEach(item => {
                     htmlContent += `
                         <tr>
+                            <td style="display: none;">history_table_${Date.now()}</td>
                             <td>${date}</td>
                             <td>${entry.dropOffPoint}</td>
                             <td>${item.commodity}</td>
@@ -1267,7 +1335,7 @@ const App = () => {
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = 'sc-cargo-tracker-history.xls';
+            a.download = `sc-cargo-tracker-history-${Date.now()}.xls`;
             a.click();
             URL.revokeObjectURL(url);
         } 
@@ -1294,9 +1362,11 @@ const App = () => {
                     <table>
                         <thead>
                             <tr>
+                                <th style="display: none;">TableIdentifier</th>
                                 <th>Date</th>
                                 <th>Drop Off Point</th>
                                 <th>Total Cargo Items</th>
+                                <th>Reward</th>
                                 <th>Status</th>
                             </tr>
                         </thead>
@@ -1304,16 +1374,19 @@ const App = () => {
             `;
             
             const deliveredEntries = historyEntries.filter(entry => 
-                entry.entries.some(e => e.status === 'Delivered')
+                entry.entries.some(e => e.status === 'Delivered' && e.isMissionEntry)
             );
 
-            deliveredEntries.forEach(entry => {
+            deliveredEntries.forEach((entry, index) => {
                 const date = new Date(entry.timestamp).toLocaleDateString();
+                const missionId = `${date}-${index}`;
                 htmlContent += `
                     <tr>
+                        <td style="display: none;">payouts_table_${Date.now()}</td>
                         <td>${date}</td>
                         <td>${entry.dropOffPoint}</td>
                         <td>${entry.entries.length}</td>
+                        <td>${missionRewards[missionId] || '0'}</td>
                         <td>Delivered</td>
                     </tr>
                 `;
@@ -1330,7 +1403,7 @@ const App = () => {
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = 'sc-cargo-tracker-payouts.xls';
+            a.download = `sc-cargo-tracker-payouts-${Date.now()}.xls`;
             a.click();
             URL.revokeObjectURL(url);
         }
@@ -2150,14 +2223,24 @@ const App = () => {
     // Add this state variable at the top of the component
     const [showKeyInput, setShowKeyInput] = useState(false);
 
+    // Add these new state variables at the top of the App component
+    const [mainTab, setMainTab] = useState('Hauling');
+    const [haulingSubTab, setHaulingSubTab] = useState('Hauling Missions');
+
     // Modify the handleTabChange function
     const handleTabChange = (tab) => {
-        setActiveTab(tab);
+        setHaulingSubTab(tab);
         
-        // Only stop the video stream if explicitly toggled off
-        if (!useVideoStream) {
+        // If leaving the Capture tab, disable video stream and uncheck the checkbox
+        if (tab !== 'Capture' && useVideoStream) {
+            setUseVideoStream(false);
             stopVideoStream();
         }
+    };
+
+    // Add this new handler for main tabs
+    const handleMainTabChange = (tab) => {
+        setMainTab(tab);
     };
 
     // Add these state variables at the top of the component
@@ -2189,10 +2272,11 @@ const App = () => {
                         handleMouseUp(); // First capture
                         
                         // Start the cycle with the current interval duration
-                        setCaptureTimer(captureIntervalDuration);
+                        const newTimer = captureIntervalDuration;
+                        setCaptureTimer(newTimer);
                         const interval = setInterval(() => {
                             setCaptureTimer(prev => {
-                                if (prev === 0) {
+                                if (prev === 1) {
                                     handleMouseUp(); // Perform capture
                                     return captureIntervalDuration; // Reset countdown
                                 }
@@ -2309,6 +2393,32 @@ const App = () => {
         });
     };
 
+    // Add this new function near your other handlers
+    const toggleStatus = (index) => {
+        const updatedEntries = [...entries];
+        const entryToUpdate = updatedEntries[index];
+        
+        // Toggle between Pending and Delivered
+        entryToUpdate.status = entryToUpdate.status === 'Pending' ? 'Delivered' : 'Pending';
+        setEntries(updatedEntries);
+        localStorage.setItem('entries', JSON.stringify(updatedEntries));
+
+        // If this entry is part of a mission, update only that specific mission entry
+        if (entryToUpdate.missionIndex !== null && entryToUpdate.id) {
+            const updatedMissionEntries = [...missionEntries];
+            const missionGroup = updatedMissionEntries[entryToUpdate.missionIndex];
+            
+            if (missionGroup) {
+                updatedMissionEntries[entryToUpdate.missionIndex] = missionGroup.map(entry => 
+                    entry.id === entryToUpdate.id ? { ...entry, status: entryToUpdate.status } : entry
+                );
+                
+                setMissionEntries(updatedMissionEntries);
+                localStorage.setItem('missionEntries', JSON.stringify(updatedMissionEntries));
+            }
+        }
+    };
+
     return (
         <div className={darkMode ? 'dark-mode' : ''}>
             <header>
@@ -2317,19 +2427,34 @@ const App = () => {
                     {isAutoScaling ? 'Disable Auto Scaling' : 'Enable Auto Scaling'}
                 </button>
             </header>
-            <div className="tabs">
-                {['Capture', 'Hauling Missions', 'History', 'Payouts', 'Preferences'].map(tab => (
+            {/* Main Tabs */}
+            <div className="main-tabs">
+                {['Hauling', 'Mining', 'Preferences', 'Changelog'].map(tab => (
                     <div 
                         key={tab} 
-                        className={`tab ${activeTab === tab ? 'active-tab' : ''}`} 
-                        onClick={() => handleTabChange(tab)}
+                        className={`main-tab ${mainTab === tab ? 'active-main-tab' : ''}`} 
+                        onClick={() => handleMainTabChange(tab)}
                     >
                         {tab}
                     </div>
                 ))}
             </div>
+            {/* Sub Tabs - Only show for Hauling */}
+            {mainTab === 'Hauling' && (
+                <div className="tabs">
+                    {['Capture', 'Hauling Missions', 'History', 'Payouts'].map(tab => (
+                        <div 
+                            key={tab} 
+                            className={`tab ${haulingSubTab === tab ? 'active-tab' : ''}`} 
+                            onClick={() => handleTabChange(tab)}
+                        >
+                            {tab}
+                        </div>
+                    ))}
+                </div>
+            )}
             <div className="content">
-                <h2 style={{ color: 'var(--title-color)' }}>{activeTab}</h2>
+                <h2 style={{ color: 'var(--title-color)' }}>{mainTab}</h2>
                 {bannerMessage && (
                     <Portal>
                         <div className="banner">
@@ -2337,34 +2462,36 @@ const App = () => {
                         </div>
                     </Portal>
                 )}
-                {activeTab === 'Capture' && (
-                    <div className="capture-tab">
-                        <h3>Capture Mode</h3>
-                        <div className="capture-controls">
-                            <div className="stream-toggle">
-                                <label>
-                                    <input 
-                                        type="checkbox" 
-                                        checked={useVideoStream} 
-                                        onChange={toggleVideoStream} 
-                                    />
-                                    Capture Application Window
-                                </label>
-                                <div className="keybinding-control">
-                                    {showKeyInput ? (
-                                        <input
-                                            type="text"
-                                            className="key-input"
-                                            onKeyDown={handleKeyChange}
-                                            autoFocus
-                                            maxLength={1}
-                                            placeholder="Press any key"
-                                        />
-                                    ) : (
-                                        <button 
-                                            className="keybinding-button"
-                                            onClick={() => setShowKeyInput(true)}
-                                            style={{ 
+                {mainTab === 'Hauling' && (
+                    <>
+                        {haulingSubTab === 'Capture' && (
+                            <div className="capture-tab">
+                                <h3>Capture Mode</h3>
+                                <div className="capture-controls">
+                                    <div className="stream-toggle">
+                                        <label>
+                                            <input 
+                                                type="checkbox" 
+                                                checked={useVideoStream} 
+                                                onChange={toggleVideoStream} 
+                                            />
+                                            Capture Application Window
+                                        </label>
+                                        <div className="keybinding-control">
+                                            {showKeyInput ? (
+                                                <input
+                                                    type="text"
+                                                    className="key-input"
+                                                    onKeyDown={handleKeyChange}
+                                                    autoFocus
+                                                    maxLength={1}
+                                                    placeholder="Press any key"
+                                                />
+                                            ) : (
+                                                <button 
+                                                    className="keybinding-button"
+                                                    onClick={() => setShowKeyInput(true)}
+                                                    style={{ 
                                         backgroundColor: 'var(--button-color)',
                                                 color: '#0d0d0d',
                                                 border: 'none',
@@ -2383,501 +2510,654 @@ const App = () => {
                                         >
                                             Set Capture Key: {captureKey.toUpperCase()}
                                         </button>
-                                    )}
-                                </div>
-                            </div>
-                            {useVideoStream && (
-                                <div 
-                                    className="video-container"
-                                    onMouseDown={handleMouseDown}
-                                    onMouseMove={handleMouseMove}
-                                    onMouseUp={handleMouseUp}
-                                    style={{ position: 'relative', cursor: isDrawing ? 'crosshair' : 'default' }}
-                                >
-                                    <video 
-                                        ref={videoRef} 
-                                        autoPlay 
-                                        playsInline 
-                                        style={{ 
-                                            width: '100%', 
-                                            height: 'auto', 
-                                            borderRadius: '5px',
-                                            display: 'block'
-                                        }}
-                                    />
-                                    {selectionBox && videoRef.current && (
+                                            )}
+                                        </div>
+                                    </div>
+                                    {useVideoStream && (
                                         <div 
-                                            style={{
-                                                position: 'absolute',
-                                                left: (Math.min(selectionBox.startX, selectionBox.endX) / videoRef.current.videoWidth) * 100 + '%',
-                                                top: (Math.min(selectionBox.startY, selectionBox.endY) / videoRef.current.videoHeight) * 100 + '%',
-                                                width: (Math.abs(selectionBox.endX - selectionBox.startX) / videoRef.current.videoWidth) * 100 + '%',
-                                                height: (Math.abs(selectionBox.endY - selectionBox.startY) / videoRef.current.videoHeight) * 100 + '%',
-                                                border: '2px dashed #00ffcc',
-                                                backgroundColor: 'rgba(0, 255, 204, 0.1)',
-                                                pointerEvents: 'none'
+                                            className="video-container"
+                                            onMouseDown={handleMouseDown}
+                                            onMouseMove={handleMouseMove}
+                                            onMouseUp={handleMouseUp}
+                                            style={{ position: 'relative', cursor: isDrawing ? 'crosshair' : 'default' }}
+                                        >
+                                            <video 
+                                                ref={videoRef} 
+                                                autoPlay 
+                                                playsInline 
+                                                style={{ 
+                                                    width: '100%', 
+                                                    height: 'auto', 
+                                                    borderRadius: '5px',
+                                                    display: 'block'
+                                                }}
+                                            />
+                                            {selectionBox && videoRef.current && (
+                                                <div 
+                                                    style={{
+                                                        position: 'absolute',
+                                                        left: (Math.min(selectionBox.startX, selectionBox.endX) / videoRef.current.videoWidth) * 100 + '%',
+                                                        top: (Math.min(selectionBox.startY, selectionBox.endY) / videoRef.current.videoHeight) * 100 + '%',
+                                                        width: (Math.abs(selectionBox.endX - selectionBox.startX) / videoRef.current.videoWidth) * 100 + '%',
+                                                        height: (Math.abs(selectionBox.endY - selectionBox.startY) / videoRef.current.videoHeight) * 100 + '%',
+                                                        border: '2px dashed #00ffcc',
+                                                        backgroundColor: 'rgba(0, 255, 204, 0.1)',
+                                                        pointerEvents: 'none'
+                                                    }}
+                                                />
+                                            )}
+                                        </div>
+                                    )}
+                                    {isConstantCapture && (
+                                        <div className="capture-timer" style={{
+                                            fontSize: '1.2em',
+                                            fontWeight: 'bold',
+                                            color: 'var(--title-color)',
+                                            margin: '10px 0'
+                                        }}>
+                                            Next capture in: {captureTimer} seconds
+                                        </div>
+                                    )}
+                                    <div className="capture-buttons">
+                                        <button 
+                                            className="constant-capture-button" 
+                                            onClick={handleConstantCapture}
+                                            style={{ 
+                                                backgroundColor: isConstantCapture ? '#f44336' : 'var(--button-color)',
+                                                color: '#0d0d0d',
+                                                border: 'none',
+                                                padding: '7px 20px',
+                                                borderRadius: '5px',
+                                                cursor: 'pointer',
+                                                fontFamily: 'inherit',
+                                                fontSize: '16px',
+                                                transition: 'background-color 0.3s, color 0.3s',
+                                                margin: '10px 10px 10px 0',
+                                                display: 'inline-block',
+                                                textAlign: 'center',
+                                                textDecoration: 'none',
+                                                whiteSpace: 'nowrap'
                                             }}
-                                        />
+                                        >
+                                            {isConstantCapture ? 'Stop Constant Capture' : 'Start Constant Capture'}
+                                        </button>
+                                        <button 
+                                            className="adjust-speed-button"
+                                            onClick={handleSpeedAdjustment}
+                                        style={{ 
+                                        backgroundColor: 'var(--button-color)',
+                                                color: '#0d0d0d',
+                                                border: 'none',
+                                                padding: '7px 20px',
+                                                borderRadius: '5px',
+                                                cursor: 'pointer',
+                                                fontFamily: 'inherit',
+                                                fontSize: '16px',
+                                                transition: 'background-color 0.3s, color 0.3s',
+                                                margin: '10px 10px 10px 0',
+                                                display: 'inline-block',
+                                                textAlign: 'center',
+                                                textDecoration: 'none',
+                                                whiteSpace: 'nowrap'
+                                            }}
+                                        >
+                                            Adjust Speed
+                                        </button>
+                                    <button 
+                                        className="add-entry-button" 
+                                        style={{ marginTop: '10px' }}
+                                        onClick={addOCRToManifest}
+                                        disabled={ocrResults.length === 0} // Disable button if no results
+                                    >
+                                        Add to Manifest
+                                    </button>
+                                        <button 
+                                            className="undo-ocr-button" 
+                                            onClick={undoLastOcrCapture}
+                                            disabled={ocrCaptureHistory.length === 0} // This line disables the button when there's no history
+                                            style={{ 
+                                        backgroundColor: '#ff6666',
+                                                color: '#0d0d0d',
+                                                border: 'none',
+                                                padding: '7px 20px',
+                                                borderRadius: '5px',
+                                                cursor: 'pointer',
+                                                fontFamily: 'inherit',
+                                                fontSize: '16px',
+                                                transition: 'background-color 0.3s, color 0.3s',
+                                                margin: '10px 0',
+                                                display: 'inline-block',
+                                                textAlign: 'center',
+                                                textDecoration: 'none',
+                                                whiteSpace: 'nowrap',
+                                                marginLeft: '10px'
+                                            }}
+                                        >
+                                            Undo Mistake - OCR
+                                        </button>
+                                    </div>
+                                </div>
+                                <div id="process-log" className="process-log">
+                                    {ocrResults.length > 0 && (
+                                        <>
+                                            <div className="ocr-counters">
+                                                <div className="ocr-counter">
+                                                    <strong>Total Entries:</strong> {ocrResults.length}
+                                                </div>
+                                                <div className="ocr-counter">
+                                                    <strong>Total SCU:</strong> {ocrResults.reduce((total, result) => {
+                                                        const quantity = parseInt(result.quantity.split('/')[0], 10) || 0;
+                                                        return total + quantity;
+                                                    }, 0)}
+                                                </div>
+                                            </div>
+                                            <h4>OCR Process Log:</h4>
+                                            <h4>Results Table:</h4>
+                                            <table className="ocr-table">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Commodity</th>
+                                                        <th>Quantity</th>
+                                                        <th>Pickup</th>
+                                                        <th>Drop Off</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {ocrResults.map((result, index) => {
+                                                        // Use fuzzy matching to find the closest matches
+                                                        const matchedCommodity = findClosestMatch(result.commodity, data.commodities) || result.commodity;
+                                                        const matchedPickup = findClosestMatch(result.pickup, [
+                                                            ...data.pickupPoints,
+                                                            ...Object.values(data.Dropoffpoints).flat(),
+                                                            ...Object.values(data.moons).flatMap(moon => Object.values(moon)).flat()
+                                                        ]) || result.pickup;
+                                                        const matchedDropoff = findClosestMatch(result.dropoff, [
+                                                            ...data.pickupPoints,
+                                                            ...Object.values(data.Dropoffpoints).flat(),
+                                                            ...Object.values(data.moons).flatMap(moon => Object.values(moon)).flat()
+                                                        ]) || result.dropoff;
+
+                                                        // Check if the matches are valid
+                                                        const isValidCommodity = data.commodities.includes(matchedCommodity);
+                                                        const isValidPickup = data.pickupPoints.includes(matchedPickup) || 
+                                                            Object.values(data.Dropoffpoints).flat().includes(matchedPickup) ||
+                                                            Object.values(data.moons).flatMap(moon => Object.values(moon)).flat().includes(matchedPickup);
+                                                        const isValidDropoff = data.pickupPoints.includes(matchedDropoff) || 
+                                                            Object.values(data.Dropoffpoints).flat().includes(matchedDropoff) ||
+                                                            Object.values(data.moons).flatMap(moon => Object.values(moon)).flat().includes(matchedDropoff);
+
+                                                        return (
+                                                            <tr key={index}>
+                                                                <td style={{ color: isValidCommodity ? 'inherit' : 'red' }}>
+                                                                    {matchedCommodity}
+                                                                </td>
+                                                                <td>
+                                                                    {editedQuantities[index] !== undefined ? (
+                                                                        <input
+                                                                            type="text"
+                                                                            value={editedQuantities[index]}
+                                                                            onChange={(e) => handleQuantityEdit(index, e.target.value)}
+                                                                            onKeyPress={(e) => {
+                                                                                if (e.key === 'Enter') {
+                                                                                    saveQuantityEdit(index);
+                                                                                }
+                                                                            }}
+                                                                            style={{ 
+                                                                                width: '50px',
+                                                                                border: '1px solid #ccc',
+                                                                                padding: '2px',
+                                                                                borderRadius: '3px'
+                                                                            }}
+                                                                            autoFocus
+                                                                        />
+                                                                    ) : (
+                                                                        <span 
+                                                                            onClick={() => handleQuantityEdit(index, result.quantity)}
+                                                                            style={{ 
+                                                                                cursor: 'pointer', 
+                                                                                textDecoration: 'underline',
+                                                                                padding: '2px 5px'
+                                                                            }}
+                                                                        >
+                                                                            {result.quantity}
+                                                                        </span>
+                                                                    )}
+                                                                </td>
+                                                                <td style={{ color: isValidPickup ? 'inherit' : 'red' }}>
+                                                                    {matchedPickup}
+                                                                </td>
+                                                                <td style={{ color: isValidDropoff ? 'inherit' : 'red' }}>
+                                                                    {matchedDropoff}
+                                                                </td>
+                                                            </tr>
+                                                        );
+                                                    })}
+                                                </tbody>
+                                            </table>
+                                        </>
                                     )}
                                 </div>
-                            )}
-                            {isConstantCapture && (
-                                <div className="capture-timer" style={{
-                                    fontSize: '1.2em',
-                                    fontWeight: 'bold',
-                                    color: 'var(--title-color)',
-                                    margin: '10px 0'
-                                }}>
-                                    Next capture in: {captureTimer > 0 ? captureTimer : 3} seconds
-                                </div>
-                            )}
-                            <div className="capture-buttons">
-                                <button 
-                                    className="constant-capture-button" 
-                                    onClick={handleConstantCapture}
-                                    style={{ 
-                                        backgroundColor: isConstantCapture ? '#f44336' : 'var(--button-color)',
-                                        color: '#0d0d0d',
-                                        border: 'none',
-                                        padding: '7px 20px',
-                                        borderRadius: '5px',
-                                        cursor: 'pointer',
-                                        fontFamily: 'inherit',
-                                        fontSize: '16px',
-                                        transition: 'background-color 0.3s, color 0.3s',
-                                        margin: '10px 10px 10px 0',
-                                        display: 'inline-block',
-                                        textAlign: 'center',
-                                        textDecoration: 'none',
-                                        whiteSpace: 'nowrap'
-                                    }}
-                                >
-                                    {isConstantCapture ? 'Stop Constant Capture' : 'Start Constant Capture'}
-                                </button>
-                                <button 
-                                    className="adjust-speed-button"
-                                    onClick={handleSpeedAdjustment}
-                                style={{ 
-                                backgroundColor: 'var(--button-color)',
-                                        color: '#0d0d0d',
-                                        border: 'none',
-                                        padding: '7px 20px',
-                                        borderRadius: '5px',
-                                        cursor: 'pointer',
-                                        fontFamily: 'inherit',
-                                        fontSize: '16px',
-                                        transition: 'background-color 0.3s, color 0.3s',
-                                        margin: '10px 10px 10px 0',
-                                        display: 'inline-block',
-                                        textAlign: 'center',
-                                        textDecoration: 'none',
-                                        whiteSpace: 'nowrap'
-                                    }}
-                                >
-                                    Adjust Speed
-                                </button>
-                            <button 
-                                className="add-entry-button" 
-                                style={{ marginTop: '10px' }}
-                                onClick={addOCRToManifest}
-                                disabled={ocrResults.length === 0} // Disable button if no results
-                            >
-                                Add to Manifest
-                            </button>
-                                <button 
-                                    className="undo-ocr-button" 
-                                    onClick={undoLastOcrCapture}
-                                    disabled={ocrCaptureHistory.length === 0} // This line disables the button when there's no history
-                                    style={{ 
-                                backgroundColor: '#ff6666',
-                                        color: '#0d0d0d',
-                                        border: 'none',
-                                        padding: '7px 20px',
-                                        borderRadius: '5px',
-                                        cursor: 'pointer',
-                                        fontFamily: 'inherit',
-                                        fontSize: '16px',
-                                        transition: 'background-color 0.3s, color 0.3s',
-                                        margin: '10px 0',
-                                        display: 'inline-block',
-                                        textAlign: 'center',
-                                        textDecoration: 'none',
-                                        whiteSpace: 'nowrap',
-                                        marginLeft: '10px'
-                                    }}
-                                >
-                                    Undo Mistake - OCR
-                                </button>
                             </div>
-                        </div>
-                        <div id="process-log" className="process-log">
-                            {ocrResults.length > 0 && (
-                                <>
-                                    <div className="ocr-counters">
-                                        <div className="ocr-counter">
-                                            <strong>Total Entries:</strong> {ocrResults.length}
+                        )}
+                        {haulingSubTab === 'Hauling Missions' && (
+                            <div className="hauling-missions">
+                                <div className="form-row">
+                                    <div className="form-group">
+                                        <label>Pickup Point</label>
+                                        <Select
+                                            components={{ DropdownIndicator: null, IndicatorSeparator: null }}
+                                            options={pickupPointOptions}
+                                            value={pickupPointOptions.find(option => option.value === firstDropdownValue)}
+                                            onChange={handlePickupPointChange}
+                                            className="first-dropdown-select"
+                                            classNamePrefix="react-select"
+                                            styles={customStyles}
+                                            placeholder="Search Pickup Point"
+                                        />
+                                    </div>
+                                    <div className="form-group">
+                                        <label>Quick Lookup</label>
+                                        <Select
+                                            components={{ DropdownIndicator: null, IndicatorSeparator: null }}
+                                            options={quickLookupOptions}
+                                            value={quickLookupOptions.find(option => option.value === secondDropdownValue)}
+                                            onChange={handleQuickLookupChange}
+                                            className="second-dropdown-select"
+                                            classNamePrefix="react-select"
+                                            styles={customStyles}
+                                            placeholder="Search Quick Lookup"
+                                        />
+                                    </div>
+                                </div>
+                                <div className="form-row">
+                                    <div className="form-group">
+                                        <label>Location Type</label>
+                                        <Select
+                                            components={{ DropdownIndicator: null, IndicatorSeparator: null }}
+                                            options={[
+                                                { value: 'planet', label: 'Planet' },
+                                                { value: 'station', label: 'Station' }
+                                            ]}
+                                            value={{ value: locationType, label: locationType.charAt(0).toUpperCase() + locationType.slice(1) }}
+                                            onChange={handleLocationTypeChange}
+                                            className="location-type-select"
+                                            classNamePrefix="react-select"
+                                            styles={customStyles}
+                                        />
+                                    </div>
+                                    {locationType === 'planet' && (
+                                        <>
+                                            <div className="form-group">
+                                                <label>Planet</label>
+                                                <Select
+                                                    components={{ DropdownIndicator: null, IndicatorSeparator: null }}
+                                                    options={planetOptions}
+                                                    value={planetOptions.find(option => option.value === selectedPlanet)}
+                                                    onChange={handlePlanetSelectChange}
+                                                    className="planet-select"
+                                                    classNamePrefix="react-select"
+                                                    styles={customStyles}
+                                                />
+                                            </div>
+                                            <div className="form-group">
+                                                <label>Moon</label>
+                                                <Select
+                                                    components={{ DropdownIndicator: null, IndicatorSeparator: null }}
+                                                    options={selectedPlanet && data.moons[selectedPlanet] ? Object.keys(data.moons[selectedPlanet]).map(moon => ({ value: moon, label: moon })) : []}
+                                                    value={selectedMoon ? { value: selectedMoon, label: selectedMoon } : null}
+                                                    onChange={handleMoonSelectChange}
+                                                    className="moon-select"
+                                                    classNamePrefix="react-select"
+                                                    styles={customStyles}
+                                                />
+                                            </div>
+                                        </>
+                                    )}
+                                    {locationType === 'station' && (
+                                        <>
+                                            <div className="form-group">
+                                                <label>Station</label>
+                                                <Select
+                                                    components={{ DropdownIndicator: null, IndicatorSeparator: null }}
+                                                    options={stationOptions}
+                                                    value={stationOptions.find(option => option.value === selectedDropOffPoint)}
+                                                    onChange={handleStationSelectChange}
+                                                    className="station-select"
+                                                    classNamePrefix="react-select"
+                                                    styles={customStyles}
+                                                />
+                                            </div>
+                                            <div className="form-group">
+                                                <label>Moon</label>
+                                                <Select
+                                                    components={{ DropdownIndicator: null, IndicatorSeparator: null }}
+                                                    options={selectedPlanet && data.moons[selectedPlanet] ? Object.keys(data.moons[selectedPlanet]).map(moon => ({ value: moon, label: moon })) : []}
+                                                    value={selectedMoon ? { value: selectedMoon, label: selectedMoon } : null}
+                                                    onChange={handleMoonSelectChange}
+                                                    className="moon-select"
+                                                    classNamePrefix="react-select"
+                                                    styles={customStyles}
+                                                />
+                                            </div>
+                                        </>
+                                    )}
+                                    <div className="form-group">
+                                        <label>Drop off points</label>
+                                        <Select
+                                            components={{ DropdownIndicator: null, IndicatorSeparator: null }}
+                                            options={selectedMoon && data.moons[selectedPlanet][selectedMoon] ? data.moons[selectedPlanet][selectedMoon].map(station => ({ value: station, label: station })) : (data.Dropoffpoints[selectedPlanet] || []).map(station => ({ value: station, label: station }))}
+                                            value={selectedDropOffPoint ? { value: selectedDropOffPoint, label: selectedDropOffPoint } : null}
+                                            onChange={handleDropOffSelectChange}
+                                            className="drop-off-select"
+                                            classNamePrefix="react-select"
+                                            styles={customStyles}
+                                            placeholder="Select Drop off"
+                                        />
+                                    </div>
+                                    <div className="checkbox-group">
+                                        <div className="column">
+                                            {Array.from({ length: 5 }, (_, index) => (
+                                                <label key={index}>
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={selectedMissions[index]}
+                                                        onChange={() => handleCheckboxChange(index)}
+                                                    />
+                                                    Mission {index + 1}
+                                                    {getMissionPreview(index)}
+                                                </label>
+                                            ))}
                                         </div>
-                                        <div className="ocr-counter">
-                                            <strong>Total SCU:</strong> {ocrResults.reduce((total, result) => {
-                                                const quantity = parseInt(result.quantity.split('/')[0], 10) || 0;
-                                                return total + quantity;
-                                            }, 0)}
+                                        <div className="column">
+                                            {Array.from({ length: 5 }, (_, index) => (
+                                                <label key={index + 5}>
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={selectedMissions[index + 5]}
+                                                        onChange={() => handleCheckboxChange(index + 5)}
+                                                    />
+                                                    Mission {index + 6}
+                                                    {getMissionPreview(index + 5)}
+                                                </label>
+                                            ))}
                                         </div>
                                     </div>
-                                    <h4>OCR Process Log:</h4>
-                                    <h4>Results Table:</h4>
-                                    <table className="ocr-table">
-                                        <thead>
-                                            <tr>
-                                                <th>Commodity</th>
-                                                <th>Quantity</th>
-                                                <th>Pickup</th>
-                                                <th>Drop Off</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {ocrResults.map((result, index) => {
-                                                // Use fuzzy matching to find the closest matches
-                                                const matchedCommodity = findClosestMatch(result.commodity, data.commodities) || result.commodity;
-                                                const matchedPickup = findClosestMatch(result.pickup, [
-                                                    ...data.pickupPoints,
-                                                    ...Object.values(data.Dropoffpoints).flat(),
-                                                    ...Object.values(data.moons).flatMap(moon => Object.values(moon)).flat()
-                                                ]) || result.pickup;
-                                                const matchedDropoff = findClosestMatch(result.dropoff, [
-                                                    ...data.pickupPoints,
-                                                    ...Object.values(data.Dropoffpoints).flat(),
-                                                    ...Object.values(data.moons).flatMap(moon => Object.values(moon)).flat()
-                                                ]) || result.dropoff;
-
-                                                // Check if the matches are valid
-                                                const isValidCommodity = data.commodities.includes(matchedCommodity);
-                                                const isValidPickup = data.pickupPoints.includes(matchedPickup) || 
-                                                    Object.values(data.Dropoffpoints).flat().includes(matchedPickup) ||
-                                                    Object.values(data.moons).flatMap(moon => Object.values(moon)).flat().includes(matchedPickup);
-                                                const isValidDropoff = data.pickupPoints.includes(matchedDropoff) || 
-                                                    Object.values(data.Dropoffpoints).flat().includes(matchedDropoff) ||
-                                                    Object.values(data.moons).flatMap(moon => Object.values(moon)).flat().includes(matchedDropoff);
-
-                                                return (
-                                                    <tr key={index}>
-                                                        <td style={{ color: isValidCommodity ? 'inherit' : 'red' }}>
-                                                            {matchedCommodity}
-                                                        </td>
-                                                        <td>
-                                                            {editedQuantities[index] !== undefined ? (
-                                                                <input
-                                                                    type="text"
-                                                                    value={editedQuantities[index]}
-                                                                    onChange={(e) => handleQuantityEdit(index, e.target.value)}
-                                                                    onKeyPress={(e) => {
-                                                                        if (e.key === 'Enter') {
-                                                                            saveQuantityEdit(index);
-                                                                        }
-                                                                    }}
-                                                                    style={{ 
-                                                                        width: '50px',
-                                                                        border: '1px solid #ccc',
-                                                                        padding: '2px',
-                                                                        borderRadius: '3px'
-                                                                    }}
-                                                                    autoFocus
-                                                                />
-                                                            ) : (
-                                                                <span 
-                                                                    onClick={() => handleQuantityEdit(index, result.quantity)}
-                                                                    style={{ 
-                                                                        cursor: 'pointer', 
-                                                                        textDecoration: 'underline',
-                                                                        padding: '2px 5px'
-                                                                    }}
-                                                                >
-                                                                    {result.quantity}
-                                                                </span>
+                                </div>
+                                <div className="form-row">
+                                    <div className="form-group">
+                                        <label>Commodity</label>
+                                        <Select
+                                            components={{ DropdownIndicator: null, IndicatorSeparator: null }}
+                                            options={commodityOptions}
+                                            value={commodityOptions.find(option => option.value === selectedCommodity)}
+                                            onChange={handleCommoditySelectChange}
+                                            className="commodity-select"
+                                            classNamePrefix="react-select"
+                                            styles={customStyles}
+                                        />
+                                    </div>
+                                    <div className="form-group">
+                                        <label>Amount</label>
+                                        <input type="text" className="amount-input" ref={amountInputRef} onKeyPress={handleTopAmountKeyPress} />
+                                    </div>
+                                    <div className="form-group button-group">
+                                        <button className="add-entry-button" onClick={addEntry}>Add Entry</button>
+                                        <button className="process-orders-button" onClick={processOrders}>Process Orders</button>
+                                        <button className="table-view-button" onClick={toggleTableView}>
+                                            {isAlternateTable ? 'Manifest' : 'Missions'}
+                                        </button>
+                                        <button
+                                            className="clear-log-button"
+                                            onClick={clearLog}
+                                            style={{ backgroundColor: needsClearConfirmation ? '#ff3333' : '#ff6666' }}
+                                        >
+                                            {needsClearConfirmation ? 'Confirm Clear' : 'Clear Log'}
+                                        </button>
+                                        <div className="scu-container">
+                                            <span className="scu-label">SCU<br/>TOTAL</span>
+                                        </div>
+                                        <div className="form-group scu-group">
+                                            <input type="text" className="scu-input" value={calculateTotalSCU()} disabled />
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="table-container">
+                                    {isAlternateTable ? (
+                                        Array.from({ length: 10 }, (_, missionIndex) => (
+                                            <div key={missionIndex}>
+                                                <div className="drop-off-header" onClick={() => toggleMissionCollapse(missionIndex)}>
+                                                    <span>Mission {missionIndex + 1}</span>
+                                                    <span>{collapsedMissions[missionIndex] ? '▲' : '▼'}</span>
+                                                </div>
+                                                {!collapsedMissions[missionIndex] && (
+                                                    <table className="table">
+                                                        <thead>
+                                                            <tr>
+                                                                <th>Drop off points</th>
+                                                                <th>Commodity</th>
+                                                                <th>QTY</th>
+                                                                <th>Status</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            {missionEntries[missionIndex].map((entry, index) => (
+                                                                <tr key={index}><td>{entry.dropOffPoint}</td><td>{entry.commodity}</td><td>{entry.currentAmount}/{entry.originalAmount}</td><td>{entry.status}</td></tr>
+                                                            ))}
+                                                        </tbody>
+                                                    </table>
+                                                )}
+                                            </div>
+                                        ))
+                                    ) : (
+                                        Object.keys(entries.reduce((acc, entry) => {
+                                            acc[entry.dropOffPoint] = true;
+                                            return acc;
+                                        }, {})).map(dropOffPoint => (
+                                            <div key={dropOffPoint}>
+                                                <div className="drop-off-header" onClick={() => toggleCollapse(dropOffPoint)}>
+                                                    <div className="left-box">
+                                                        <button onClick={(e) => { e.stopPropagation(); moveDropOffPoint(dropOffPoint, -1); }}>▲</button>
+                                                        <button onClick={(e) => { e.stopPropagation(); moveDropOffPoint(dropOffPoint, 1); }}>▼</button>
+                                                        <span>{dropOffPoint}</span>
+                                                        <span style={{ fontSize: 'small', marginLeft: '10px' }}>({entries.find(entry => entry.dropOffPoint === dropOffPoint)?.planet} - {entries.find(entry => entry.dropOffPoint === dropOffPoint)?.moon})</span> {/* Display planet and moon */}
+                                                    </div>
+                                                    <div className="right-box">
+                                                        <span>{collapsed[dropOffPoint] ? '▲' : '▼'}</span>
+                                                        <button onClick={(e) => { e.stopPropagation(); markAsDelivered(dropOffPoint); }}>Cargo Delivered</button>
+                                                    </div>
+                                                </div>
+                                                {!collapsed[dropOffPoint] && (
+                                                    <table className="table">
+                                                        <thead>
+                                                            <tr>
+                                                                <th className="pickup">Pickup</th>
+                                                                <th className="commodity">Commodity</th>
+                                                                <th className="amount">QTY</th>
+                                                                <th className="actions">Actions</th>
+                                                                <th className="status">Status</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            {entries.filter(entry => entry.dropOffPoint === dropOffPoint).map((entry, index) => (
+                                                                <tr key={index}>
+                                                                    <td className="pickup">{entry.pickupPoint}</td>
+                                                                    <td className="commodity">{entry.commodity}</td>
+                                                                    <td className="amount">{entry.currentAmount}/{entry.originalAmount}</td>
+                                                                    <td className="actions">
+                                                                        <input type="text" defaultValue={entry.currentAmount} size="10" 
+                                                                               onBlur={(e) => handleAmountChange(index, e.target.value)} 
+                                                                               onKeyPress={(e) => handleAmountKeyPress(e, index)} />
+                                                                        <button onClick={() => updateCargo(index, entry.currentAmount)}>Update Cargo</button>
+                                                                        <button className="remove-cargo-button" onClick={() => removeCargo(index)}>Remove Cargo</button>
+                                                                    </td>
+                                                                    <td className="status" 
+                                                                        style={{ 
+                                                                            color: entry.status === 'Delivered' ? 'green' : 'inherit',
+                                                                            cursor: 'pointer'
+                                                                        }}
+                                                                        onClick={() => toggleStatus(index)}
+                                                                    >
+                                                                        {entry.status || 'Pending'}
+                                                                    </td>
+                                                                </tr>
+                                                            ))}
+                                                        </tbody>
+                                                    </table>
+                                                )}
+                                            </div>
+                                        ))
+                                    )}
+                                </div>
+                            </div>
+                        )}
+                        {haulingSubTab === 'History' && (
+                            <div className="history-container">
+                                <div className="history-group-box">
+                                    {Object.keys(historyEntries.reduce((acc, entry) => {
+                                        const date = new Date(entry.timestamp).toLocaleDateString();
+                                        acc[date] = true;
+                                        return acc;
+                                    }, {})).map(date => (
+                                        <div key={date} className="history-date-group">
+                                            <div
+                                                className="history-date-header"
+                                                onClick={() => toggleCollapse(date)}
+                                            >
+                                                <span>{date}</span>
+                                                <span>{collapsed[date] ? '▲' : '▼'}</span>
+                                            </div>
+                                            {!collapsed[date] && (
+                                                <div className="commodity-group">
+                                                    {Object.entries(
+                                                        historyEntries
+                                                            .filter(entry => new Date(entry.timestamp).toLocaleDateString() === date)
+                                                            .reduce((acc, group) => {
+                                                                if (!acc[group.dropOffPoint]) {
+                                                                    acc[group.dropOffPoint] = [];
+                                                                }
+                                                                group.entries.forEach(entry => {
+                                                                    acc[group.dropOffPoint].push({
+                                                                        ...entry,
+                                                                        dropOffPoint: group.dropOffPoint
+                                                                    });
+                                                                });
+                                                                return acc;
+                                                            }, {})
+                                                    ).map(([dropOffPoint, entries]) => (
+                                                        <div key={dropOffPoint} className="commodity-group">
+                                                            <div 
+                                                                className="commodity-header" 
+                                                                onClick={() => toggleCollapse(dropOffPoint)}
+                                                            >
+                                                                <span>{dropOffPoint}</span>
+                                                                <span>{collapsed[dropOffPoint] ? '▲' : '▼'}</span>
+                                                            </div>
+                                                            {!collapsed[dropOffPoint] && (
+                                                                <table className="history-table">
+                                                                    <thead>
+                                                                        <tr>
+                                                                            <th>Commodity</th>
+                                                                            <th>QTY (Current/Original)</th>
+                                                                        </tr>
+                                                                    </thead>
+                                                                    <tbody>
+                                                                        {entries.map((entry, index) => (
+                                                                            <tr key={index}>
+                                                                                <td>{entry.commodity}</td>
+                                                                                <td>{entry.currentAmount}/{entry.originalAmount}</td>
+                                                                            </tr>
+                                                                        ))}
+                                                                    </tbody>
+                                                                </table>
                                                             )}
-                                                        </td>
-                                                        <td style={{ color: isValidPickup ? 'inherit' : 'red' }}>
-                                                            {matchedPickup}
-                                                        </td>
-                                                        <td style={{ color: isValidDropoff ? 'inherit' : 'red' }}>
-                                                            {matchedDropoff}
-                                                        </td>
-                                                    </tr>
-                                                );
-                                            })}
-                                        </tbody>
-                                    </table>
-                                </>
-                            )}
-                        </div>
-                    </div>
-                )}
-                {activeTab === 'Hauling Missions' && (
-                    <div className="hauling-missions">
-                        <div className="form-row">
-                            <div className="form-group">
-                                <label>Pickup Point</label>
-                                <Select
-                                    components={{ DropdownIndicator: null, IndicatorSeparator: null }}
-                                    options={pickupPointOptions}
-                                    value={pickupPointOptions.find(option => option.value === firstDropdownValue)}
-                                    onChange={handlePickupPointChange}
-                                    className="first-dropdown-select"
-                                    classNamePrefix="react-select"
-                                    styles={customStyles}
-                                    placeholder="Search Pickup Point"
-                                />
-                            </div>
-                            <div className="form-group">
-                                <label>Quick Lookup</label>
-                                <Select
-                                    components={{ DropdownIndicator: null, IndicatorSeparator: null }}
-                                    options={quickLookupOptions}
-                                    value={quickLookupOptions.find(option => option.value === secondDropdownValue)}
-                                    onChange={handleQuickLookupChange}
-                                    className="second-dropdown-select"
-                                    classNamePrefix="react-select"
-                                    styles={customStyles}
-                                    placeholder="Search Quick Lookup"
-                                />
-                            </div>
-                        </div>
-                        <div className="form-row">
-                            <div className="form-group">
-                                <label>Location Type</label>
-                                <Select
-                                    components={{ DropdownIndicator: null, IndicatorSeparator: null }}
-                                    options={[
-                                        { value: 'planet', label: 'Planet' },
-                                        { value: 'station', label: 'Station' }
-                                    ]}
-                                    value={{ value: locationType, label: locationType.charAt(0).toUpperCase() + locationType.slice(1) }}
-                                    onChange={handleLocationTypeChange}
-                                    className="location-type-select"
-                                    classNamePrefix="react-select"
-                                    styles={customStyles}
-                                />
-                            </div>
-                            {locationType === 'planet' && (
-                                <>
-                                    <div className="form-group">
-                                        <label>Planet</label>
-                                        <Select
-                                            components={{ DropdownIndicator: null, IndicatorSeparator: null }}
-                                            options={planetOptions}
-                                            value={planetOptions.find(option => option.value === selectedPlanet)}
-                                            onChange={handlePlanetSelectChange}
-                                            className="planet-select"
-                                            classNamePrefix="react-select"
-                                            styles={customStyles}
-                                        />
-                                    </div>
-                                    <div className="form-group">
-                                        <label>Moon</label>
-                                        <Select
-                                            components={{ DropdownIndicator: null, IndicatorSeparator: null }}
-                                            options={selectedPlanet && data.moons[selectedPlanet] ? Object.keys(data.moons[selectedPlanet]).map(moon => ({ value: moon, label: moon })) : []}
-                                            value={selectedMoon ? { value: selectedMoon, label: selectedMoon } : null}
-                                            onChange={handleMoonSelectChange}
-                                            className="moon-select"
-                                            classNamePrefix="react-select"
-                                            styles={customStyles}
-                                        />
-                                    </div>
-                                </>
-                            )}
-                            {locationType === 'station' && (
-                                <>
-                                    <div className="form-group">
-                                        <label>Station</label>
-                                        <Select
-                                            components={{ DropdownIndicator: null, IndicatorSeparator: null }}
-                                            options={stationOptions}
-                                            value={stationOptions.find(option => option.value === selectedDropOffPoint)}
-                                            onChange={handleStationSelectChange}
-                                            className="station-select"
-                                            classNamePrefix="react-select"
-                                            styles={customStyles}
-                                        />
-                                    </div>
-                                    <div className="form-group">
-                                        <label>Moon</label>
-                                        <Select
-                                            components={{ DropdownIndicator: null, IndicatorSeparator: null }}
-                                            options={selectedPlanet && data.moons[selectedPlanet] ? Object.keys(data.moons[selectedPlanet]).map(moon => ({ value: moon, label: moon })) : []}
-                                            value={selectedMoon ? { value: selectedMoon, label: selectedMoon } : null}
-                                            onChange={handleMoonSelectChange}
-                                            className="moon-select"
-                                            classNamePrefix="react-select"
-                                            styles={customStyles}
-                                        />
-                                    </div>
-                                </>
-                            )}
-                            <div className="form-group">
-                                <label>Drop off points</label>
-                                <Select
-                                    components={{ DropdownIndicator: null, IndicatorSeparator: null }}
-                                    options={selectedMoon && data.moons[selectedPlanet][selectedMoon] ? data.moons[selectedPlanet][selectedMoon].map(station => ({ value: station, label: station })) : (data.Dropoffpoints[selectedPlanet] || []).map(station => ({ value: station, label: station }))}
-                                    value={selectedDropOffPoint ? { value: selectedDropOffPoint, label: selectedDropOffPoint } : null}
-                                    onChange={handleDropOffSelectChange}
-                                    className="drop-off-select"
-                                    classNamePrefix="react-select"
-                                    styles={customStyles}
-                                    placeholder="Select Drop off"
-                                />
-                            </div>
-                            <div className="checkbox-group">
-                                <div className="column">
-                                    {Array.from({ length: 5 }, (_, index) => (
-                                        <label key={index}>
-                                            <input
-                                                type="checkbox"
-                                                checked={selectedMissions[index]}
-                                                onChange={() => handleCheckboxChange(index)}
-                                            />
-                                            Mission {index + 1}
-                                            {getMissionPreview(index)}
-                                        </label>
-                                    ))}
-                                </div>
-                                <div className="column">
-                                    {Array.from({ length: 5 }, (_, index) => (
-                                        <label key={index + 5}>
-                                            <input
-                                                type="checkbox"
-                                                checked={selectedMissions[index + 5]}
-                                                onChange={() => handleCheckboxChange(index + 5)}
-                                            />
-                                            Mission {index + 6}
-                                            {getMissionPreview(index + 5)}
-                                        </label>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
                                     ))}
                                 </div>
                             </div>
-                        </div>
-                        <div className="form-row">
-                            <div className="form-group">
-                                <label>Commodity</label>
-                                <Select
-                                    components={{ DropdownIndicator: null, IndicatorSeparator: null }}
-                                    options={commodityOptions}
-                                    value={commodityOptions.find(option => option.value === selectedCommodity)}
-                                    onChange={handleCommoditySelectChange}
-                                    className="commodity-select"
-                                    classNamePrefix="react-select"
-                                    styles={customStyles}
-                                />
-                            </div>
-                            <div className="form-group">
-                                <label>Amount</label>
-                                <input type="text" className="amount-input" ref={amountInputRef} onKeyPress={handleTopAmountKeyPress} />
-                            </div>
-                            <div className="form-group button-group">
-                                <button className="add-entry-button" onClick={addEntry}>Add Entry</button>
-                                <button className="process-orders-button" onClick={processOrders}>Process Orders</button>
-                                <button className="table-view-button" onClick={toggleTableView}>
-                                    {isAlternateTable ? 'Manifest' : 'Missions'}
-                                </button>
-                                <button
-                                    className="clear-log-button"
-                                    onClick={clearLog}
-                                    style={{ backgroundColor: needsClearConfirmation ? '#ff3333' : '#ff6666' }}
-                                >
-                                    {needsClearConfirmation ? 'Confirm Clear' : 'Clear Log'}
-                                </button>
-                                <div className="scu-container">
-                                    <span className="scu-label">SCU<br/>TOTAL</span>
-                                </div>
-                                <div className="form-group scu-group">
-                                    <input type="text" className="scu-input" value={calculateTotalSCU()} disabled />
-                                </div>
-                            </div>
-                        </div>
-                        <div className="table-container">
-                            {isAlternateTable ? (
-                                Array.from({ length: 10 }, (_, missionIndex) => (
-                                    <div key={missionIndex}>
-                                        <div className="drop-off-header" onClick={() => toggleMissionCollapse(missionIndex)}>
-                                            <span>Mission {missionIndex + 1}</span>
-                                            <span>{collapsedMissions[missionIndex] ? '▲' : '▼'}</span>
-                                        </div>
-                                        {!collapsedMissions[missionIndex] && (
-                                            <table className="table">
-                                                <thead>
-                                                    <tr>
-                                                        <th>Drop off points</th>
-                                                        <th>Commodity</th>
-                                                        <th>QTY</th>
-                                                        <th>Status</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody>
-                                                    {missionEntries[missionIndex].map((entry, index) => (
-                                                        <tr key={index}><td>{entry.dropOffPoint}</td><td>{entry.commodity}</td><td>{entry.currentAmount}/{entry.originalAmount}</td><td>{entry.status}</td></tr>
-                                                    ))}
-                                                </tbody>
-                                            </table>
-                                        )}
-                                    </div>
-                                ))
-                            ) : (
-                                Object.keys(entries.reduce((acc, entry) => {
-                                    acc[entry.dropOffPoint] = true;
-                                    return acc;
-                                }, {})).map(dropOffPoint => (
-                                    <div key={dropOffPoint}>
-                                        <div className="drop-off-header" onClick={() => toggleCollapse(dropOffPoint)}>
-                                            <div className="left-box">
-                                                <button onClick={(e) => { e.stopPropagation(); moveDropOffPoint(dropOffPoint, -1); }}>▲</button>
-                                                <button onClick={(e) => { e.stopPropagation(); moveDropOffPoint(dropOffPoint, 1); }}>▼</button>
-                                                <span>{dropOffPoint}</span>
-                                                <span style={{ fontSize: 'small', marginLeft: '10px' }}>({entries.find(entry => entry.dropOffPoint === dropOffPoint)?.planet} - {entries.find(entry => entry.dropOffPoint === dropOffPoint)?.moon})</span> {/* Display planet and moon */}
+                        )}
+                        {haulingSubTab === 'Payouts' && (
+                            <div className="payouts-container">
+                                <div className="payouts-group-box">
+                                    {Object.keys(historyEntries
+                                        .filter(entry => entry.isMissionEntry) // Only show mission entries
+                                        .reduce((acc, entry) => {
+                                            const date = new Date(entry.timestamp).toLocaleDateString();
+                                            acc[date] = true;
+                                            return acc;
+                                        }, {})).map(date => (
+                                        <div key={date} className="payouts-date-group">
+                                            <div
+                                                className="payouts-date-header"
+                                                onClick={() => toggleCollapse(date)}
+                                            >
+                                                <span>{date}</span>
+                                                <span>{collapsed[date] ? '▲' : '▼'}</span>
                                             </div>
-                                            <div className="right-box">
-                                                <span>{collapsed[dropOffPoint] ? '▲' : '▼'}</span>
-                                                <button onClick={(e) => { e.stopPropagation(); markAsDelivered(dropOffPoint); }}>Cargo Delivered</button>
-                                            </div>
+                                            {!collapsed[date] && (
+                                                <>
+                                                    {historyEntries
+                                                        .filter(entry => 
+                                                            entry.isMissionEntry && // Only show mission entries
+                                                            new Date(entry.timestamp).toLocaleDateString() === date
+                                                        )
+                                                        .map((group, index) => (
+                                                            <div key={index} className="payouts-mission-group">
+                                                                <div
+                                                                    className="payouts-mission-header"
+                                                                    onClick={() => toggleCollapse(`${date}-${index}`)}
+                                                                >
+                                                                    <span>Mission {index + 1}</span>
+                                                                    <input
+                                                                        type="text"
+                                                                        className="mission-reward-input"
+                                                                        placeholder="Enter reward"
+                                                                        value={missionRewards[`${date}-${index}`] || ''}
+                                                                        onChange={(e) => handleRewardChange(`${date}-${index}`, e.target.value)}
+                                                                        onClick={(e) => e.stopPropagation()}
+                                                                    />
+                                                                    <span>{collapsed[`${date}-${index}`] ? '▲' : '▼'}</span>
+                                                                </div>
+                                                                {!collapsed[`${date}-${index}`] && (
+                                                                    <table className="payouts-table">
+                                                                        <thead>
+                                                                            <tr>
+                                                                                <th>Pickup</th>
+                                                                                <th>Drop Off</th>
+                                                                                <th>Commodity</th>
+                                                                                <th>QTY</th>
+                                                                            </tr>
+                                                                        </thead>
+                                                                        <tbody>
+                                                                            {group.entries.map((entry, idx) => (
+                                                                                <tr key={idx}>
+                                                                                    <td>{entry.pickupPoint}</td>
+                                                                                    <td>{entry.dropOffPoint}</td>
+                                                                                    <td>{entry.commodity}</td>
+                                                                                    <td>{entry.currentAmount}/{entry.originalAmount}</td>
+                                                                                </tr>
+                                                                            ))}
+                                                                        </tbody>
+                                                                    </table>
+                                                                )}
+                                                            </div>
+                                                        ))}
+                                                </>
+                                            )}
                                         </div>
-                                        {!collapsed[dropOffPoint] && (
-                                            <table className="table">
-                                                <thead>
-                                                    <tr>
-                                                        <th className="pickup">Pickup</th>
-                                                        <th className="commodity">Commodity</th>
-                                                        <th className="amount">QTY</th>
-                                                        <th className="actions">Actions</th>
-                                                        <th className="status">Status</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody>
-                                                    {entries.filter(entry => entry.dropOffPoint === dropOffPoint).map((entry, index) => (
-                                                        <tr key={index}>
-                                                            <td className="pickup">{entry.pickupPoint}</td>
-                                                            <td className="commodity">{entry.commodity}</td>
-                                                            <td className="amount">{entry.currentAmount}/{entry.originalAmount}</td>
-                                                            <td className="actions">
-                                                                <input type="text" defaultValue={entry.currentAmount} size="10" 
-                                                                       onBlur={(e) => handleAmountChange(index, e.target.value)} 
-                                                                       onKeyPress={(e) => handleAmountKeyPress(e, index)} />
-                                                                <button onClick={() => updateCargo(index, entry.currentAmount)}>Update Cargo</button>
-                                                                <button className="remove-cargo-button" onClick={() => removeCargo(index)}>Remove Cargo</button>
-                                                            </td>
-                                                            <td className="status" style={{ color: entry.status === 'Delivered' ? 'green' : 'inherit' }}>
-                                                                {entry.status}
-                                                            </td>
-                                                        </tr>
-                                                    ))}
-                                                </tbody>
-                                            </table>
-                                        )}
-                                    </div>
-                                ))
-                            )}
-                        </div>
-                    </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                    </>
                 )}
-                {activeTab === 'Preferences' && (
+                {mainTab === 'Mining' && (
+                    <div>Mining functionality coming soon...</div>
+                )}
+                {mainTab === 'Preferences' && (
                     <div className="preferences">
                         <div className="preferences-container">
                             <div className="preferences-box cargo-manifest-box">
@@ -2963,15 +3243,20 @@ const App = () => {
                             <div className="preferences-box new-group-box">
                                 <h3>Data Management</h3>
                                 <div className="form-group" style={{ marginBottom: '15px' }}>
-                                    <label htmlFor="file-upload">Import Data</label>
                                     <input 
-                                        id="file-upload" 
+                                        id="history-file-upload" 
                                         type="file" 
-                                        accept=".json,.csv,.xls,.xlsx" 
-                                        onChange={handleImport} 
+                                        accept=".xls,.xlsx" 
+                                        onChange={(e) => handleImport(e, 'history')} 
+                                        style={{ display: 'none' }}
                                     />
-                                </div>
-                                <div className="form-group" style={{ marginBottom: '15px' }}>
+                                    <button 
+                                        onClick={() => document.getElementById('history-file-upload').click()}
+                                        className="import-button"
+                                        style={{ display: 'block', marginTop: '10px' }}
+                                    >
+                                        Import History
+                                    </button>
                                     <button 
                                         className="export-data-button" 
                                         onClick={() => handleExport('history')} 
@@ -2979,15 +3264,6 @@ const App = () => {
                                     >
                                         Export History
                                     </button>
-                                    <button 
-                                        className="export-data-button" 
-                                        onClick={() => handleExport('payouts')} 
-                                        style={{ display: 'block', marginTop: '10px' }}
-                                    >
-                                        Export Payouts
-                                    </button>
-                                </div>
-                                <div className="form-group" style={{ marginBottom: '15px' }}>
                                     <button 
                                         className="clear-history-log-button" 
                                         onClick={clearHistoryLogDebug} 
@@ -3004,140 +3280,54 @@ const App = () => {
                         </div>
                     </div>
                 )}
-                {activeTab === 'History' && (
-                    <div className="history-container">
-                        <div className="history-group-box">
-                            {Object.keys(historyEntries.reduce((acc, entry) => {
-                                const date = new Date(entry.timestamp).toLocaleDateString();
-                                acc[date] = true;
-                                return acc;
-                            }, {})).map(date => (
-                                <div key={date} className="history-date-group">
-                                    <div
-                                        className="history-date-header"
-                                        onClick={() => toggleCollapse(date)}
-                                    >
-                                        <span>{date}</span>
-                                        <span>{collapsed[date] ? '▲' : '▼'}</span>
-                                    </div>
-                                    {!collapsed[date] && (
-                                        <div className="commodity-group">
-                                            {Object.entries(
-                                                historyEntries
-                                                    .filter(entry => new Date(entry.timestamp).toLocaleDateString() === date)
-                                                    .reduce((acc, group) => {
-                                                        if (!acc[group.dropOffPoint]) {
-                                                            acc[group.dropOffPoint] = [];
-                                                        }
-                                                        group.entries.forEach(entry => {
-                                                            acc[group.dropOffPoint].push({
-                                                                ...entry,
-                                                                dropOffPoint: group.dropOffPoint
-                                                            });
-                                                        });
-                                                        return acc;
-                                                    }, {})
-                                            ).map(([dropOffPoint, entries]) => (
-                                                <div key={dropOffPoint} className="commodity-group">
-                                                    <div 
-                                                        className="commodity-header" 
-                                                        onClick={() => toggleCollapse(dropOffPoint)}
-                                                    >
-                                                        <span>{dropOffPoint}</span>
-                                                        <span>{collapsed[dropOffPoint] ? '▲' : '▼'}</span>
-                                                    </div>
-                                                    {!collapsed[dropOffPoint] && (
-                                                        <table className="history-table">
-                                                            <thead>
-                                                                <tr>
-                                                                    <th>Commodity</th>
-                                                                    <th>QTY (Current/Original)</th>
-                                                                </tr>
-                                                            </thead>
-                                                            <tbody>
-                                                                {entries.map((entry, index) => (
-                                                                    <tr key={index}>
-                                                                        <td>{entry.commodity}</td>
-                                                                        <td>{entry.currentAmount}/{entry.originalAmount}</td>
-                                                                    </tr>
-                                                                ))}
-                                                            </tbody>
-                                                        </table>
-                                                    )}
-                                                </div>
-                                            ))}
-                                        </div>
-                                    )}
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                )}
-                {activeTab === 'Payouts' && (
-                    <div className="payouts-container">
-                        <div className="payouts-group-box">
-                            {Object.keys(historyEntries.reduce((acc, entry) => {
-                                const date = new Date(entry.timestamp).toLocaleDateString();
-                                acc[date] = true;
-                                return acc;
-                            }, {})).map(date => (
-                                <div key={date} className="payouts-date-group">
-                                    <div
-                                        className="payouts-date-header"
-                                        onClick={() => toggleCollapse(date)}
-                                    >
-                                        <span>{date}</span>
-                                        <span>{collapsed[date] ? '▲' : '▼'}</span>
-                                    </div>
-                                    {!collapsed[date] && (
-                                        <>
-                                            {historyEntries
-                                                .filter(entry => new Date(entry.timestamp).toLocaleDateString() === date)
-                                                .map((group, index) => (
-                                                    <div key={index} className="payouts-mission-group">
-                                                        <div
-                                                            className="payouts-mission-header"
-                                                            onClick={() => toggleCollapse(`${date}-${index}`)}
-                                                        >
-                                                            <span>Mission {index + 1}</span>
-                                                            <input
-                                                                type="text"
-                                                                className="mission-reward-input"
-                                                                placeholder="Enter reward"
-                                                                value={missionRewards[`${date}-${index}`] || ''}
-                                                                onChange={(e) => handleRewardChange(`${date}-${index}`, e.target.value)}
-                                                                onClick={(e) => e.stopPropagation()}
-                                                            />
-                                                            <span>{collapsed[`${date}-${index}`] ? '▲' : '▼'}</span>
-                                                        </div>
-                                                        {!collapsed[`${date}-${index}`] && (
-                                                            <table className="payouts-table">
-                                                                <thead>
-                                                                    <tr>
-                                                                        <th>Pickup</th>
-                                                                        <th>Drop Off</th>
-                                                                        <th>Commodity</th>
-                                                                        <th>QTY</th>
-                                                                    </tr>
-                                                                </thead>
-                                                                <tbody>
-                                                                    {group.entries.map((entry, idx) => (
-                                                                        <tr key={idx}>
-                                                                            <td>{entry.pickupPoint}</td>
-                                                                            <td>{entry.dropOffPoint}</td>
-                                                                            <td>{entry.commodity}</td>
-                                                                            <td>{entry.currentAmount}/{entry.originalAmount}</td>
-                                                                        </tr>
-                                                                    ))}
-                                                                </tbody>
-                                                            </table>
-                                                        )}
-                                                    </div>
-                                                ))}
-                                        </>
-                                    )}
-                                </div>
-                            ))}
+                {mainTab === 'Changelog' && (
+                    <div className="changelog">
+                        <div className="changelog-container">
+                        <div className="changelog-entry">
+                                <h3>Version 1.1.0 - FIxes and Temp Changes</h3>
+                                <ul>
+                                    <li>ADDITIONAL TABS</li>
+                                    <li>Mining(WIP) - huskerbolt1 - for giving me a new idea</li>
+                                    <li>FIXES</li>
+                                    <li>Non-missions being sent to payouts tab</li>
+                                    <li>imports not be saved on refresh</li>
+                                    <li>constant capture count down going from 3 to the users set time and  then going down</li>
+                                    <li>Clicking Status changes between Pending and Delivered for both misison and cargo manifest by using unique ID to keep track - Ruadhan2300 for pointing out ease of use
+                                    XES</li>
+                                    <li>TEMPORARY REMOVAL</li>
+                                    <li>Removed import/export payouts function.</li>
+
+                                </ul>
+                            </div>
+
+                            <div className="changelog-entry">
+                                <h3>Version 1.0.0 - Initial Release</h3>
+                                <ul>
+                                    <li>Added Hauling Mission tracking system</li>
+                                    <li>Improved OCR accuracy</li>
+                                    <li>Added mission management system</li>
+                                    <li>Added history tracking</li>
+                                    <li>Added customizable preferences</li>
+                                    <li>Added import/export functionality</li>
+                                </ul>
+                            </div>
+                            <div className="changelog-entry">
+                                <h3>Version 0.9.0 - Beta</h3>
+                                <ul>
+                                    <li>Added constant capture mode</li>
+                                    <li>Added customizable capture intervals</li>
+                                    <li>Implemented OCR capture functionality</li>
+                                    <li>Added status toggling for individual entries</li>
+                                </ul>
+                            </div>
+                            <div className="changelog-entry">
+                                <h3>Version 0.8.0 - Alpha</h3>
+                                <ul>
+                                    <li>Initial implementation of cargo tracking</li>
+                                    <li>Basic mission system</li>
+                                    <li>Basic UI and styling</li>
+                                </ul>
+                            </div>
                         </div>
                     </div>
                 )}

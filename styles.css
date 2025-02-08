@@ -159,6 +159,32 @@ button:hover {
     color: #00ffcc;
 }
 
+/* Main Tabs */
+.main-tabs {
+    display: flex;
+    justify-content: space-around;
+    padding: 10px;
+    background-color: #1a1a1a;
+    border-bottom: 1px solid #333;
+}
+
+.main-tab {
+    padding: 10px 20px;
+    cursor: pointer;
+    color: #00ffcc;
+    transition: color 0.3s, border-bottom 0.3s;
+}
+
+.main-tab:hover {
+    color: #00cc99;
+}
+
+.active-main-tab {
+    font-weight: bold;
+    border-bottom: 2px solid #00ffcc;
+}
+
+/* Sub Tabs (existing tabs) */
 .tabs {
     display: flex;
     justify-content: space-around;
@@ -1671,5 +1697,52 @@ table, th, td, tr {
 /* Remove text shadows from form elements */
 input, select, textarea, button {
     text-shadow: none !important;
+}
+
+.changelog {
+    padding: 20px;
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.changelog-container {
+    background-color: #1a1a1a;
+    border-radius: 8px;
+    padding: 20px;
+}
+
+.changelog-entry {
+    margin-bottom: 30px;
+    border-bottom: 1px solid #333;
+    padding-bottom: 20px;
+}
+
+.changelog-entry:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+    padding-bottom: 0;
+}
+
+.changelog-entry h3 {
+    color: var(--title-color);
+    margin-bottom: 15px;
+}
+
+.changelog-entry ul {
+    list-style-type: none;
+    padding-left: 20px;
+}
+
+.changelog-entry li {
+    color: var(--dropdown-text-color);
+    margin-bottom: 8px;
+    position: relative;
+}
+
+.changelog-entry li:before {
+    content: "•";
+    color: var(--title-color);
+    position: absolute;
+    left: -15px;
 }
 
