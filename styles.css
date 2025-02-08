@@ -1746,3 +1746,220 @@ input, select, textarea, button {
     left: -15px;
 }
 
+.tab-container {
+    position: relative;
+    display: inline-block;
+}
+
+.tab-info-icon {
+    margin-left: 8px;
+    font-size: 18px;
+    color: var(--dropdown-text-color);
+    opacity: 0.7;
+    cursor: pointer;
+    display: inline-block;
+    vertical-align: middle;
+    padding-bottom: 2px;
+    position: relative;
+    top: -2px;
+}
+
+.tab-info-icon:hover {
+    opacity: 1;
+    transform: scale(1.1);
+    transition: all 0.2s ease;
+}
+
+/* Add styles for the native tooltip */
+.tab-info-icon[title] {
+    position: relative;
+}
+
+.tab-info-icon[title]:hover::before {
+    content: attr(title);
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 5px 10px;
+    background-color: #333;
+    color: var(--dropdown-text-color);
+    border-radius: 4px;
+    font-size: 14px;
+    white-space: nowrap;
+    z-index: 1000;
+    pointer-events: none;
+}
+
+.checkbox-wrapper {
+    margin-bottom: 15px;
+    padding: 10px;
+    background-color: #2a2a2a;
+    border-radius: 5px;
+    border: 1px solid #444;
+}
+
+.checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--dropdown-text-color);
+    margin-bottom: 5px;
+}
+
+.checkbox-label input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--button-color);
+    cursor: pointer;
+}
+
+.checkbox-description {
+    display: block;
+    font-size: 12px;
+    color: #888;
+    margin-left: 28px;
+    margin-top: 2px;
+}
+
+.debug-popup {
+    position: fixed;
+    width: 400px;
+    background-color: #1a1a1a;
+    border: 1px solid var(--table-outline-color);
+    border-radius: 5px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+    z-index: 1000;
+}
+
+.debug-popup-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px;
+    background-color: #333;
+    border-bottom: 1px solid var(--table-outline-color);
+    cursor: move;
+    user-select: none;
+}
+
+.debug-popup-header button {
+    background: none;
+    border: none;
+    color: var(--dropdown-text-color);
+    font-size: 20px;
+    cursor: pointer;
+    padding: 0 5px;
+}
+
+.debug-popup-header button:hover {
+    color: #ff6666;
+}
+
+.debug-popup-content {
+    padding: 15px;
+    max-height: 500px;
+    overflow-y: auto;
+}
+
+.debug-section {
+    margin-bottom: 15px;
+}
+
+.debug-section h4 {
+    color: var(--dropdown-text-color);
+    margin-bottom: 5px;
+    border-bottom: 1px solid #444;
+    padding-bottom: 5px;
+}
+
+.debug-section pre {
+    background-color: #2a2a2a;
+    padding: 10px;
+    border-radius: 3px;
+    color: var(--dropdown-text-color);
+    font-family: monospace;
+    white-space: pre-wrap;
+    word-break: break-all;
+    font-size: 12px;
+    margin: 0;
+}
+
+.tooltip-popup {
+    position: fixed;
+    background-color: #1a1a1a;
+    border: 1px solid var(--table-outline-color);
+    border-radius: 5px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+    z-index: 1000;
+    resize: both;
+    display: flex;
+    flex-direction: column;
+}
+
+.tooltip-popup-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px;
+    background-color: #333;
+    border-bottom: 1px solid var(--table-outline-color);
+    cursor: move;
+    user-select: none;
+    height: 20px;
+}
+
+.tooltip-popup-header button {
+    background: none;
+    border: none;
+    color: var(--dropdown-text-color);
+    font-size: 20px;
+    cursor: pointer;
+    padding: 0 5px;
+}
+
+.tooltip-popup-header button:hover {
+    color: #ff6666;
+}
+
+.tooltip-popup-content {
+    padding: 15px;
+    overflow-y: auto;
+    height: calc(100% - 50px);
+    flex: 1;
+    min-height: 0;
+}
+
+.tooltip-popup-content p {
+    margin: 0 0 10px 0;
+    color: var(--dropdown-text-color);
+    line-height: 1.4;
+    word-wrap: break-word;
+}
+
+.tooltip-popup-content p:last-child {
+    margin-bottom: 0;
+}
+
+.tooltip-popup-resize-handle {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    width: 15px;
+    height: 15px;
+    cursor: se-resize;
+    background: linear-gradient(
+        135deg,
+        transparent 0%,
+        transparent 50%,
+        var(--dropdown-text-color) 50%,
+        var(--dropdown-text-color) 100%
+    );
+    opacity: 0.3;
+    transition: opacity 0.2s;
+}
+
+.tooltip-popup-resize-handle:hover {
+    opacity: 0.8;
+}
+

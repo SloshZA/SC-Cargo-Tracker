@@ -12,7 +12,6 @@ import './styles/HaulingMissions.css';
 import './styles/Table.css';
 import './styles/Preferences.css';
 import './styles/History.css';
-console.log('Script is running');
 const crypto = require('crypto');
 const nonce = crypto.randomBytes(16).toString('base64');
 //Presets
@@ -76,6 +75,7 @@ const data = {
             'Sakura Sun Goldenrod Workcenter',
             'microTech Logistics Depot S4LD01',
             'microTech Logistics Depot S4LD13',
+            'Rayari Deltana Research Outpost',
             'Shubin Mining Facility SM0-10',
             'Shubin Mining Facility SM0-13',
             'Shubin Mining Facility SM0-18',
@@ -172,7 +172,7 @@ const data = {
         'Carbon',
         'Corundum',
         'Processed Food',
-        'Pressurized ice',
+        'Pressurized Ice',
         'Agricultural Supplies',
         'Quartz',
         'Silicon',
@@ -180,6 +180,7 @@ const data = {
         'Tin',
         'Titanium',
         'Tungsten',
+        'Hydrogen',
         'Hydrogen Fuel',
         'Quantum Fuel',
         'Ship Ammunition',
@@ -187,12 +188,12 @@ const data = {
         'Waste',
         'Ship Ammunition',
         'Quantum Fuel',
-        'Corundum (Raw)',
-        'Quartz (Raw)',
-        'Silicon (Raw)',
-        'Tin (Raw)',
-        'Titanium (Raw)',
-        'Tungsten (Raw)'
+        'Corundum Raw',
+        'Quartz Raw',
+        'Silicon Raw',
+        'Tin Raw',
+        'Titanium Raw',
+        'Tungsten Raw'
     ],
     pickupPoints: [
         '--City--',
@@ -226,7 +227,7 @@ const data = {
         'MIC-L2 Long Forest Station',
         'MIC-L3 Endless Odyssey Station',
         'MIC-L4 Red Crossroads Station',
-        'MIC-L5 Modern Icarus Station',        'MIC-L5',
+        'MIC-L5 Modern Icarus Station',
         '--Distribution Center--',
         'Covalex Distribution Center S4DC05',
         'Greycat Stanton IV Production Complex-A',
@@ -273,6 +274,7 @@ const data = {
         'HDMS-Perlman',
         'Rayari Anvik Research Outpost',
         'Rayari Kaltag Research Outpost',
+        'Rayari Deltana Research Outpost',
         'Shubin Mining Facility SMCa-6',
         'Shubin Mining Facility SMCa-8',
         'Rayari Cantwell Research Outpost',
@@ -313,7 +315,7 @@ const data = {
         'MIC-L2 Long Forest Station',
         'MIC-L3 Endless Odyssey Station',
         'MIC-L4 Red Crossroads Station',
-        'MIC-L5 Modern Icarus Station',        'MIC-L5',
+        'MIC-L5 Modern Icarus Station',
         '--Distribution Center--',
         'Covalex Distribution Center S4DC05',
         'Greycat Stanton IV Production Complex-A',
@@ -360,6 +362,7 @@ const data = {
         'HDMS-Perlman',
         'Rayari Anvik Research Outpost',
         'Rayari Kaltag Research Outpost',
+        'Rayari Deltana Research Outpost',
         'Shubin Mining Facility SMCa-6',
         'Shubin Mining Facility SMCa-8',
         'Rayari Cantwell Research Outpost',
@@ -418,13 +421,15 @@ const STATUS_OPTIONS = ['Pending', 'In Progress', 'Delivered', 'Failed'];
 function findClosestMatch(input, options) {
     if (!input || !options || options.length === 0) return null;
 
-    const cleanInput = input.replace(/[^a-zA-Z0-9\s]/g, '').toLowerCase();
+    // Convert input to lowercase for case-insensitive comparison, only remove [] and {} brackets
+    const cleanInput = input.replace(/[[\]{}]/g, '').toLowerCase();
     
     let bestMatch = null;
     let bestScore = -Infinity;
 
     options.forEach(option => {
-        const cleanOption = option.replace(/[^a-zA-Z0-9\s]/g, '').toLowerCase();
+        // Convert option to lowercase for comparison, only remove [] and {} brackets
+        const cleanOption = option.replace(/[[\]{}]/g, '').toLowerCase();
         
         let score = 0;
         const inputWords = cleanInput.split(' ');
@@ -442,13 +447,20 @@ function findClosestMatch(input, options) {
             }
         });
 
+        // If exact match (ignoring case), give highest score
+        if (cleanInput === cleanOption) {
+            score = Infinity;
+        }
+
         if (score > bestScore || (score === bestScore && cleanOption.length < bestMatch.length)) {
             bestScore = score;
+            // Use the original option with proper casing
             bestMatch = option;
         }
     });
 
-    return bestScore >= cleanInput.length * 0.5 ? bestMatch : null;
+    // Only return a match if the score is good enough or it's an exact match
+    return bestScore === Infinity || bestScore >= cleanInput.length * 0.5 ? bestMatch : null;
 }
 
 const App = () => {
@@ -637,10 +649,6 @@ const App = () => {
     useEffect(() => {
         localStorage.setItem('tableOutlineColor', tableOutlineColor);
     }, [tableOutlineColor]);
-
-    useEffect(() => {
-        console.log('Entries updated:', entries);
-    }, [entries]);
 
     const resetDropdownLabelColor = () => {
         setDropdownLabelColor('#00ffcc');
@@ -1074,7 +1082,6 @@ const App = () => {
                 const validation = validatePickupPoint(location);
                 
                 if (!validation.isValid) {
-                    console.warn(validation.message);
                     showBannerMessage(`Warning: "${location}" is not a recognized location. Please check your spelling.`, false);
                 }
                 setFirstDropdownValue(location);
@@ -1668,20 +1675,25 @@ const App = () => {
 
     const undoLastOcrCapture = () => {
         if (ocrCaptureHistory.length > 0) {
+            // Get the last capture group
             const lastCapture = ocrCaptureHistory[ocrCaptureHistory.length - 1];
             
-            setOcrResults(prevResults => 
-                prevResults.filter(result => 
-                    !lastCapture.some(capture => 
-                        capture.commodity === result.commodity &&
-                        capture.quantity === result.quantity &&
-                        capture.pickup === result.pickup &&
-                        capture.dropoff === result.dropoff
-                    )
-                )
-            );
+            // Remove the last capture from OCR results
+            setOcrResults(prevResults => {
+                const newResults = [...prevResults];
+                return newResults.slice(0, newResults.length - lastCapture.length);
+            });
             
+            // Remove the last capture from mission groups
+            setOcrMissionGroups(prev => prev.slice(0, -1));
+            
+            // Remove from capture history
             setOcrCaptureHistory(prev => prev.slice(0, -1));
+            
+            // Clear current parsed results if they match the last capture
+            if (JSON.stringify(currentParsedResults) === JSON.stringify(lastCapture)) {
+                setCurrentParsedResults([]);
+            }
             
             showBannerMessage('Last OCR capture undone.', true);
         } else {
@@ -1715,26 +1727,29 @@ const App = () => {
             
             const image = canvas.toDataURL('image/png', 1.0);
             
-            const ocrText = await performOCR(image);
+            const rawOcrText = await performOCR(image);
+            setOcrText(rawOcrText);
             
-            if (!ocrText) {
+            if (!rawOcrText) {
                 throw new Error('No text recognized');
             }
             
-            const newResults = parseOCRResults(ocrText);
-            setCurrentParsedResults(newResults);
+            const newResults = parseOCRResults(rawOcrText);
             
-            // Add new results as a mission group
-            setOcrMissionGroups(prev => [...prev, newResults]);
-            
-            // Update OCR results display
-            setOcrResults(prev => [...prev, ...newResults]);
-            
-            showBannerMessage('OCR capture successful! Mission group created.', true);
+            if (newResults && newResults.length > 0) {
+                // Add the new results to OCR capture history
+                setOcrCaptureHistory(prev => [...prev, newResults]);
+                
+                setCurrentParsedResults(newResults);
+                setOcrMissionGroups(prev => [...prev, newResults]);
+                setOcrResults(prev => [...prev, ...newResults]);
+                showBannerMessage('OCR capture successful! Mission group created.', true);
+            } else {
+                showBannerMessage('No valid mission data found in OCR text.', false);
+            }
 
         } catch (error) {
-            console.error('Capture Error:', error);
-            showBannerMessage('Error capturing text no valid text found. Please check box size and location.', false);
+            showBannerMessage('Error capturing text. Please check box size and location.', false);
         }
     };
 
@@ -1803,7 +1818,6 @@ const App = () => {
             canvas.remove();
             
         } catch (error) {
-            console.error('Capture Error:', error);
         }
     }
 
@@ -2018,7 +2032,6 @@ const App = () => {
                 videoRef.current.srcObject = stream;
             }
         } catch (error) {
-            console.error('Error accessing screen stream:', error);
         }
     };
 
@@ -2072,23 +2085,11 @@ const App = () => {
     };
 
     const validateEntry = (entry) => {
-        console.log('Validating entry:', entry);
-        
         // Validate commodity
         const validCommodity = data.commodities.includes(entry.commodity);
-        console.log('Commodity validation:', {
-            commodity: entry.commodity,
-            isValid: validCommodity,
-            message: validCommodity ? 'Valid commodity' : 'Invalid commodity'
-        });
         
         // Validate pickup point
         const validPickup = data.pickupPoints.includes(entry.pickup);
-        console.log('Pickup point validation:', {
-            pickup: entry.pickup,
-            isValid: validPickup,
-            message: validPickup ? 'Valid pickup point' : 'Invalid pickup point'
-        });
         
         // Validate drop-off point
         let validDropoff = false;
@@ -2119,18 +2120,7 @@ const App = () => {
             }
         }
         
-        console.log('Drop-off point validation:', {
-            dropoff: entry.dropoff,
-            isValid: validDropoff,
-            message: validDropoff ? 'Valid drop-off point' : 'Invalid drop-off point'
-        });
-        
         const isValid = validCommodity && validPickup && validDropoff;
-        console.log('Overall validation:', {
-            isValid,
-            message: isValid ? 'Entry is valid for transfer' : 'Entry is invalid for transfer'
-        });
-        
         return isValid;
     };
 
@@ -2147,19 +2137,34 @@ const App = () => {
         // Process each mission group
         ocrMissionGroups.forEach((missionGroup, groupIndex) => {
             const timestamp = Date.now() + groupIndex;
-            const newEntries = missionGroup.map((result, index) => ({
-                id: `entry_${timestamp}_${index}_${Math.random().toString(36).substr(2, 9)}`,
-                dropOffPoint: result.dropoff,
-                commodity: result.commodity,
-                originalAmount: result.quantity,
-                currentAmount: result.quantity,
-                status: STATUS_OPTIONS[0],
-                pickupPoint: result.pickup,
-                planet: '',
-                moon: '',
-                missionIndex: currentMissionIndex + groupIndex,
-                isMissionEntry: true
-            }));
+            const newEntries = missionGroup.map((result, index) => {
+                // Get the fuzzy-matched values
+                const matchedCommodity = findClosestMatch(result.commodity, data.commodities) || result.commodity;
+                const matchedPickup = findClosestMatch(result.pickup, [
+                    ...data.pickupPoints,
+                    ...Object.values(data.Dropoffpoints).flat(),
+                    ...Object.values(data.moons).flatMap(moon => Object.values(moon)).flat()
+                ]) || result.pickup;
+                const matchedDropoff = findClosestMatch(result.dropoff, [
+                    ...data.pickupPoints,
+                    ...Object.values(data.Dropoffpoints).flat(),
+                    ...Object.values(data.moons).flatMap(moon => Object.values(moon)).flat()
+                ]) || result.dropoff;
+
+                return {
+                    id: `entry_${timestamp}_${index}_${Math.random().toString(36).substr(2, 9)}`,
+                    dropOffPoint: matchedDropoff,  // Use matched value
+                    commodity: matchedCommodity,    // Use matched value
+                    originalAmount: result.quantity,
+                    currentAmount: result.quantity,
+                    status: STATUS_OPTIONS[0],
+                    pickupPoint: matchedPickup,     // Use matched value
+                    planet: '',
+                    moon: '',
+                    missionIndex: currentMissionIndex + groupIndex,
+                    isMissionEntry: true
+                };
+            });
 
             // Update main entries
             setEntries(prevEntries => {
@@ -2333,7 +2338,6 @@ const App = () => {
     function addToHaulingManifest(ocrResults) {
         // Validate OCR results
         if (!ocrResults || !Array.isArray(ocrResults) || ocrResults.length === 0) {
-            console.error('No valid entries found in OCR results');
             showErrorToUser('No valid items detected. Please ensure the image is clear and contains readable text.');
             return;
         }
@@ -2347,7 +2351,6 @@ const App = () => {
         });
 
         if (validEntries.length === 0) {
-            console.error('No valid entries found after filtering');
             showErrorToUser('No valid items detected. Please check the format of the items in the image.');
             return;
         }
@@ -2422,8 +2425,6 @@ const App = () => {
     };
 
     const addToManifest = (entry) => {
-        console.log('Adding entry to manifest:', entry);
-        
         // Generate a unique ID for the entry
         const entryId = `entry_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
         
@@ -2432,8 +2433,6 @@ const App = () => {
             ...entry,
             id: entryId
         };
-
-        console.log('New entry with mission status:', newEntry); // Debug log
 
         // If coming from OCR, automatically select the mission
         if (newEntry.isMissionEntry) {
@@ -2544,6 +2543,136 @@ const App = () => {
         showBannerMessage('OCR missions cleared.', true);
     };
 
+    // Tooltips Here
+    const TAB_DESCRIPTIONS = {
+      'Capture': 'OCR tool to automatically capture mission details from screenshots or screen capture\n How to use\n Step 1- Click Capture Application window\n Step 2- Allow the browser to stream your application or screen\n Step 3- After video shows up drag a box over the area where the mission details are located\n Step 4- Change mission in game and then use Capture key to speed up the process\n Step 5- Repeat until all missions are added\n Step 6- Clicking Add to Manifest button tab to submit all entries to Hauling Missions tab\n Important Info\n -When drawing the box you can include the primary objective text\n -If OCR reads the amount text wrong you can edit it manually to update to the correct amount\n -When scanning, each scan will be grouped under 1 missions to make it easier for users to access missions',
+      'Hauling Missions': 'Track and manage your cargo hauling missions and deliveries\n -Drop down boxes allow for manual entry and has search functionality\n -Mission Checkboxes on the right will allow you to add multiple entries to a single mission when dealing with multiple locations\n - Buttons -\n -Add entry- will take above details and will place them in the table below\n -Process Orders - All entries marked as Delivered will be sent to History and Payouts Tab\n -Missions/Manifest - Switch between Cargo Manifest and Mission manifest table view\n -Clear Log - Click to clear both Cargo and Mission Manifest\n -SCU TOTAL - Will dispaly total SCU from all Cargo manifest entries\n -Tables-\n -Groups by drop off points and has collapse functionality\n -QTY coloumn will display 2 values Left value is for current amount and Right value is for Original amount added\n -Action Buttons - Allows a bit of fine control with your entries\n - Status displays if a entry is Pending or Delivered, the user can click on it to change the status and will sync with mission its linked to in the missions table',
+      'History': 'View completed deliveries and mission history grouped by date then drop off points',
+      'Payouts': 'Track mission rewards and payment history grouped by date and then mission ID'
+    };
+
+    // Add this near your other state declarations in the App component
+    const [captureDebugMode, setCaptureDebugMode] = useState(() => {
+        const savedMode = localStorage.getItem('captureDebugMode');
+        return savedMode ? JSON.parse(savedMode) : false;
+    });
+
+    // Add this with your other useEffect hooks
+    useEffect(() => {
+        localStorage.setItem('captureDebugMode', JSON.stringify(captureDebugMode));
+    }, [captureDebugMode]);
+
+    // Add this handler function
+    const handleCaptureDebugMode = () => {
+        setCaptureDebugMode(prev => !prev);
+    };
+
+    // Add this new handler function near your other handlers
+    const showDebugInfo = () => {
+        if (!captureDebugMode) return;
+        setShowDebugPopup(true);
+    };
+
+    // Add these new state variables near your other state declarations
+    const [showDebugPopup, setShowDebugPopup] = useState(false);
+    const [debugPopupPosition, setDebugPopupPosition] = useState({ x: 100, y: 100 });
+    const dragRef = useRef(null);
+
+    // Add these new functions for drag functionality
+    const handleDragStart = (e) => {
+        const startX = e.clientX - debugPopupPosition.x;
+        const startY = e.clientY - debugPopupPosition.y;
+
+        const handleDrag = (e) => {
+            setDebugPopupPosition({
+                x: e.clientX - startX,
+                y: e.clientY - startY
+            });
+        };
+
+        const handleDragEnd = () => {
+            document.removeEventListener('mousemove', handleDrag);
+            document.removeEventListener('mouseup', handleDragEnd);
+        };
+
+        document.addEventListener('mousemove', handleDrag);
+        document.addEventListener('mouseup', handleDragEnd);
+    };
+
+    // Add this with your other state declarations
+    const [ocrText, setOcrText] = useState('');
+
+    // Add these new state variables near your other state declarations
+    const [showTooltipPopup, setShowTooltipPopup] = useState(false);
+    const [tooltipPopupPosition, setTooltipPopupPosition] = useState({ x: 100, y: 100 });
+    const [activeTooltipContent, setActiveTooltipContent] = useState('');
+    const tooltipDragRef = useRef(null);
+
+    // Add this new handler for tooltip drag
+    const handleTooltipDragStart = (e) => {
+        const startX = e.clientX - tooltipPopupPosition.x;
+        const startY = e.clientY - tooltipPopupPosition.y;
+
+        const handleDrag = (e) => {
+            setTooltipPopupPosition({
+                x: e.clientX - startX,
+                y: e.clientY - startY
+            });
+        };
+
+        const handleDragEnd = () => {
+            document.removeEventListener('mousemove', handleDrag);
+            document.removeEventListener('mouseup', handleDragEnd);
+        };
+
+        document.addEventListener('mousemove', handleDrag);
+        document.addEventListener('mouseup', handleDragEnd);
+    };
+
+    // Add this handler for tooltip icon click
+    const handleTooltipClick = (e, content) => {
+        e.preventDefault(); // Prevent the default title tooltip
+        e.stopPropagation(); // Add this line to stop event bubbling
+        setActiveTooltipContent(content);
+        setShowTooltipPopup(true);
+        // Position popup near the click
+        setTooltipPopupPosition({
+            x: e.clientX + 10,
+            y: e.clientY + 10
+        });
+    };
+
+    // Add these new state variables near your other state declarations
+    const [tooltipPopupSize, setTooltipPopupSize] = useState({ width: 400, height: 300 });
+    const resizeRef = useRef(null);
+
+    // Add this new handler for resizing
+    const handleResizeStart = (e) => {
+        e.preventDefault();
+        const startX = e.clientX;
+        const startY = e.clientY;
+        const startWidth = tooltipPopupSize.width;
+        const startHeight = tooltipPopupSize.height;
+
+        const handleResize = (e) => {
+            const newWidth = startWidth + (e.clientX - startX);
+            const newHeight = startHeight + (e.clientY - startY);
+            
+            setTooltipPopupSize({
+                width: Math.max(300, newWidth),  // Minimum width of 300px
+                height: Math.max(200, newHeight)  // Minimum height of 200px
+            });
+        };
+
+        const handleResizeEnd = () => {
+            document.removeEventListener('mousemove', handleResize);
+            document.removeEventListener('mouseup', handleResizeEnd);
+        };
+
+        document.addEventListener('mousemove', handleResize);
+        document.addEventListener('mouseup', handleResizeEnd);
+    };
+
     return (
         <div className={darkMode ? 'dark-mode' : ''}>
             <header>
@@ -2568,12 +2697,23 @@ const App = () => {
             {mainTab === 'Hauling' && (
                 <div className="tabs">
                     {['Capture', 'Hauling Missions', 'History', 'Payouts'].map(tab => (
-                        <div 
-                            key={tab} 
-                            className={`tab ${haulingSubTab === tab ? 'active-tab' : ''}`} 
-                            onClick={() => handleTabChange(tab)}
-                        >
-                            {tab}
+                        <div key={tab} className="tab-container">
+                            <div 
+                                className={`tab ${haulingSubTab === tab ? 'active-tab' : ''}`} 
+                                onClick={() => handleTabChange(tab)}
+                            >
+                                {tab}
+                                <span 
+                                    className="tab-info-icon" 
+                                    onClick={(e) => {
+                                        e.stopPropagation(); // Add this line
+                                        handleTooltipClick(e, TAB_DESCRIPTIONS[tab]);
+                                    }}
+                                    title="!Click me for a Guide on how to use this!"
+                                >
+                                    ⓘ
+                                </span>
+                            </div>
                         </div>
                     ))}
                 </div>
@@ -2709,8 +2849,8 @@ const App = () => {
                                         <button 
                                             className="adjust-speed-button"
                                             onClick={handleSpeedAdjustment}
-                                        style={{ 
-                                        backgroundColor: 'var(--button-color)',
+                                            style={{ 
+                                                backgroundColor: 'var(--button-color)',
                                                 color: '#0d0d0d',
                                                 border: 'none',
                                                 padding: '7px 20px',
@@ -2728,20 +2868,20 @@ const App = () => {
                                         >
                                             Adjust Speed
                                         </button>
-                                    <button 
-                                        className="add-entry-button" 
-                                        style={{ marginTop: '10px' }}
-                                        onClick={addOCRToManifest}
-                                        disabled={ocrResults.length === 0} // Disable button if no results
-                                    >
-                                        Add to Manifest
-                                    </button>
+                                        <button 
+                                            className="add-entry-button" 
+                                            style={{ marginTop: '10px' }}
+                                            onClick={addOCRToManifest}
+                                            disabled={ocrResults.length === 0}
+                                        >
+                                            Add to Manifest
+                                        </button>
                                         <button 
                                             className="undo-ocr-button" 
                                             onClick={undoLastOcrCapture}
-                                            disabled={ocrCaptureHistory.length === 0} // This line disables the button when there's no history
+                                            disabled={ocrCaptureHistory.length === 0}
                                             style={{ 
-                                        backgroundColor: '#ff6666',
+                                                backgroundColor: '#ff6666',
                                                 color: '#0d0d0d',
                                                 border: 'none',
                                                 padding: '7px 20px',
@@ -2760,6 +2900,31 @@ const App = () => {
                                         >
                                             Undo Mistake - OCR
                                         </button>
+                                        {captureDebugMode && (
+                                            <button 
+                                                className="debug-info-button" 
+                                                onClick={showDebugInfo}
+                                                style={{ 
+                                                    backgroundColor: '#4a90e2',
+                                                    color: '#0d0d0d',
+                                                    border: 'none',
+                                                    padding: '7px 20px',
+                                                    borderRadius: '5px',
+                                                    cursor: 'pointer',
+                                                    fontFamily: 'inherit',
+                                                    fontSize: '16px',
+                                                    transition: 'background-color 0.3s, color 0.3s',
+                                                    margin: '10px 0',
+                                                    display: 'inline-block',
+                                                    textAlign: 'center',
+                                                    textDecoration: 'none',
+                                                    whiteSpace: 'nowrap',
+                                                    marginLeft: '10px'
+                                                }}
+                                            >
+                                                Debug Info
+                                            </button>
+                                        )}
                                     </div>
                                 </div>
                                 <div id="process-log" className="process-log">
@@ -2794,7 +2959,16 @@ const App = () => {
                                                         </thead>
                                                         <tbody>
                                                             {missionGroup.map((result, index) => {
-                                                                // Use fuzzy matching to find the closest matches
+                                                                // Check exact matches for each field
+                                                                const exactCommodityMatch = data.commodities.includes(result.commodity);
+                                                                const exactPickupMatch = data.pickupPoints.includes(result.pickup) || 
+                                                                    Object.values(data.Dropoffpoints).flat().includes(result.pickup) ||
+                                                                    Object.values(data.moons).flatMap(moon => Object.values(moon)).flat().includes(result.pickup);
+                                                                const exactDropoffMatch = data.pickupPoints.includes(result.dropoff) || 
+                                                                    Object.values(data.Dropoffpoints).flat().includes(result.dropoff) ||
+                                                                    Object.values(data.moons).flatMap(moon => Object.values(moon)).flat().includes(result.dropoff);
+
+                                                                // Find closest matches using existing fuzzy matching
                                                                 const matchedCommodity = findClosestMatch(result.commodity, data.commodities) || result.commodity;
                                                                 const matchedPickup = findClosestMatch(result.pickup, [
                                                                     ...data.pickupPoints,
@@ -2807,19 +2981,27 @@ const App = () => {
                                                                     ...Object.values(data.moons).flatMap(moon => Object.values(moon)).flat()
                                                                 ]) || result.dropoff;
 
-                                                                // Check if the matches are valid
-                                                                const isValidCommodity = data.commodities.includes(matchedCommodity);
-                                                                const isValidPickup = data.pickupPoints.includes(matchedPickup) || 
-                                                                    Object.values(data.Dropoffpoints).flat().includes(matchedPickup) ||
-                                                                    Object.values(data.moons).flatMap(moon => Object.values(moon)).flat().includes(matchedPickup);
-                                                                const isValidDropoff = data.pickupPoints.includes(matchedDropoff) || 
-                                                                    Object.values(data.Dropoffpoints).flat().includes(matchedDropoff) ||
-                                                                    Object.values(data.moons).flatMap(moon => Object.values(moon)).flat().includes(matchedDropoff);
-
                                                                 return (
                                                                     <tr key={index}>
-                                                                        <td style={{ color: isValidCommodity ? 'inherit' : 'red' }}>
-                                                                            {matchedCommodity}
+                                                                        <td style={{ 
+                                                                            color: captureDebugMode && !exactCommodityMatch ? 'red' : 'inherit',
+                                                                        }}>
+                                                                            {captureDebugMode ? (
+                                                                                <>
+                                                                                    {result.commodity}
+                                                                                    {!exactCommodityMatch && matchedCommodity !== result.commodity && (
+                                                                                        <span style={{ 
+                                                                                            color: 'green', 
+                                                                                            marginLeft: '5px',
+                                                                                            fontWeight: 'bold'
+                                                                                        }}>
+                                                                                            → {matchedCommodity}
+                                                                                        </span>
+                                                                                    )}
+                                                                                </>
+                                                                            ) : (
+                                                                                matchedCommodity
+                                                                            )}
                                                                         </td>
                                                                         <td>
                                                                             {editedQuantities[index] !== undefined ? (
@@ -2853,11 +3035,45 @@ const App = () => {
                                                                                 </span>
                                                                             )}
                                                                         </td>
-                                                                        <td style={{ color: isValidPickup ? 'inherit' : 'red' }}>
-                                                                            {matchedPickup}
+                                                                        <td style={{ 
+                                                                            color: captureDebugMode && !exactPickupMatch ? 'red' : 'inherit',
+                                                                        }}>
+                                                                            {captureDebugMode ? (
+                                                                                <>
+                                                                                    {result.pickup}
+                                                                                    {!exactPickupMatch && matchedPickup !== result.pickup && (
+                                                                                        <span style={{ 
+                                                                                            color: 'green', 
+                                                                                            marginLeft: '5px',
+                                                                                            fontWeight: 'bold'
+                                                                                        }}>
+                                                                                            → {matchedPickup}
+                                                                                        </span>
+                                                                                    )}
+                                                                                </>
+                                                                            ) : (
+                                                                                matchedPickup
+                                                                            )}
                                                                         </td>
-                                                                        <td style={{ color: isValidDropoff ? 'inherit' : 'red' }}>
-                                                                            {matchedDropoff}
+                                                                        <td style={{ 
+                                                                            color: captureDebugMode && !exactDropoffMatch ? 'red' : 'inherit',
+                                                                        }}>
+                                                                            {captureDebugMode ? (
+                                                                                <>
+                                                                                    {result.dropoff}
+                                                                                    {!exactDropoffMatch && matchedDropoff !== result.dropoff && (
+                                                                                        <span style={{ 
+                                                                                            color: 'green', 
+                                                                                            marginLeft: '5px',
+                                                                                            fontWeight: 'bold'
+                                                                                        }}>
+                                                                                            → {matchedDropoff}
+                                                                                        </span>
+                                                                                    )}
+                                                                                </>
+                                                                            ) : (
+                                                                                matchedDropoff
+                                                                            )}
                                                                         </td>
                                                                     </tr>
                                                                 );
@@ -3394,6 +3610,19 @@ const App = () => {
                             <div className="preferences-box new-group-box">
                                 <h3>Data Management</h3>
                                 <div className="form-group" style={{ marginBottom: '15px' }}>
+                                    <div className="checkbox-wrapper">
+                                        <label className="checkbox-label">
+                                            <input 
+                                                type="checkbox"
+                                                checked={captureDebugMode}
+                                                onChange={handleCaptureDebugMode}
+                                            />
+                                            Capture Debug Mode
+                                        </label>
+                                        <span className="checkbox-description">
+                                            Shows additional information during OCR capture process
+                                        </span>
+                                    </div>
                                     <input 
                                         id="history-file-upload" 
                                         type="file" 
@@ -3434,6 +3663,21 @@ const App = () => {
                 {mainTab === 'Changelog' && (
                     <div className="changelog">
                         <div className="changelog-container">
+                        <div className="changelog-entry">
+                            <h3>Version 1.3 - Additions and fixes</h3>
+                                <ul>
+                                    <u>Debug Mode for OCR Capture</u>
+                                    <li>New button called debug info under capture tab to see what the OCR is reading - can be turned on/off via the preferences tab under data management </li>
+                                    <li>Turning Debug mode on also shows you the corrections made red being the Mispelled text and green being the Corrected text</li>
+                                    <u>Tooltips</u>
+                                    <li>Added tooltips to give general info and how to use it each tab</li>
+                                    <li>Clicking on the "?" next to the tabs will display a popout you can adjust in size and postition to give a more indepth idea how that tab works</li>
+                                    <u>Fixes</u>
+                                    <li>Fixed Undo OCR mistake button not working</li>
+
+                                </ul>
+                            </div>
+
                             <div className="changelog-entry">
                             <h3>Version 1.2.1 - HotFix</h3>
                                 <ul>
@@ -3517,6 +3761,69 @@ const App = () => {
                     </div>
                 )}
             </div>
+            {showDebugPopup && captureDebugMode && (
+                <div 
+                    className="debug-popup"
+                    style={{
+                        left: debugPopupPosition.x,
+                        top: debugPopupPosition.y
+                    }}
+                >
+                    <div 
+                        className="debug-popup-header"
+                        onMouseDown={handleDragStart}
+                        ref={dragRef}
+                    >
+                        <span>OCR Text</span>
+                        <button onClick={() => setShowDebugPopup(false)}>×</button>
+                    </div>
+                    <div className="debug-popup-content">
+                        <div className="debug-section">
+                            <h4>Raw OCR Text:</h4>
+                            <pre>{ocrText || 'No text captured yet'}</pre>
+                            {currentParsedResults && currentParsedResults.length > 0 && (
+                                <>
+                                    <h4>Parsed Results:</h4>
+                                    <pre>{JSON.stringify(currentParsedResults, null, 2)}</pre>
+                                </>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
+            {showTooltipPopup && (
+                <div 
+                    className="tooltip-popup"
+                    style={{
+                        left: tooltipPopupPosition.x,
+                        top: tooltipPopupPosition.y,
+                        width: tooltipPopupSize.width,
+                        height: tooltipPopupSize.height
+                    }}
+                >
+                    <div 
+                        className="tooltip-popup-header"
+                        onMouseDown={handleTooltipDragStart}
+                        ref={tooltipDragRef}
+                    >
+                        <span>Info</span>
+                        <button onClick={() => setShowTooltipPopup(false)}>×</button>
+                    </div>
+                    <div 
+                        className="tooltip-popup-content"
+                        style={{ height: tooltipPopupSize.height - 50 }} // Adjust for header height
+                    >
+                        {activeTooltipContent.split('\n').map((line, index) => (
+                            <p key={index}>{line}</p>
+                        ))}
+                    </div>
+                    <div 
+                        className="tooltip-popup-resize-handle"
+                        onMouseDown={handleResizeStart}
+                        ref={resizeRef}
+                    />
+                </div>
+            )}
         </div>
     );
 };
