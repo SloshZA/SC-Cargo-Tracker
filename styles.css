@@ -715,7 +715,7 @@ input.second-dropdown {
 
 .planet-select .react-select__control {
     width: 119px;
-    margin-left: -20px;
+    margin-left: -10px;
 }
 
 .moon-select .react-select__control {
@@ -732,7 +732,7 @@ input.second-dropdown {
 
 .station-select .react-select__control {
     width: 119px;
-    margin-left: -20px;
+    margin-left: -10px;
 }
 
 .react-select__menu-list {

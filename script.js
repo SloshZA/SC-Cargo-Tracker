@@ -846,69 +846,97 @@ const App = () => {
             setNeedsClearConfirmation(false);
         } else {
             setNeedsClearConfirmation(true);
+            // Changed from 3000 to 2000 milliseconds and added explicit reset
             setTimeout(() => {
-                if (needsClearConfirmation) {
-                    setNeedsClearConfirmation(false);
-                }
-            }, 3000);
+                setNeedsClearConfirmation(false);
+            }, 2000);
         }
     };
 
     const processOrders = () => {
+        console.log('Starting processOrders');
+        console.log('Current entries:', entries);
+        console.log('Current mission entries:', missionEntries);
+        
         const deliveredEntries = entries.filter(entry => entry.status === 'Delivered');
-        const activeEntries = entries.filter(entry => entry.status !== 'Delivered');
+        console.log('Delivered entries:', deliveredEntries);
         
         if (deliveredEntries.length > 0) {
-            console.log('Processing orders from table:', isAlternateTable ? 'Missions Table' : 'Manifest Table');
-            
-            // Group entries by dropoff point and mission status
+            // Group entries by mission index first, then by dropoff point
             const groupedEntries = deliveredEntries.reduce((acc, entry) => {
-                const key = `${entry.dropOffPoint}-${entry.isMissionEntry ? 'mission' : 'regular'}`;
-                if (!acc[key]) {
-                    acc[key] = [];
+                if (!entry.isMissionEntry) {
+                    const key = `regular_${entry.dropOffPoint}`;
+                    if (!acc[key]) acc[key] = [];
+                    acc[key].push({
+                        ...entry,
+                        timestamp: new Date().toISOString(),
+                        status: 'Delivered'
+                    });
+                    return acc;
                 }
+
+                // Ensure mission index stays within 0-9 range
+                const missionIndex = Math.min(Math.max(entry.missionIndex || 0, 0), 9);
+                const key = `mission_${missionIndex}_${entry.dropOffPoint}`;
+                if (!acc[key]) acc[key] = [];
                 acc[key].push({
                     ...entry,
                     timestamp: new Date().toISOString(),
-                    status: 'Delivered'
+                    status: 'Delivered',
+                    missionIndex // Ensure consistent mission index
                 });
                 return acc;
             }, {});
+
+            console.log('Grouped entries:', groupedEntries);
 
             // Create history entries
             const updatedHistory = [
                 ...historyEntries,
                 ...Object.entries(groupedEntries).map(([key, entries]) => {
-                    const [dropOffPoint, type] = key.split('-');
+                    const [type, ...rest] = key.split('_');
+                    const isMissionEntry = type === 'mission';
+                    const missionIndex = isMissionEntry ? Math.min(parseInt(rest[0]), 9) : null;
+                    const dropOffPoint = rest.slice(isMissionEntry ? 1 : 0).join('_');
+                    
                     return {
                         dropOffPoint,
                         entries,
                         timestamp: new Date().toISOString(),
-                        isMissionEntry: type === 'mission'
+                        isMissionEntry,
+                        missionIndex // Will be null for regular entries
                     };
                 })
             ];
             
+            console.log('Updated history:', updatedHistory);
             setHistoryEntries(updatedHistory);
             localStorage.setItem('historyEntries', JSON.stringify(updatedHistory));
             
-            // Always update both mission entries and main entries regardless of current view
-            // Remove delivered entries from missionEntries
-            const updatedMissionEntries = missionEntries.map(missionGroup => 
-                missionGroup.filter(entry => !entry.status || entry.status !== 'Delivered')
-            );
+            // Update mission entries - maintain 10 slots
+            const updatedMissionEntries = Array(10).fill(null).map((_, index) => {
+                const currentMission = missionEntries[index] || [];
+                return currentMission.filter(entry => 
+                    !entry.status || entry.status !== 'Delivered'
+                );
+            });
+            
+            console.log('Updated mission entries:', updatedMissionEntries);
             setMissionEntries(updatedMissionEntries);
             localStorage.setItem('missionEntries', JSON.stringify(updatedMissionEntries));
             
-            // Remove delivered entries from main entries array
-            const updatedEntries = entries.filter(entry => !entry.status || entry.status !== 'Delivered');
+            // Update main entries
+            const updatedEntries = entries.filter(entry => 
+                !entry.status || entry.status !== 'Delivered'
+            );
+            console.log('Updated main entries:', updatedEntries);
             setEntries(updatedEntries);
             localStorage.setItem('entries', JSON.stringify(updatedEntries));
             
-            showBannerMessage(`${deliveredEntries.length} orders processed and moved to history.`);
+            showBannerMessage(`${deliveredEntries.length} orders processed and moved to history.`, true);
         } else {
             console.log('No delivered orders to process');
-            showBannerMessage('No delivered orders to process.');
+            showBannerMessage('No delivered orders to process.', false);
         }
     };
 
@@ -1419,11 +1447,10 @@ const App = () => {
             showBannerMessage('History log cleared.', true);
         } else {
             setNeedsHistoryClearConfirmation(true);
+            // Add 2-second timer to reset confirmation state
             setTimeout(() => {
-                if (needsHistoryClearConfirmation) {
-                    setNeedsHistoryClearConfirmation(false);
-                }
-            }, 3000);
+                setNeedsHistoryClearConfirmation(false);
+            }, 2000);
         }
     };
 
@@ -1644,13 +1671,11 @@ const App = () => {
     };
 
     const handleMouseUp = async () => {
-        let canvas;
-        
         try {
             if (!useVideoStream || !videoRef.current || !selectionBox) return;
             setIsDrawing(false);
 
-            canvas = document.createElement('canvas');
+            const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
             
             canvas.width = Math.abs(selectionBox.endX - selectionBox.startX);
@@ -1680,49 +1705,17 @@ const App = () => {
             const newResults = parseOCRResults(ocrText);
             setCurrentParsedResults(newResults);
             
-            setOcrCaptureHistory(prev => [...prev, newResults]);
+            // Add new results as a mission group
+            setOcrMissionGroups(prev => [...prev, newResults]);
             
-            setOcrResults(prevResults => [...prevResults, ...newResults]);
+            // Update OCR results display
+            setOcrResults(prev => [...prev, ...newResults]);
             
-            const processLog = document.getElementById('process-log');
-            
-            const parsedTable = processLog.querySelector('.parsed-table');
-            if (parsedTable) {
-                const tbody = parsedTable.querySelector('tbody');
-                tbody.innerHTML = '';
-                newResults.forEach(result => {
-                    const row = document.createElement('tr');
-                    row.innerHTML = `
-                        <td>${result.commodity}</td>
-                        <td>${result.quantity}</td>
-                        <td>${result.pickup}</td>
-                        <td>${result.dropoff}</td>
-                    `;
-                    tbody.appendChild(row);
-                });
-            }
-            
-            const resultsTbody = processLog.querySelector('.results-table tbody');
-            if (resultsTbody) {
-                resultsTbody.innerHTML = '';
-                ocrResults.concat(newResults).forEach(result => {
-                    const row = document.createElement('tr');
-                    row.innerHTML = `
-                        <td>${result.commodity}</td>
-                        <td>${result.quantity}</td>
-                        <td>${result.pickup}</td>
-                        <td>${result.dropoff}</td>
-                    `;
-                    resultsTbody.appendChild(row);
-                });
-            }
+            showBannerMessage('OCR capture successful! Mission group created.', true);
+
         } catch (error) {
             console.error('Capture Error:', error);
             showBannerMessage('Error capturing image. Please try again.', false);
-        } finally {
-            if (canvas) {
-                canvas.remove();
-            }
         }
     };
 
@@ -2123,72 +2116,64 @@ const App = () => {
     };
 
     const addOCRToManifest = () => {
-        console.log('Starting addOCRToManifest');
-        
-        // First apply fuzzy matching corrections to OCR results
-        const correctedResults = ocrResults.map(result => ({
-            ...result,
-            commodity: findClosestMatch(result.commodity, data.commodities) || result.commodity,
-            pickup: findClosestMatch(result.pickup, [
-                ...data.pickupPoints,
-                ...Object.values(data.Dropoffpoints).flat(),
-                ...Object.values(data.moons).flatMap(moon => Object.values(moon)).flat()
-            ]) || result.pickup,
-            dropoff: findClosestMatch(result.dropoff, [
-                ...data.pickupPoints,
-                ...Object.values(data.Dropoffpoints).flat(),
-                ...Object.values(data.moons).flatMap(moon => Object.values(moon)).flat()
-            ]) || result.dropoff
-        }));
-        
-        // Then validate the corrected entries
-        const validEntries = correctedResults.filter(validateEntry);
-        console.log('Valid entries:', validEntries);
-        
-        if (validEntries.length === 0) {
-            console.log('No valid entries found');
-            showBannerMessage('No valid entries found in OCR results.', false);
+        if (ocrMissionGroups.length === 0) {
+            showBannerMessage('No missions to add to manifest.', false);
             return;
         }
-        
-        const newEntries = validEntries.map(result => ({
-            dropOffPoint: result.dropoff,
-            commodity: result.commodity,
-            originalAmount: result.quantity,
-            currentAmount: result.quantity,
-            status: STATUS_OPTIONS[0],
-            pickupPoint: result.pickup,
-            planet: '',
-            moon: ''
-        }));
-        console.log('New entries to add:', newEntries);
 
-        setEntries(prevEntries => {
-            const updatedEntries = [...prevEntries, ...newEntries];
-            console.log('Updated entries:', updatedEntries);
-            return updatedEntries;
+        // Find the first available mission slot
+        let currentMissionIndex = missionEntries.findIndex(mission => !mission || mission.length === 0);
+        if (currentMissionIndex === -1) currentMissionIndex = 0;
+
+        // Process each mission group
+        ocrMissionGroups.forEach((missionGroup, groupIndex) => {
+            const timestamp = Date.now() + groupIndex;
+            const newEntries = missionGroup.map((result, index) => ({
+                id: `entry_${timestamp}_${index}_${Math.random().toString(36).substr(2, 9)}`,
+                dropOffPoint: result.dropoff,
+                commodity: result.commodity,
+                originalAmount: result.quantity,
+                currentAmount: result.quantity,
+                status: STATUS_OPTIONS[0],
+                pickupPoint: result.pickup,
+                planet: '',
+                moon: '',
+                missionIndex: currentMissionIndex + groupIndex,
+                isMissionEntry: true
+            }));
+
+            // Update main entries
+            setEntries(prevEntries => {
+                const updatedEntries = [...prevEntries, ...newEntries];
+                localStorage.setItem('entries', JSON.stringify(updatedEntries));
+                return updatedEntries;
+            });
+
+            // Update mission entries
+            setMissionEntries(prevMissionEntries => {
+                const updatedMissionEntries = [...prevMissionEntries];
+                const targetIndex = currentMissionIndex + groupIndex;
+                
+                if (!updatedMissionEntries[targetIndex]) {
+                    updatedMissionEntries[targetIndex] = [];
+                }
+                
+                updatedMissionEntries[targetIndex] = [
+                    ...updatedMissionEntries[targetIndex],
+                    ...newEntries
+                ];
+                
+                localStorage.setItem('missionEntries', JSON.stringify(updatedMissionEntries));
+                return updatedMissionEntries;
+            });
         });
 
-        // Update mission entries if any missions are selected
-        const selectedMissionIndex = selectedMissions.findIndex(mission => mission);
-        if (selectedMissionIndex !== -1) {
-            const updatedMissionEntries = [...missionEntries];
-            updatedMissionEntries[selectedMissionIndex] = [
-                ...updatedMissionEntries[selectedMissionIndex],
-                ...newEntries
-            ];
-            setMissionEntries(updatedMissionEntries);
-            localStorage.setItem('missionEntries', JSON.stringify(updatedMissionEntries));
-        }
-
-        // Clear the OCR results after adding to manifest
+        // Clear all OCR-related states
         setOcrResults([]);
         setCurrentParsedResults([]);
+        setOcrMissionGroups([]);
         
-        // Update localStorage
-        localStorage.setItem('entries', JSON.stringify([...entries, ...newEntries]));
-        
-        showBannerMessage(`${validEntries.length} valid entries added to manifest.`, true);
+        showBannerMessage(`Added ${ocrMissionGroups.length} missions to manifest.`, true);
     };
 
     // Add this state variable at the top of the component
@@ -2230,17 +2215,15 @@ const App = () => {
     // Modify the handleTabChange function
     const handleTabChange = (tab) => {
         setHaulingSubTab(tab);
-        
-        // If leaving the Capture tab, disable video stream and uncheck the checkbox
-        if (tab !== 'Capture' && useVideoStream) {
-            setUseVideoStream(false);
-            stopVideoStream();
-        }
+        // Uncheck capture application window when switching sub tabs
+        setUseVideoStream(false);
     };
 
     // Add this new handler for main tabs
     const handleMainTabChange = (tab) => {
         setMainTab(tab);
+        // Uncheck capture application window when switching main tabs
+        setUseVideoStream(false);
     };
 
     // Add these state variables at the top of the component
@@ -2384,39 +2367,162 @@ const App = () => {
         }
     }
 
+    // Update processEntry to include mission information
+    function processEntry(entry) {
+        // Create the processed entry with mission information
+        return {
+            dropOffPoint: entry.dropoff,
+            commodity: correctOCRText(entry.commodity),
+            originalAmount: entry.quantity,
+            currentAmount: entry.quantity,
+            pickupPoint: entry.pickup,
+            status: 'Pending',
+            // Always set as mission entry when coming from OCR
+            isMissionEntry: true,
+            // Default to first available mission slot or mission 0
+            missionIndex: findFirstAvailableMissionSlot()
+        };
+    }
+
+    // Add this new helper function to find the first available mission slot
+    const findFirstAvailableMissionSlot = () => {
+        // First try to find a selected mission
+        const selectedIndex = selectedMissions.findIndex(mission => mission);
+        if (selectedIndex !== -1) {
+            return selectedIndex;
+        }
+        
+        // If no mission is selected, find the first mission that has space
+        const missionWithSpace = missionEntries.findIndex(mission => !mission || mission.length === 0);
+        if (missionWithSpace !== -1) {
+            return missionWithSpace;
+        }
+        
+        // Default to mission 0 if no other option is found
+        return 0;
+    };
+
     const addToManifest = (entry) => {
         console.log('Adding entry to manifest:', entry);
+        
+        // Generate a unique ID for the entry
+        const entryId = `entry_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        
+        // Create the new entry with the ID
+        const newEntry = {
+            ...entry,
+            id: entryId
+        };
+
+        console.log('New entry with mission status:', newEntry); // Debug log
+
+        // If coming from OCR, automatically select the mission
+        if (newEntry.isMissionEntry) {
+            setSelectedMissions(prev => {
+                const updated = [...prev];
+                updated[newEntry.missionIndex] = true;
+                return updated;
+            });
+        }
+
         setEntries(prevEntries => {
-            const newEntries = [...prevEntries, entry];
+            const newEntries = [...prevEntries, newEntry];
             localStorage.setItem('entries', JSON.stringify(newEntries));
             return newEntries;
         });
+
+        // Add to mission entries
+        if (newEntry.isMissionEntry) {
+            setMissionEntries(prevMissionEntries => {
+                const updatedMissionEntries = [...prevMissionEntries];
+                if (!updatedMissionEntries[newEntry.missionIndex]) {
+                    updatedMissionEntries[newEntry.missionIndex] = [];
+                }
+                updatedMissionEntries[newEntry.missionIndex].push(newEntry);
+                localStorage.setItem('missionEntries', JSON.stringify(updatedMissionEntries));
+                return updatedMissionEntries;
+            });
+        }
     };
 
     // Add this new function near your other handlers
-    const toggleStatus = (index) => {
-        const updatedEntries = [...entries];
-        const entryToUpdate = updatedEntries[index];
+    const toggleStatus = (index, dropOffPoint) => {
+        // Find all entries for this specific drop-off point
+        const entriesForDropOff = entries.filter(entry => entry.dropOffPoint === dropOffPoint);
+        // Get the specific entry using the relative index within this drop-off point's entries
+        const entryToUpdate = entriesForDropOff[index];
         
+        if (!entryToUpdate) return; // Safety check
+
+        // Find the absolute index in the main entries array
+        const absoluteIndex = entries.findIndex(entry => 
+            entry.id === entryToUpdate.id &&
+            entry.dropOffPoint === entryToUpdate.dropOffPoint &&
+            entry.commodity === entryToUpdate.commodity &&
+            entry.originalAmount === entryToUpdate.originalAmount &&
+            entry.currentAmount === entryToUpdate.currentAmount &&
+            entry.pickupPoint === entryToUpdate.pickupPoint
+        );
+
+        if (absoluteIndex === -1) return; // Safety check
+
+        const updatedEntries = [...entries];
         // Toggle between Pending and Delivered
-        entryToUpdate.status = entryToUpdate.status === 'Pending' ? 'Delivered' : 'Pending';
+        updatedEntries[absoluteIndex].status = updatedEntries[absoluteIndex].status === 'Pending' ? 'Delivered' : 'Pending';
         setEntries(updatedEntries);
         localStorage.setItem('entries', JSON.stringify(updatedEntries));
 
-        // If this entry is part of a mission, update only that specific mission entry
+        // Update mission entry if applicable
         if (entryToUpdate.missionIndex !== null && entryToUpdate.id) {
             const updatedMissionEntries = [...missionEntries];
             const missionGroup = updatedMissionEntries[entryToUpdate.missionIndex];
             
             if (missionGroup) {
-                updatedMissionEntries[entryToUpdate.missionIndex] = missionGroup.map(entry => 
-                    entry.id === entryToUpdate.id ? { ...entry, status: entryToUpdate.status } : entry
+                const missionEntryIndex = missionGroup.findIndex(entry => 
+                    entry.id === entryToUpdate.id &&
+                    entry.dropOffPoint === entryToUpdate.dropOffPoint
                 );
-                
-                setMissionEntries(updatedMissionEntries);
-                localStorage.setItem('missionEntries', JSON.stringify(updatedMissionEntries));
+
+                if (missionEntryIndex !== -1) {
+                    updatedMissionEntries[entryToUpdate.missionIndex][missionEntryIndex] = {
+                        ...missionGroup[missionEntryIndex],
+                        status: updatedEntries[absoluteIndex].status
+                    };
+                    
+                    setMissionEntries(updatedMissionEntries);
+                    localStorage.setItem('missionEntries', JSON.stringify(updatedMissionEntries));
+                }
             }
         }
+    };
+
+    // Add this to your OCR text correction function or create a new one
+    const correctOCRText = (text) => {
+        if (!text) return text;
+        
+        // Convert to string and trim
+        text = text.toString().trim();
+        
+        // Common OCR corrections
+        const corrections = {
+            'Wasta': 'Waste',
+            'Wasts': 'Waste',
+            // Add more corrections as needed
+        };
+
+        // Check if the text matches any known misreadings
+        return corrections[text] || text;
+    };
+
+    // Add this state variable at the top of the App component
+    const [ocrMissionGroups, setOcrMissionGroups] = useState([]);
+
+    // Add this function to clear OCR mission groups
+    const clearOCRMissions = () => {
+        setOcrMissionGroups([]);
+        setOcrResults([]);
+        setCurrentParsedResults([]);
+        showBannerMessage('OCR missions cleared.', true);
     };
 
     return (
@@ -2642,6 +2748,9 @@ const App = () => {
                                         <>
                                             <div className="ocr-counters">
                                                 <div className="ocr-counter">
+                                                    <strong>Total Missions:</strong> {ocrMissionGroups.length}
+                                                </div>
+                                                <div className="ocr-counter">
                                                     <strong>Total Entries:</strong> {ocrResults.length}
                                                 </div>
                                                 <div className="ocr-counter">
@@ -2652,88 +2761,96 @@ const App = () => {
                                                 </div>
                                             </div>
                                             <h4>OCR Process Log:</h4>
-                                            <h4>Results Table:</h4>
-                                            <table className="ocr-table">
-                                                <thead>
-                                                    <tr>
-                                                        <th>Commodity</th>
-                                                        <th>Quantity</th>
-                                                        <th>Pickup</th>
-                                                        <th>Drop Off</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody>
-                                                    {ocrResults.map((result, index) => {
-                                                        // Use fuzzy matching to find the closest matches
-                                                        const matchedCommodity = findClosestMatch(result.commodity, data.commodities) || result.commodity;
-                                                        const matchedPickup = findClosestMatch(result.pickup, [
-                                                            ...data.pickupPoints,
-                                                            ...Object.values(data.Dropoffpoints).flat(),
-                                                            ...Object.values(data.moons).flatMap(moon => Object.values(moon)).flat()
-                                                        ]) || result.pickup;
-                                                        const matchedDropoff = findClosestMatch(result.dropoff, [
-                                                            ...data.pickupPoints,
-                                                            ...Object.values(data.Dropoffpoints).flat(),
-                                                            ...Object.values(data.moons).flatMap(moon => Object.values(moon)).flat()
-                                                        ]) || result.dropoff;
-
-                                                        // Check if the matches are valid
-                                                        const isValidCommodity = data.commodities.includes(matchedCommodity);
-                                                        const isValidPickup = data.pickupPoints.includes(matchedPickup) || 
-                                                            Object.values(data.Dropoffpoints).flat().includes(matchedPickup) ||
-                                                            Object.values(data.moons).flatMap(moon => Object.values(moon)).flat().includes(matchedPickup);
-                                                        const isValidDropoff = data.pickupPoints.includes(matchedDropoff) || 
-                                                            Object.values(data.Dropoffpoints).flat().includes(matchedDropoff) ||
-                                                            Object.values(data.moons).flatMap(moon => Object.values(moon)).flat().includes(matchedDropoff);
-
-                                                        return (
-                                                            <tr key={index}>
-                                                                <td style={{ color: isValidCommodity ? 'inherit' : 'red' }}>
-                                                                    {matchedCommodity}
-                                                                </td>
-                                                                <td>
-                                                                    {editedQuantities[index] !== undefined ? (
-                                                                        <input
-                                                                            type="text"
-                                                                            value={editedQuantities[index]}
-                                                                            onChange={(e) => handleQuantityEdit(index, e.target.value)}
-                                                                            onKeyPress={(e) => {
-                                                                                if (e.key === 'Enter') {
-                                                                                    saveQuantityEdit(index);
-                                                                                }
-                                                                            }}
-                                                                            style={{ 
-                                                                                width: '50px',
-                                                                                border: '1px solid #ccc',
-                                                                                padding: '2px',
-                                                                                borderRadius: '3px'
-                                                                            }}
-                                                                            autoFocus
-                                                                        />
-                                                                    ) : (
-                                                                        <span 
-                                                                            onClick={() => handleQuantityEdit(index, result.quantity)}
-                                                                            style={{ 
-                                                                                cursor: 'pointer', 
-                                                                                textDecoration: 'underline',
-                                                                                padding: '2px 5px'
-                                                                            }}
-                                                                        >
-                                                                            {result.quantity}
-                                                                        </span>
-                                                                    )}
-                                                                </td>
-                                                                <td style={{ color: isValidPickup ? 'inherit' : 'red' }}>
-                                                                    {matchedPickup}
-                                                                </td>
-                                                                <td style={{ color: isValidDropoff ? 'inherit' : 'red' }}>
-                                                                    {matchedDropoff}
-                                                                </td>
+                                            {ocrMissionGroups.map((missionGroup, missionIndex) => (
+                                                <div key={missionIndex} className="mission-group">
+                                                    <h5>Mission {missionIndex + 1}</h5>
+                                                    <table className="ocr-table">
+                                                        <thead>
+                                                            <tr>
+                                                                <th>Commodity</th>
+                                                                <th>Quantity</th>
+                                                                <th>Pickup</th>
+                                                                <th>Drop Off</th>
                                                             </tr>
-                                                        );
-                                                    })}
-                                                </tbody>
-                                            </table>
+                                                        </thead>
+                                                        <tbody>
+                                                            {missionGroup.map((result, index) => {
+                                                                // Use fuzzy matching to find the closest matches
+                                                                const matchedCommodity = findClosestMatch(result.commodity, data.commodities) || result.commodity;
+                                                                const matchedPickup = findClosestMatch(result.pickup, [
+                                                                    ...data.pickupPoints,
+                                                                    ...Object.values(data.Dropoffpoints).flat(),
+                                                                    ...Object.values(data.moons).flatMap(moon => Object.values(moon)).flat()
+                                                                ]) || result.pickup;
+                                                                const matchedDropoff = findClosestMatch(result.dropoff, [
+                                                                    ...data.pickupPoints,
+                                                                    ...Object.values(data.Dropoffpoints).flat(),
+                                                                    ...Object.values(data.moons).flatMap(moon => Object.values(moon)).flat()
+                                                                ]) || result.dropoff;
+
+                                                                // Check if the matches are valid
+                                                                const isValidCommodity = data.commodities.includes(matchedCommodity);
+                                                                const isValidPickup = data.pickupPoints.includes(matchedPickup) || 
+                                                                    Object.values(data.Dropoffpoints).flat().includes(matchedPickup) ||
+                                                                    Object.values(data.moons).flatMap(moon => Object.values(moon)).flat().includes(matchedPickup);
+                                                                const isValidDropoff = data.pickupPoints.includes(matchedDropoff) || 
+                                                                    Object.values(data.Dropoffpoints).flat().includes(matchedDropoff) ||
+                                                                    Object.values(data.moons).flatMap(moon => Object.values(moon)).flat().includes(matchedDropoff);
+
+                                                                return (
+                                                                    <tr key={index}>
+                                                                        <td style={{ color: isValidCommodity ? 'inherit' : 'red' }}>
+                                                                            {matchedCommodity}
+                                                                        </td>
+                                                                        <td>
+                                                                            {editedQuantities[index] !== undefined ? (
+                                                                                <input
+                                                                                    type="text"
+                                                                                    value={editedQuantities[index]}
+                                                                                    onChange={(e) => handleQuantityEdit(index, e.target.value)}
+                                                                                    onKeyPress={(e) => {
+                                                                                        if (e.key === 'Enter') {
+                                                                                            saveQuantityEdit(index);
+                                                                                        }
+                                                                                    }}
+                                                                                    style={{ 
+                                                                                        width: '50px',
+                                                                                        border: '1px solid #ccc',
+                                                                                        padding: '2px',
+                                                                                        borderRadius: '3px'
+                                                                                    }}
+                                                                                    autoFocus
+                                                                                />
+                                                                            ) : (
+                                                                                <span 
+                                                                                    onClick={() => handleQuantityEdit(index, result.quantity)}
+                                                                                    style={{ 
+                                                                                        cursor: 'pointer', 
+                                                                                        textDecoration: 'underline',
+                                                                                        padding: '2px 5px'
+                                                                                    }}
+                                                                                >
+                                                                                    {result.quantity}
+                                                                                </span>
+                                                                            )}
+                                                                        </td>
+                                                                        <td style={{ color: isValidPickup ? 'inherit' : 'red' }}>
+                                                                            {matchedPickup}
+                                                                        </td>
+                                                                        <td style={{ color: isValidDropoff ? 'inherit' : 'red' }}>
+                                                                            {matchedDropoff}
+                                                                        </td>
+                                                                    </tr>
+                                                                );
+                                                            })}
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                            ))}
+                                            <div className="ocr-actions">
+                                                <button onClick={addOCRToManifest}>Add All Missions to Manifest</button>
+                                                <button onClick={clearOCRMissions}>Clear OCR Missions</button>
+                                            </div>
                                         </>
                                     )}
                                 </div>
@@ -2941,7 +3058,14 @@ const App = () => {
                                                         </thead>
                                                         <tbody>
                                                             {missionEntries[missionIndex].map((entry, index) => (
-                                                                <tr key={index}><td>{entry.dropOffPoint}</td><td>{entry.commodity}</td><td>{entry.currentAmount}/{entry.originalAmount}</td><td>{entry.status}</td></tr>
+                                                                <tr key={index}>
+                                                                    <td>{entry.dropOffPoint}</td>
+                                                                    <td>{entry.commodity}</td>
+                                                                    <td>{entry.currentAmount}/{entry.originalAmount}</td>
+                                                                    <td style={{ color: entry.status === 'Delivered' ? 'green' : 'inherit' }}>
+                                                                        {entry.status}
+                                                                    </td>
+                                                                </tr>
                                                             ))}
                                                         </tbody>
                                                     </table>
@@ -2995,7 +3119,11 @@ const App = () => {
                                                                             color: entry.status === 'Delivered' ? 'green' : 'inherit',
                                                                             cursor: 'pointer'
                                                                         }}
-                                                                        onClick={() => toggleStatus(index)}
+                                                                        onClick={() => toggleStatus(
+                                                                            entries.filter(e => e.dropOffPoint === entry.dropOffPoint)
+                                                                                  .findIndex(e => e.id === entry.id),
+                                                                            entry.dropOffPoint
+                                                                        )}
                                                                     >
                                                                         {entry.status || 'Pending'}
                                                                     </td>
@@ -3056,15 +3184,19 @@ const App = () => {
                                                                 <table className="history-table">
                                                                     <thead>
                                                                         <tr>
+                                                                            <th>Pickup</th>
                                                                             <th>Commodity</th>
-                                                                            <th>QTY (Current/Original)</th>
+                                                                            <th>QTY</th>
+                                                                            <th style={{ width: '30px' }}>%</th>
                                                                         </tr>
                                                                     </thead>
                                                                     <tbody>
                                                                         {entries.map((entry, index) => (
                                                                             <tr key={index}>
+                                                                                <td>{entry.pickupPoint}</td>
                                                                                 <td>{entry.commodity}</td>
                                                                                 <td>{entry.currentAmount}/{entry.originalAmount}</td>
+                                                                                <td style={{ width: '30px' }}>{Math.round((entry.currentAmount / entry.originalAmount) * 100)}%</td>
                                                                             </tr>
                                                                         ))}
                                                                     </tbody>
@@ -3284,17 +3416,36 @@ const App = () => {
                     <div className="changelog">
                         <div className="changelog-container">
                         <div className="changelog-entry">
+                                <h3>Version 1.2.0 - FIxes and Temp Changes</h3>
+                                <ul>
+                                    <li>1AM fixes be like</li>
+                                    <u>FIXES </u>
+                                    <li>Forget to use my index on status toggling so if you have 2 drop off points the top drop off point was the only one being toggled</li>
+                                    <li>Added green text to delviered status of missions in mission table</li>
+                                    <li>Fixed entries added from OCR capture to allow individual status toggle synced with missions using ID</li>
+                                    <li>Added to OCR resuslts table to track missions</li>
+                                    <li>-Each scan is considered a mission - tracks mission in OCR results table aswell</li>
+                                    <li>-No need to click on hauling tab and then come to capture tab to add entries to missions</li>
+                                    <u>KNOWN BUGS</u>
+                                    <li>when adding misison entries to payouts will ignore some tables looking into it</li>
+                                    <u>TODO</u>
+                                    <li>Turn missoin list into dynamic instead of fixed 10 slots</li>
+                                    <li>Add capturing reward amount table for even less input required X_X</li>
+                                </ul>
+                            </div>
+
+                        <div className="changelog-entry">
                                 <h3>Version 1.1.0 - FIxes and Temp Changes</h3>
                                 <ul>
-                                    <li>ADDITIONAL TABS</li>
+                                    <u>ADDITIONAL TABS</u>
                                     <li>Mining(WIP) - huskerbolt1 - for giving me a new idea</li>
-                                    <li>FIXES</li>
+                                    <u>FIXES</u>
                                     <li>Non-missions being sent to payouts tab</li>
                                     <li>imports not be saved on refresh</li>
                                     <li>constant capture count down going from 3 to the users set time and  then going down</li>
                                     <li>Clicking Status changes between Pending and Delivered for both misison and cargo manifest by using unique ID to keep track - Ruadhan2300 for pointing out ease of use
                                     XES</li>
-                                    <li>TEMPORARY REMOVAL</li>
+                                    <u>TEMPORARY REMOVAL</u>
                                     <li>Removed import/export payouts function.</li>
 
                                 </ul>
