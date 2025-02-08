@@ -846,19 +846,13 @@ const App = () => {
     const [needsClearConfirmation, setNeedsClearConfirmation] = useState(false);
 
     const clearLog = () => {
-        if (needsClearConfirmation) {
-            setEntries([]);
-            setMissionEntries(Array(10).fill([]));
-            localStorage.removeItem('entries');
-            localStorage.removeItem('missionEntries');
-            setNeedsClearConfirmation(false);
-        } else {
-            setNeedsClearConfirmation(true);
-            // Changed from 3000 to 2000 milliseconds and added explicit reset
-            setTimeout(() => {
-                setNeedsClearConfirmation(false);
-            }, 2000);
-        }
+        setEntries([]);
+        setMissionEntries(Array(10).fill([]));
+        setMissionRewards({}); // Clear all mission rewards
+        localStorage.removeItem('entries');
+        localStorage.removeItem('missionEntries');
+        localStorage.removeItem('missionRewards'); // Clear from localStorage too
+        setHasEntries(false);
     };
 
     const processOrders = () => {
@@ -872,7 +866,6 @@ const App = () => {
         if (deliveredEntries.length > 0) {
             // First, group entries by mission
             const groupedByMission = deliveredEntries.reduce((acc, entry) => {
-                // Ensure we have a valid mission index for mission entries
                 const missionKey = entry.isMissionEntry && entry.missionIndex !== undefined ? 
                     `mission_${entry.missionIndex}` : 'regular';
                 
@@ -881,7 +874,8 @@ const App = () => {
                         entries: [],
                         missionIndex: entry.missionIndex,
                         isMissionEntry: entry.isMissionEntry,
-                        timestamp: new Date().toISOString()
+                        timestamp: new Date().toISOString(),
+                        reward: entry.isMissionEntry ? missionRewards[`mission_${entry.missionIndex}`] : null
                     };
                 }
                 acc[missionKey].entries.push({
@@ -891,52 +885,51 @@ const App = () => {
                 return acc;
             }, {});
 
-            // Create history entries - one entry per mission, containing all drop-off points
-            const newHistoryEntries = Object.entries(groupedByMission).map(([missionKey, missionGroup]) => {
-                // Only create a single history entry per mission
-                return {
-                    dropOffPoint: missionGroup.entries[0].dropOffPoint, // Use first drop-off point as main reference
-                    entries: missionGroup.entries, // Keep all entries together
-                    timestamp: missionGroup.timestamp,
-                    isMissionEntry: missionGroup.isMissionEntry,
-                    missionIndex: missionGroup.missionIndex,
-                    missionKey
-                };
-            });
+            // Create history entries
+            const newHistoryEntries = Object.entries(groupedByMission).map(([missionKey, missionGroup]) => ({
+                dropOffPoint: missionGroup.entries[0].dropOffPoint,
+                entries: missionGroup.entries,
+                timestamp: missionGroup.timestamp,
+                isMissionEntry: missionGroup.isMissionEntry,
+                missionIndex: missionGroup.missionIndex,
+                missionKey,
+                reward: missionGroup.reward
+            }));
 
             // Update history entries
-            const updatedHistory = [...historyEntries, ...newHistoryEntries];
-            console.log('Updated history:', updatedHistory);
-            setHistoryEntries(updatedHistory);
-            localStorage.setItem('historyEntries', JSON.stringify(updatedHistory));
+            setHistoryEntries(prev => [...prev, ...newHistoryEntries]); // Put new entries at the end
+            localStorage.setItem('historyEntries', JSON.stringify([...historyEntries, ...newHistoryEntries]));
 
-            // Update mission entries - maintain empty arrays for all 10 slots
-            const updatedMissionEntries = Array(10).fill().map((_, index) => {
-                const currentMission = missionEntries[index] || [];
-                return currentMission.filter(entry => 
-                    !deliveredEntries.some(delivered => 
-                        delivered.id === entry.id && 
-                        delivered.missionIndex === index
-                    )
-                );
+            // Clear processed entries
+            const remainingEntries = entries.filter(entry => entry.status !== 'Delivered');
+            setEntries(remainingEntries);
+            localStorage.setItem('entries', JSON.stringify(remainingEntries));
+
+            // Clear processed mission entries and their rewards
+            const updatedMissionEntries = [...missionEntries];
+            const updatedMissionRewards = { ...missionRewards };
+            
+            deliveredEntries.forEach(entry => {
+                if (entry.isMissionEntry && entry.missionIndex !== undefined) {
+                    // Clear mission entries
+                    updatedMissionEntries[entry.missionIndex] = 
+                        updatedMissionEntries[entry.missionIndex].filter(e => e.status !== 'Delivered');
+                    
+                    // If all entries for this mission are processed, clear its reward
+                    if (updatedMissionEntries[entry.missionIndex].length === 0) {
+                        delete updatedMissionRewards[`mission_${entry.missionIndex}`];
+                    }
+                }
             });
             
-            console.log('Updated mission entries:', updatedMissionEntries);
             setMissionEntries(updatedMissionEntries);
+            setMissionRewards(updatedMissionRewards);
             localStorage.setItem('missionEntries', JSON.stringify(updatedMissionEntries));
+            localStorage.setItem('missionRewards', JSON.stringify(updatedMissionRewards));
 
-            // Update main entries
-            const updatedEntries = entries.filter(entry => 
-                !deliveredEntries.some(delivered => delivered.id === entry.id)
-            );
-            
-            console.log('Updated main entries:', updatedEntries);
-            setEntries(updatedEntries);
-            localStorage.setItem('entries', JSON.stringify(updatedEntries));
-
-            showBannerMessage(`${deliveredEntries.length} orders processed and moved to history.`, true);
+            // Show success message
+            showBannerMessage('Orders processed successfully!', true);
         } else {
-            console.log('No delivered orders to process');
             showBannerMessage('No delivered orders to process.', false);
         }
     };
@@ -1516,26 +1509,39 @@ const App = () => {
     const performOCR = async (image) => {
         try {
             if (!image || typeof image !== 'string' || !image.startsWith('data:image')) {
+                console.error('Invalid image data provided to OCR');
                 showBannerMessage('Invalid image data', false);
-                throw new Error('Invalid image data');
+                return '';
             }
 
+            console.log('Starting OCR processing...');
+            
             const { data: { text } } = await Tesseract.recognize(
                 image,
                 'eng',
                 {
-                    logger: m => console.log(m),
+                    logger: m => {
+                        if (m.status === 'recognizing text') {
+                            console.log(`OCR Progress: ${Math.round(m.progress * 100)}%`);
+                        }
+                    },
                     errorHandler: (err) => {
                         console.error('Tesseract Error:', err);
                         showBannerMessage('OCR processing error', false);
-                        throw err;
                     }
                 }
             );
-            
+
+            if (!text || text.trim() === '') {
+                console.log('No text detected in image');
+                showBannerMessage('No text detected in image. Try adjusting the capture area.', false);
+                return '';
+            }
+
+            console.log('Raw OCR text:', text);
             const cleanedText = text.replace(/[.,]/g, '');
             
-            // Parse the text using existing parseOCRResults function
+            // Parse the OCR results first
             const parsedResults = parseOCRResults(cleanedText);
             
             // Check if any valid entries were created after fuzzy matching
@@ -1556,12 +1562,15 @@ const App = () => {
             });
 
             if (hasValidEntries) {
+                console.log('Valid entries found:', parsedResults);
                 showBannerMessage('OCR capture successful!', true);
                 return cleanedText;
             } else {
+                console.log('No valid mission data found in:', cleanedText);
                 showBannerMessage('No valid mission data detected', false);
                 return '';
             }
+
         } catch (error) {
             console.error('OCR Error:', error);
             showBannerMessage('Error processing image. Please try again.', false);
@@ -1703,15 +1712,21 @@ const App = () => {
 
     const handleMouseUp = async () => {
         try {
-            if (!useVideoStream || !videoRef.current || !selectionBox) return;
+            if (!useVideoStream || !videoRef.current || !selectionBox) {
+                console.log('Missing required elements for capture');
+                return;
+            }
             setIsDrawing(false);
 
+            // Create canvas and get context
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
             
+            // Set canvas dimensions to selection box size
             canvas.width = Math.abs(selectionBox.endX - selectionBox.startX);
             canvas.height = Math.abs(selectionBox.endY - selectionBox.startY);
             
+            // Draw the selected portion of the video onto the canvas
             ctx.drawImage(
                 videoRef.current,
                 Math.min(selectionBox.startX, selectionBox.endX),
@@ -1721,21 +1736,26 @@ const App = () => {
                 0, 0, canvas.width, canvas.height
             );
             
+            // Apply image processing to improve OCR
             const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
             const sharpenedImage = sharpenImage(imageData);
             ctx.putImageData(sharpenedImage, 0, 0);
             
             const image = canvas.toDataURL('image/png', 1.0);
             
+            console.log('Starting OCR process...');
             const rawOcrText = await performOCR(image);
             setOcrText(rawOcrText);
             
             if (!rawOcrText) {
-                throw new Error('No text recognized');
+                console.log('No text recognized from image');
+                return;
             }
-            
+
+            // Parse the OCR results
             const newResults = parseOCRResults(rawOcrText);
-            
+            console.log('Parsed OCR results:', newResults);
+                    
             if (newResults && newResults.length > 0) {
                 // Add the new results to OCR capture history
                 setOcrCaptureHistory(prev => [...prev, newResults]);
@@ -1749,6 +1769,7 @@ const App = () => {
             }
 
         } catch (error) {
+            console.error('Error in handleMouseUp:', error);
             showBannerMessage('Error capturing text. Please check box size and location.', false);
         }
     };
@@ -1822,33 +1843,28 @@ const App = () => {
     }
 
     const parseOCRResults = (text) => {
+        let processedText = text;
 
-        text = text.replace(/S4DCOS/g, 'S4DC05');
-        text = text.replace(/$4DC0S/g, 'S4DC05');
-        text = text.replace(/S4DCOS/g, 'S4DC05');
-        text = text.replace(/$4DC0S/g, 'S4DC05');
-        text = text.replace(/S4DCO0S/g, 'S4DC05');
-        text = text.replace(/S4DC00S/g, 'S4DC05');
-        text = text.replace(/S4DC0OS/g, 'S4DC05');
-        text = text.replace(/Covalex Distribution Center S4DC0S/g, 'Covalex Distribution Center S4DC05');
-        text = text.replace(/Shubin Mining Facility SM0-10 I/g, 'Shubin Mining Facility SM0-10');
-        text = text.replace(/Shubin Mining Facliity SM0-10 I/g, 'Shubin Mining Facility SM0-10');
-        text = text.replace(/Shubin Mining Facliity SM0-10 I/g, 'Shubin Mining Facility SM0-10');
-
-        
-        text = text.replace(/\$(\w+)/g, (match, word) => {
-            // Remove the $ and check if the word starts with S
-            return word.startsWith('S') ? word : `S${word}`;
+        // Apply location code corrections
+        Object.entries(locationCorrections.codes).forEach(([incorrect, correct]) => {
+            processedText = processedText.replace(new RegExp(incorrect, 'g'), correct);
         });
 
-        text = text.replace(/[{}[\]()<>.,|]/g, '');
+        // Apply location name corrections
+        Object.entries(locationCorrections.names).forEach(([incorrect, correct]) => {
+            const escapedIncorrect = incorrect.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            processedText = processedText.replace(new RegExp(escapedIncorrect, 'g'), correct);
+        });
 
-        const lines = text.split('\n').filter(line => line.trim() !== '');
+        // Remove special characters
+        processedText = processedText.replace(/[{}[\]()<>.,|]/g, '');
+
+        const lines = processedText.split('\n').filter(line => line.trim() !== '');
         const results = [];
         let currentCommodity = null;
         let currentPickup = null;
         let currentDropoff = null;
-        
+
         // Look for the word "Collect" and extract the immediately following word
         const collectPattern = /Collect\s+([\w\s]+?)\s+from/i; // Modified to capture multiple words
         // Look for the word "from" and extract the pickup location
@@ -1861,81 +1877,6 @@ const App = () => {
         const specialCommodityPattern = /(Ship|Quantum)\s+([\w\s]+?)\s+from/i;
         // Pattern for raw materials
         const rawMaterialPattern = /(Corundum|Quartz|Silicon|Tin|Titanium|Tungsten)\s+\(Raw\)/i;
-                // Pattern to correct common OCR mistakes in location codes
-                const locationCodeCorrections = {
-                    //S4LD01 - Corrections
-                    'S4LDO1': 'S4LD01',
-                    'S4LD0I': 'S4LD01',
-                    'S4LD0L': 'S4LD01',
-                    'S4LD0l.': 'S4LD01', 
-                    'S4LDOL.': 'S4LD01',
-                    //S4DC05 - Corrections  
-                    'S4DC0S' : 'S4DC05',
-                    'S4DCOS' : 'S4DC05', 
-                    '$S4DCOS' : 'S4DC05', 
-                    'S4DCO0S': 'S4DC05',
-                    '$S4DC0S' : 'S4DC05',
-                    '$S4DC0S' : 'S4DC05',  
-                    '$S40COS' : 'S4DC05',  
-                    '$S40C0S' : 'S4DC05', 
-                    '$S40DCO0S' : 'S4DC05',
-                    '$S4DCO0S' : 'S4DC05',
-                    '$S40CO0S' : 'S4DC05',
-                    '$4DC0S' : 'S4DC05',
-                    '$S4DC05' : 'S4DC05', 
-                    '$40C0S' : 'S4DC05', 
-                    '$$4DCOS' : 'S4DC05',
-                    '$4DCOS' : 'S4DC05',
-                    'SA4DCOS' : 'S4DC05',
-                    'SS4DC05' : 'S4DC05',
-                    'S4DC055' : 'S4DC05',
-                    //S4LD13 - Corrections
-                    'S4LD13': 'S4LD13',
-                    'S4LD1B': 'S4LD13',
-                    'S4LD1I': 'S4LD13',
-                    //SM0-##
-                    'SMO-18' : 'SM0-18',
-                    'SMO-10' : 'SM0-10',
-                    //large names
-                    'Covalex Distribution Center i S4DC05' : 'Covalex Distribution Center S4DC05',
-                    'Port Tressler I' : 'Port Tressler',
-                    //City
-                    'Baljini Point' : 'Baijini Point',
-                    'Sakura Sun Goldenrod Workeenter': 'Sakura Sun Goldenrod Workcenter',
-                    'Covalex Distribution Center S4DCOS': 'Covalex Distribution Center S4DC05',
-                    'Greycat Stanton IV Production j Complex-A': 'Greycat Stanton IV Production Complex-A',
-                    'Port Tressler J': 'Port Tressler',
-                    'Shubin Mining Facility SM0-10 i': 'Shubin Mining Facility SM0-10',
-                    'Covalex Distribution Center S4DCO5': 'Covalex Distribution Center S4DC05',
-                    'Covalex Distribution Center SA4DCOS': 'Covalex Distribution Center S4DC05',
-                    'Covalex Distribution Center SADCOS': 'Covalex Distribution Center S4DC05',
-                    'Covalex Distribution Center S4D0C0S': 'Covalex Distribution Center S4DC05',
-                    'Wasts': 'Waste',
-                    'MIC-L2 Long Forest Station J': 'MIC-L2 Long Forest Station',
-                    'NB Int Spaceport i': 'NB Int Spaceport',
-                    'NB Int Spaceport il': 'NB Int Spaceport',
-                    'Greycat Stanton IV Production i Complex-A': 'Greycat Stanton IV Production Complex-A',
-                    'Covalex Distribution Center: S4DC05': 'Covalex Distribution Center S4DC05',
-                    'MIC-L\'2 Long Forest Station i': 'MIC-L2 Long Forest Station',
-                    'Fort Tressler i': 'Port Tressler',
-                    'Covalex Distribution Center \'S4DC05': 'Covalex Distribution Center S4DC05',
-                    'MIC-L2 Long Forest Station i': 'MIC-L2 Long Forest Station',
-                    'Covalex Distribution Center S4DC0S': 'Covalex Distribution Center S4DC05',
-                    'Processed Foad': 'Processed Food',
-                    'Port Tressler i': 'Port Tressler',
-                    'Greycat Stantan IV Production Complex-A': 'Greycat Stanton IV Production Complex-A',
-                    'Sakura Sun Goldenrod Workcenter_': 'Sakura Sun Goldenrod Workcenter',
-                    'Port Tressier- i': 'Port Tressler',
-                    'Port Tressier': 'Port Tressler',
-                    'Covalex Distribution Center S4DC0S': 'Covalex Distribution Center S4DC05',
-                    'Part Tessier i': 'Port Tressler',
-                    'Agricuitural Supplies': 'Agricultural Supplies',
-                    'microTech Logistics Depot S4L001': 'microTech Logistics Depot S4LD01',
-                    'Covalex Distribution Center S4DCoS': 'Covalex Distribution Center S4DC05',
-                    'Covalex Distribution Center \'S4DC05': 'Covalex Distribution Center S4DC05',
-                    'Shubin Mining Facility SMD-10': 'Shubin Mining Facility SM0-10',
-                    'Covalex Distribution Center S4DC0S': 'Covalex Distribution Center S4DC05',
-                };
 
         for (let i = 0; i < lines.length; i++) {
             const line = lines[i];
@@ -1951,9 +1892,9 @@ const App = () => {
             }
             // If no special commodity found, check for regular "Collect" pattern
             else {
-            const collectMatch = line.match(collectPattern);
-            if (collectMatch) {
-                currentCommodity = collectMatch[1].trim();
+                const collectMatch = line.match(collectPattern);
+                if (collectMatch) {
+                    currentCommodity = collectMatch[1].trim();
                 }
             }
             
@@ -1969,20 +1910,12 @@ const App = () => {
                     currentPickup = currentPickup ? `${currentPickup} ${nextLine}` : nextLine;
                     i++; // Skip the next line since we've processed it
                 }
-                // Apply location code corrections
-                currentPickup = Object.entries(locationCodeCorrections).reduce((acc, [wrong, correct]) => {
-                    return acc.replace(wrong, correct);
-                }, currentPickup);
             }
             
             // Check for "To" to set the drop-off location
             const dropoffMatch = line.match(dropoffPattern);
             if (dropoffMatch) {
                 currentDropoff = dropoffMatch[1].trim();
-                // Apply location code corrections
-                currentDropoff = Object.entries(locationCodeCorrections).reduce((acc, [wrong, correct]) => {
-                    return acc.replace(wrong, correct);
-                }, currentDropoff);
             }
             
             // Check for "Deliver" to add quantity entries
@@ -2003,8 +1936,8 @@ const App = () => {
                 results.push({
                     commodity: currentCommodity,
                     quantity: quantity,
-                    pickup: currentPickup || '',   // Use the pickup location if found
-                    dropoff: currentDropoff || ''   // Use the drop-off location if found
+                    pickup: currentPickup || '',
+                    dropoff: currentDropoff || ''
                 });
             }
         }
@@ -2130,11 +2063,11 @@ const App = () => {
             return;
         }
 
-        // Find the first available mission slot
-        let currentMissionIndex = missionEntries.findIndex(mission => !mission || mission.length === 0);
+        // Get the current highest mission index
+        let currentMissionIndex = missionEntries.findIndex(entries => !entries || entries.length === 0);
         if (currentMissionIndex === -1) currentMissionIndex = 0;
 
-        // Process each mission group
+        // Transfer OCR entries to mission entries
         ocrMissionGroups.forEach((missionGroup, groupIndex) => {
             const timestamp = Date.now() + groupIndex;
             const newEntries = missionGroup.map((result, index) => {
@@ -2153,12 +2086,12 @@ const App = () => {
 
                 return {
                     id: `entry_${timestamp}_${index}_${Math.random().toString(36).substr(2, 9)}`,
-                    dropOffPoint: matchedDropoff,  // Use matched value
-                    commodity: matchedCommodity,    // Use matched value
+                    dropOffPoint: matchedDropoff,
+                    commodity: matchedCommodity,
                     originalAmount: result.quantity,
                     currentAmount: result.quantity,
                     status: STATUS_OPTIONS[0],
-                    pickupPoint: matchedPickup,     // Use matched value
+                    pickupPoint: matchedPickup,
                     planet: '',
                     moon: '',
                     missionIndex: currentMissionIndex + groupIndex,
@@ -2192,12 +2125,32 @@ const App = () => {
             });
         });
 
-        // Clear all OCR-related states
+        // Transfer OCR rewards to mission rewards
+        const updatedMissionRewards = { ...missionRewards };
+        ocrMissionGroups.forEach((missionGroup, groupIndex) => {
+            const targetIndex = currentMissionIndex + groupIndex;
+            const reward = ocrMissionRewards[groupIndex];
+            if (reward) {
+                console.log(`Transferring reward ${reward} from OCR mission ${groupIndex} to mission table index ${targetIndex}`);
+                updatedMissionRewards[`mission_${targetIndex}`] = reward;
+            }
+        });
+
+        // Update mission rewards state and localStorage
+        setMissionRewards(updatedMissionRewards);
+        localStorage.setItem('missionRewards', JSON.stringify(updatedMissionRewards));
+
+        // Clear OCR states
         setOcrResults([]);
         setCurrentParsedResults([]);
         setOcrMissionGroups([]);
-        
+        setOcrMissionRewards({}); // Clear OCR rewards after transfer
+
         showBannerMessage(`Added ${ocrMissionGroups.length} missions to manifest.`, true);
+        
+        if (ocrResults.length > 0) {
+            setHasEntries(true);
+        }
     };
 
     // Add this state variable at the top of the component
@@ -2258,44 +2211,41 @@ const App = () => {
     // Add this state variable for capture interval duration
     const [captureIntervalDuration, setCaptureIntervalDuration] = useState(4);
 
+    // Add a new state to track if entries have been added
+    const [hasEntries, setHasEntries] = useState(false);
+
     // Modify the handleConstantCapture function
     const handleConstantCapture = () => {
-        if (isConstantCapture) {
+        if (!isConstantCapture) {
+            // Only start if there are entries or it's the first capture
+            if (hasEntries || ocrResults.length > 0) {
+                setIsConstantCapture(true);
+                setCaptureTimer(captureIntervalDuration); // Use captureIntervalDuration instead of captureInterval
+                
+                // Start the capture interval
+                const interval = setInterval(() => {
+                    setCaptureTimer(prev => {
+                        if (prev <= 1) {
+                            handleMouseUp(); // Perform capture
+                            return captureIntervalDuration; // Reset timer to interval duration
+                        }
+                        return prev - 1;
+                    });
+                }, 1000);
+                
+                setCaptureInterval(interval);
+                showBannerMessage('Constant capture started.', true);
+            } else {
+                showBannerMessage('Please add entries to the table before starting constant capture', false);
+            }
+        } else {
             // Stop constant capture
             setIsConstantCapture(false);
             setCaptureTimer(0);
-            clearInterval(captureInterval);
+            if (captureInterval) {
+                clearInterval(captureInterval);
+            }
             showBannerMessage('Constant capture stopped.', true);
-        } else {
-            // Start 5-second initial countdown
-            setIsConstantCapture(true);
-            setCaptureTimer(5);
-            
-            const countdown = setInterval(() => {
-                setCaptureTimer(prev => {
-                    if (prev === 1) {
-                        clearInterval(countdown);
-                        // Start capturing with the current interval duration
-                        handleMouseUp(); // First capture
-                        
-                        // Start the cycle with the current interval duration
-                        const newTimer = captureIntervalDuration;
-                        setCaptureTimer(newTimer);
-                        const interval = setInterval(() => {
-                            setCaptureTimer(prev => {
-                                if (prev === 1) {
-                                    handleMouseUp(); // Perform capture
-                                    return captureIntervalDuration; // Reset countdown
-                                }
-                                return prev - 1;
-                            });
-                        }, 1000);
-                        setCaptureInterval(interval);
-                        return 0;
-                    }
-                    return prev - 1;
-                });
-            }, 1000);
         }
     };
 
@@ -2537,18 +2487,26 @@ const App = () => {
 
     // Add this function to clear OCR mission groups
     const clearOCRMissions = () => {
-        setOcrMissionGroups([]);
         setOcrResults([]);
-        setCurrentParsedResults([]);
+        setOcrMissionGroups([]);
+        setHasEntries(false);
+        setIsConstantCapture(false);
+        if (captureInterval) {
+            clearInterval(captureInterval);
+        }
+        setCaptureTimer(0);
         showBannerMessage('OCR missions cleared.', true);
     };
 
     // Tooltips Here
     const TAB_DESCRIPTIONS = {
-      'Capture': 'OCR tool to automatically capture mission details from screenshots or screen capture\n How to use\n Step 1- Click Capture Application window\n Step 2- Allow the browser to stream your application or screen\n Step 3- After video shows up drag a box over the area where the mission details are located\n Step 4- Change mission in game and then use Capture key to speed up the process\n Step 5- Repeat until all missions are added\n Step 6- Clicking Add to Manifest button tab to submit all entries to Hauling Missions tab\n Important Info\n -When drawing the box you can include the primary objective text\n -If OCR reads the amount text wrong you can edit it manually to update to the correct amount\n -When scanning, each scan will be grouped under 1 missions to make it easier for users to access missions',
-      'Hauling Missions': 'Track and manage your cargo hauling missions and deliveries\n -Drop down boxes allow for manual entry and has search functionality\n -Mission Checkboxes on the right will allow you to add multiple entries to a single mission when dealing with multiple locations\n - Buttons -\n -Add entry- will take above details and will place them in the table below\n -Process Orders - All entries marked as Delivered will be sent to History and Payouts Tab\n -Missions/Manifest - Switch between Cargo Manifest and Mission manifest table view\n -Clear Log - Click to clear both Cargo and Mission Manifest\n -SCU TOTAL - Will dispaly total SCU from all Cargo manifest entries\n -Tables-\n -Groups by drop off points and has collapse functionality\n -QTY coloumn will display 2 values Left value is for current amount and Right value is for Original amount added\n -Action Buttons - Allows a bit of fine control with your entries\n - Status displays if a entry is Pending or Delivered, the user can click on it to change the status and will sync with mission its linked to in the missions table',
-      'History': 'View completed deliveries and mission history grouped by date then drop off points',
-      'Payouts': 'Track mission rewards and payment history grouped by date and then mission ID'
+        'Capture': 'OCR tool to automatically capture mission details from screenshots or screen capture\n How to use\n Step 1- Click Capture Application window\n Step 2- Allow the browser to stream your application or screen\n Step 3- Open contract manager and select your mission\n Step 4- After video shows up drag a box over the area where the mission details and rewards, and make sure they are all in the box\n Step 5- Change mission in game and then use Capture key to speed up the process\n Step 6- Repeat until all missions are added\n Step 6- Clicking Add to Manifest button tab to submit all entries to Hauling Missions tab\n Important Info\n -When drawing the box you can include the primary objective text\n -If OCR reads the amount text wrong you can edit it manually to update to the correct amount\n -When scanning, each scan will be grouped under 1 missions to make it easier for users to access missions',
+        'Hauling Missions': 'Track and manage your cargo hauling missions and deliveries\n -Drop down boxes allow for manual entry and has search functionality\n -Mission Checkboxes on the right will allow you to add multiple entries to a single mission when dealing with multiple locations\n - Buttons -\n -Add entry- will take above details and will place them in the table below\n -Process Orders - All entries marked as Delivered will be sent to History and Payouts Tab\n -Missions/Manifest - Switch between Cargo Manifest and Mission manifest table view\n -Clear Log - Click to clear both Cargo and Mission Manifest\n -SCU TOTAL - Will dispaly total SCU from all Cargo manifest entries\n -Tables-\n -Groups by drop off points and has collapse functionality\n -QTY coloumn will display 2 values Left value is for current amount and Right value is for Original amount added\n -Action Buttons - Allows a bit of fine control with your entries\n - Status displays if a entry is Pending or Delivered, the user can click on it to change the status and will sync with mission its linked to in the missions table',
+        'History': 'View completed deliveries and mission history grouped by date then drop off points',
+        'Payouts': 'Track mission rewards and payment history grouped by date and then mission ID',
+        'Inventory': 'Track and manage your personal inventory items\n -Coming Soon-\n -Personal inventory tracking\n -Item categorization\n -Search and filter functionality\n -Quantity tracking\n -Value estimation',
+        'Ships': 'Manage your ship cargo holds and loadouts\n -Coming Soon-\n -Ship cargo capacity tracking\n -Multiple ship management\n -Loadout configurations\n -Cargo distribution optimization\n -Quick cargo transfer between ships',
+        'Storage': 'Track items across various storage locations\n -Coming Soon-\n -Multiple storage location tracking\n -Storage capacity management\n -Item location finder\n -Storage space optimization\n -Transfer history logging'
     };
 
     // Add this near your other state declarations in the App component
@@ -2673,6 +2631,152 @@ const App = () => {
         document.addEventListener('mouseup', handleResizeEnd);
     };
 
+    // First, add a new state variable for Cargo Hold sub tabs
+    const [cargoHoldSubTab, setCargoHoldSubTab] = useState('Inventory');
+
+    // Add this new handler for Cargo Hold sub tabs
+    const handleCargoHoldTabChange = (tab) => {
+        setCargoHoldSubTab(tab);
+    };
+
+    // Modify the useEffect for capture timer
+    useEffect(() => {
+        let timer;
+        if (isConstantCapture && hasEntries) {
+            timer = setInterval(() => {
+                setCaptureTimer((prev) => {
+                    if (prev <= 1) {
+                        handleCapture();
+                        return captureInterval;
+                    }
+                    return prev - 1;
+                });
+            }, 1000);
+        }
+
+        return () => {
+            if (timer) {
+                clearInterval(timer);
+            }
+        };
+    }, [isConstantCapture, hasEntries, captureInterval]);
+
+    // In your OCR processing function, add this before processing the mission entries:
+
+    const extractReward = (text) => {
+        if (!text) return null;
+        
+        // Look for "Reward" followed by any characters and then a number with 5+ digits
+        const rewardMatch = text.match(/Reward.*?(\d{5,}(?:,?\d{3})*)/i);
+        if (rewardMatch) {
+            const reward = rewardMatch[1].replace(/,/g, '');
+            console.log('Successfully extracted reward:', reward);
+            return reward;
+        }
+        
+        console.log('No reward found in text');
+        return null;
+    };
+
+    // Add new state for OCR rewards at the top with other state declarations
+    const [ocrMissionRewards, setOcrMissionRewards] = useState({});
+
+    // Update the useEffect to handle OCR text changes
+    useEffect(() => {
+        if (ocrText) {  // Only run if we have OCR text
+            const reward = extractReward(ocrText);
+            console.log('Processing OCR text, found reward:', reward);
+            
+            if (reward) {
+                console.log('Setting reward for current mission group');
+                // Only set the reward for the newest mission group
+                const currentMissionIndex = ocrMissionGroups.length - 1;
+                if (currentMissionIndex >= 0) {
+                    setOcrMissionRewards(prev => ({
+                        ...prev,
+                        [currentMissionIndex]: reward
+                    }));
+                }
+            }
+        }
+    }, [ocrText, ocrMissionGroups.length]); // Add ocrMissionGroups.length to dependencies
+
+    // Location code and name corrections
+    const locationCorrections = {
+        // Location codes
+        codes: {
+            // S4LD01 variations
+            'S4LDO1': 'S4LD01',
+            'S4LD0I': 'S4LD01',
+            'S4LD0L': 'S4LD01',
+            'S4LD0l.': 'S4LD01',
+            'S4LDOL.': 'S4LD01',
+            
+            // S4DC05 variations
+            'S4DC0S': 'S4DC05',
+            '$S4DCOS': 'S4DC05',
+            'S4DCO0S': 'S4DC05',
+            '$S4DC0S': 'S4DC05',
+            '$S40COS': 'S4DC05',
+            '$S40C0S': 'S4DC05',
+            '$S40DCO0S': 'S4DC05',
+            '$S4DCO0S': 'S4DC05',
+            '$S40CO0S': 'S4DC05',
+            '$4DC0S': 'S4DC05',
+            '$S4DC05': 'S4DC05',
+            '$40C0S': 'S4DC05',
+            '$$4DCOS': 'S4DC05',
+            '$4DCOS': 'S4DC05',
+            'SA4DCOS': 'S4DC05',
+            'SS4DC05': 'S4DC05',
+            'S4DC055': 'S4DC05',
+            
+            // S4LD13 variations
+            'S4LD1B': 'S4LD13',
+            'S4LD1I': 'S4LD13',
+            
+            // SM0 variations
+            'SMO-18': 'SM0-18',
+            'SMO-10': 'SM0-10',
+            'SMD-10': 'SM0-10'
+        },
+        
+        // Location names
+        names: {
+            'Covalex Distribution Center i S4DC05': 'Covalex Distribution Center S4DC05',
+            'Port Tressler I': 'Port Tressler',
+            'Baljini Point': 'Baijini Point',
+            'Sakura Sun Goldenrod Workeenter': 'Sakura Sun Goldenrod Workcenter',
+            'Covalex Distribution Center S4DCOS': 'Covalex Distribution Center S4DC05',
+            'Greycat Stanton IV Production j Complex-A': 'Greycat Stanton IV Production Complex-A',
+            'Port Tressler J': 'Port Tressler',
+            'Shubin Mining Facility SM0-10 i': 'Shubin Mining Facility SM0-10',
+            'Covalex Distribution Center S4DCO5': 'Covalex Distribution Center S4DC05',
+            'Covalex Distribution Center SA4DCOS': 'Covalex Distribution Center S4DC05',
+            'Covalex Distribution Center SADCOS': 'Covalex Distribution Center S4DC05',
+            'Covalex Distribution Center S4D0C0S': 'Covalex Distribution Center S4DC05',
+            'Wasts': 'Waste',
+            'MIC-L2 Long Forest Station J': 'MIC-L2 Long Forest Station',
+            'NB Int Spaceport i': 'NB Int Spaceport',
+            'NB Int Spaceport il': 'NB Int Spaceport',
+            'Greycat Stanton IV Production i Complex-A': 'Greycat Stanton IV Production Complex-A',
+            'Covalex Distribution Center: S4DC05': 'Covalex Distribution Center S4DC05',
+            'MIC-L\'2 Long Forest Station i': 'MIC-L2 Long Forest Station',
+            'Fort Tressler i': 'Port Tressler',
+            'Covalex Distribution Center \'S4DC05': 'Covalex Distribution Center S4DC05',
+            'MIC-L2 Long Forest Station i': 'MIC-L2 Long Forest Station',
+            'Processed Foad': 'Processed Food',
+            'Port Tressler i': 'Port Tressler',
+            'Greycat Stantan IV Production Complex-A': 'Greycat Stanton IV Production Complex-A',
+            'Sakura Sun Goldenrod Workcenter_': 'Sakura Sun Goldenrod Workcenter',
+            'Port Tressier- i': 'Port Tressler',
+            'Port Tressier': 'Port Tressler',
+            'Part Tessier i': 'Port Tressler',
+            'Agricuitural Supplies': 'Agricultural Supplies',
+            'microTech Logistics Depot S4L001': 'microTech Logistics Depot S4LD01'
+        }
+    };
+
     return (
         <div className={darkMode ? 'dark-mode' : ''}>
             <header>
@@ -2683,7 +2787,7 @@ const App = () => {
             </header>
             {/* Main Tabs */}
             <div className="main-tabs">
-                {['Hauling', 'Mining', 'Preferences', 'Changelog'].map(tab => (
+                {['Hauling', 'Cargo Hold', 'Mining', 'Trading', 'Preferences', 'Changelog'].map(tab => (
                     <div 
                         key={tab} 
                         className={`main-tab ${mainTab === tab ? 'active-main-tab' : ''}`} 
@@ -2693,29 +2797,53 @@ const App = () => {
                     </div>
                 ))}
             </div>
-            {/* Sub Tabs - Only show for Hauling */}
-            {mainTab === 'Hauling' && (
+            {/* Sub Tabs - Show for Hauling and Cargo Hold */}
+            {(mainTab === 'Hauling' || mainTab === 'Cargo Hold') && (
                 <div className="tabs">
-                    {['Capture', 'Hauling Missions', 'History', 'Payouts'].map(tab => (
-                        <div key={tab} className="tab-container">
-                            <div 
-                                className={`tab ${haulingSubTab === tab ? 'active-tab' : ''}`} 
-                                onClick={() => handleTabChange(tab)}
-                            >
-                                {tab}
-                                <span 
-                                    className="tab-info-icon" 
-                                    onClick={(e) => {
-                                        e.stopPropagation(); // Add this line
-                                        handleTooltipClick(e, TAB_DESCRIPTIONS[tab]);
-                                    }}
-                                    title="!Click me for a Guide on how to use this!"
+                    {mainTab === 'Hauling' && (
+                        ['Capture', 'Hauling Missions', 'History', 'Payouts'].map(tab => (
+                            <div key={tab} className="tab-container">
+                                <div 
+                                    className={`tab ${haulingSubTab === tab ? 'active-tab' : ''}`} 
+                                    onClick={() => handleTabChange(tab)}
                                 >
-                                    ⓘ
-                                </span>
+                                    {tab}
+                                    <span 
+                                        className="tab-info-icon" 
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleTooltipClick(e, TAB_DESCRIPTIONS[tab]);
+                                        }}
+                                        title="!Click me for a Guide on how to use this!"
+                                    >
+                                        ⓘ
+                                    </span>
+                                </div>
                             </div>
-                        </div>
-                    ))}
+                        ))
+                    )}
+                    {mainTab === 'Cargo Hold' && (
+                        ['Inventory', 'Ships', 'Storage'].map(tab => (
+                            <div key={tab} className="tab-container">
+                                <div 
+                                    className={`tab ${cargoHoldSubTab === tab ? 'active-tab' : ''}`} 
+                                    onClick={() => handleCargoHoldTabChange(tab)}
+                                >
+                                    {tab}
+                                    <span 
+                                        className="tab-info-icon" 
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleTooltipClick(e, TAB_DESCRIPTIONS[tab]);
+                                        }}
+                                        title="!Click me for a Guide on how to use this!"
+                                    >
+                                        ⓘ
+                                    </span>
+                                </div>
+                            </div>
+                        ))
+                    )}
                 </div>
             )}
             <div className="content">
@@ -2943,12 +3071,40 @@ const App = () => {
                                                         return total + quantity;
                                                     }, 0)}
                                                 </div>
+                                                <div className="ocr-counter">
+                                                    <strong>Expected Earnings:</strong> {Object.values(ocrMissionRewards)
+                                                        .reduce((total, reward) => total + (parseInt(reward) || 0), 0)
+                                                        .toLocaleString()} aUEC
+                                                </div>
                                             </div>
                                             <h4>OCR Process Log:</h4>
                                             {ocrMissionGroups.map((missionGroup, missionIndex) => (
                                                 <div key={missionIndex} className="mission-group">
-                                                    <h5>Mission {missionIndex + 1}</h5>
-                                                    <table className="ocr-table">
+                                                    <div className="mission-group-header">
+                                                        <h5>Mission {missionIndex + 1}</h5>
+                                                        <div className="reward-input-container">
+                                                            <input
+                                                                type="text"
+                                                                className="ocr-mission-payout-capture"
+                                                                placeholder="Enter reward"
+                                                                value={ocrMissionRewards[missionIndex] ? 
+                                                                    ocrMissionRewards[missionIndex].replace(/\B(?=(\d{3})+(?!\d))/g, ',') : 
+                                                                    ''}
+                                                                onChange={(e) => {
+                                                                    const reward = e.target.value.replace(/\D/g, '');
+                                                                    const formattedReward = reward.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+                                                                    e.target.value = formattedReward;
+                                                                    // Update only the specific mission's reward
+                                                                    setOcrMissionRewards(prev => ({
+                                                                        ...prev,
+                                                                        [missionIndex]: reward
+                                                                    }));
+                                                                }}
+                                                            />
+                                                            <span className="currency-label">aUEC</span>
+                                                        </div>
+                                                    </div>
+                                                    <table className="hauling-manifest-table">
                                                         <thead>
                                                             <tr>
                                                                 <th>Commodity</th>
@@ -3206,7 +3362,7 @@ const App = () => {
                                             placeholder="Select Drop off"
                                         />
                                     </div>
-                                    <div className="checkbox-group">
+                                    <div className="mission-checkbox">
                                         <div className="column">
                                             {Array.from({ length: 5 }, (_, index) => (
                                                 <label key={index}>
@@ -3275,38 +3431,73 @@ const App = () => {
                                 </div>
                                 <div className="table-container">
                                     {isAlternateTable ? (
-                                        Array.from({ length: 10 }, (_, missionIndex) => (
-                                            <div key={missionIndex}>
-                                                <div className="drop-off-header" onClick={() => toggleMissionCollapse(missionIndex)}>
-                                                    <span>Mission {missionIndex + 1}</span>
-                                                    <span>{collapsedMissions[missionIndex] ? '▲' : '▼'}</span>
-                                                </div>
-                                                {!collapsedMissions[missionIndex] && (
-                                                    <table className="table">
-                                                        <thead>
-                                                            <tr>
-                                                                <th>Drop off points</th>
-                                                                <th>Commodity</th>
-                                                                <th>QTY</th>
-                                                                <th>Status</th>
-                                                            </tr>
-                                                        </thead>
-                                                        <tbody>
-                                                            {missionEntries[missionIndex].map((entry, index) => (
-                                                                <tr key={index}>
-                                                                    <td>{entry.dropOffPoint}</td>
-                                                                    <td>{entry.commodity}</td>
-                                                                    <td>{entry.currentAmount}/{entry.originalAmount}</td>
-                                                                    <td style={{ color: entry.status === 'Delivered' ? 'green' : 'inherit' }}>
-                                                                        {entry.status}
-                                                                    </td>
+                                        // Get the maximum mission index from entries and mission rewards
+                                        (() => {
+                                            const maxMissionIndex = Math.max(
+                                                ...missionEntries.map((_, index) => index),
+                                                ...Object.keys(missionRewards)
+                                                    .map(key => parseInt(key.replace('mission_', '')))
+                                                    .filter(num => !isNaN(num))
+                                            );
+                                            
+                                            // Create array with length of highest mission index + 1 (or at least 1 slot)
+                                            return Array.from({ length: Math.max(maxMissionIndex + 2, 1) }, (_, missionIndex) => (
+                                                <div key={missionIndex}>
+                                                    <div className="drop-off-header" onClick={() => toggleMissionCollapse(missionIndex)}>
+                                                        <div className="left-box">
+                                                            <span>Mission {missionIndex + 1}</span>
+                                                        </div>
+                                                        <div className="right-box">
+                                                            <div className="reward-input-container">
+                                                                <input
+                                                                    type="text"
+                                                                    className="mission-reward-mission-table"
+                                                                    placeholder="Enter reward"
+                                                                    value={missionRewards[`mission_${missionIndex}`] ? 
+                                                                        missionRewards[`mission_${missionIndex}`].replace(/\B(?=(\d{3})+(?!\d))/g, ',') : 
+                                                                        ''}
+                                                                    onChange={(e) => {
+                                                                        const reward = e.target.value.replace(/\D/g, '');
+                                                                        const formattedReward = reward.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+                                                                        e.target.value = formattedReward;
+                                                                        setMissionRewards(prev => ({
+                                                                            ...prev,
+                                                                            [`mission_${missionIndex}`]: reward
+                                                                        }));
+                                                                    }}
+                                                                />
+                                                                <span className="currency-label">aUEC</span>
+                                                            </div>
+                                                            <span className="collapse-arrow">{collapsedMissions[missionIndex] ? '▲' : '▼'}</span>
+                                                        </div>
+                                                    </div>
+                                                    {!collapsedMissions[missionIndex] && (
+                                                        <table className="hauling-manifest-table">
+                                                            <thead>
+                                                                <tr>
+                                                                    <th>Drop off points</th>
+                                                                    <th>Commodity</th>
+                                                                    <th>QTY</th>
+                                                                    <th>Status</th>
                                                                 </tr>
-                                                            ))}
-                                                        </tbody>
-                                                    </table>
-                                                )}
-                                            </div>
-                                        ))
+                                                            </thead>
+                                                            <tbody>
+                                                                {missionEntries[missionIndex]?.map((entry, index) => (
+                                                                    <tr key={index}>
+                                                                        <td>{entry.dropOffPoint}</td>
+                                                                        <td>{entry.commodity}</td>
+                                                                        <td>{entry.currentAmount}/{entry.originalAmount}</td>
+                                                                        <td style={{ color: entry.status === 'Delivered' ? 'green' : 'inherit' }}>
+                                                                            {entry.status}
+                                                                        </td>
+                                                                    </tr>
+                                                                ))}
+                                                            </tbody>
+                                                        </table>
+                                                    )}
+                                                </div>
+                                            ));
+                                        })()
                                     ) : (
                                         Object.keys(entries.reduce((acc, entry) => {
                                             acc[entry.dropOffPoint] = true;
@@ -3315,10 +3506,30 @@ const App = () => {
                                             <div key={dropOffPoint}>
                                                 <div className="drop-off-header" onClick={() => toggleCollapse(dropOffPoint)}>
                                                     <div className="left-box">
-                                                        <button onClick={(e) => { e.stopPropagation(); moveDropOffPoint(dropOffPoint, -1); }}>▲</button>
-                                                        <button onClick={(e) => { e.stopPropagation(); moveDropOffPoint(dropOffPoint, 1); }}>▼</button>
+                                                        <div className="sort-buttons">
+                                                            <button 
+                                                                className="sort-button" 
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    moveDropOffPoint(dropOffPoint, -1);
+                                                                }}
+                                                            >
+                                                                ▲
+                                                            </button>
+                                                            <button 
+                                                                className="sort-button" 
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    moveDropOffPoint(dropOffPoint, 1);
+                                                                }}
+                                                            >
+                                                                ▼
+                                                            </button>
+                                                        </div>
                                                         <span>{dropOffPoint}</span>
-                                                        <span style={{ fontSize: 'small', marginLeft: '10px' }}>({entries.find(entry => entry.dropOffPoint === dropOffPoint)?.planet} - {entries.find(entry => entry.dropOffPoint === dropOffPoint)?.moon})</span> {/* Display planet and moon */}
+                                                        <span style={{ fontSize: 'small', marginLeft: '10px' }}>
+                                                            ({entries.find(entry => entry.dropOffPoint === dropOffPoint)?.planet} - {entries.find(entry => entry.dropOffPoint === dropOffPoint)?.moon})
+                                                        </span>
                                                     </div>
                                                     <div className="right-box">
                                                         <span>{collapsed[dropOffPoint] ? '▲' : '▼'}</span>
@@ -3326,7 +3537,7 @@ const App = () => {
                                                     </div>
                                                 </div>
                                                 {!collapsed[dropOffPoint] && (
-                                                    <table className="table">
+                                                    <table className="hauling-manifest-table">
                                                         <thead>
                                                             <tr>
                                                                 <th className="pickup">Pickup</th>
@@ -3390,7 +3601,7 @@ const App = () => {
                                                 <span>{collapsed[date] ? '▲' : '▼'}</span>
                                             </div>
                                             {!collapsed[date] && (
-                                                <div className="commodity-group">
+                                                <div className="drop-off-group-history">
                                                     {Object.entries(
                                                         historyEntries
                                                             .filter(entry => new Date(entry.timestamp).toLocaleDateString() === date)
@@ -3407,13 +3618,18 @@ const App = () => {
                                                                 return acc;
                                                             }, {})
                                                     ).map(([dropOffPoint, entries]) => (
-                                                        <div key={dropOffPoint} className="commodity-group">
+                                                        <div key={dropOffPoint} className="drop-off-group-history">
                                                             <div 
-                                                                className="commodity-header" 
+                                                                className="drop-off-header-history-header" 
                                                                 onClick={() => toggleCollapse(dropOffPoint)}
                                                             >
-                                                                <span>{dropOffPoint}</span>
-                                                                <span>{collapsed[dropOffPoint] ? '▲' : '▼'}</span>
+                                                                <div className="left-box">
+                                                                    <span>{dropOffPoint}</span>
+                                                                    <span style={{ fontSize: 'small', marginLeft: '10px' }}>({entries.find(entry => entry.dropOffPoint === dropOffPoint)?.planet} - {entries.find(entry => entry.dropOffPoint === dropOffPoint)?.moon})</span>
+                                                                </div>
+                                                                <div className="right-box">
+                                                                    <span>{collapsed[dropOffPoint] ? '▲' : '▼'}</span>
+                                                                </div>
                                                             </div>
                                                             {!collapsed[dropOffPoint] && (
                                                                 <table className="history-table">
@@ -3478,15 +3694,39 @@ const App = () => {
                                                                     onClick={() => toggleCollapse(`${date}-${index}`)}
                                                                 >
                                                                     <span>Mission {index + 1}</span>
-                                                                    <input
-                                                                        type="text"
-                                                                        className="mission-reward-input"
-                                                                        placeholder="Enter reward"
-                                                                        value={missionRewards[`${date}-${index}`] || ''}
-                                                                        onChange={(e) => handleRewardChange(`${date}-${index}`, e.target.value)}
-                                                                        onClick={(e) => e.stopPropagation()}
-                                                                    />
-                                                                    <span>{collapsed[`${date}-${index}`] ? '▲' : '▼'}</span>
+                                                                    <div className="reward-input-container">
+                                                                        <input
+                                                                            type="text"
+                                                                            className="mission-reward-input"
+                                                                            placeholder="Enter reward"
+                                                                            value={(() => {
+                                                                                // Format the stored reward with commas if it exists
+                                                                                if (group.reward) {
+                                                                                    return group.reward.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+                                                                                }
+                                                                                return '';
+                                                                            })()}
+                                                                            onChange={(e) => {
+                                                                                // Remove any non-digits
+                                                                                const reward = e.target.value.replace(/\D/g, '');
+                                                                                
+                                                                                // Format with commas
+                                                                                const formattedReward = reward.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+                                                                                
+                                                                                // Update the history entries
+                                                                                const updatedHistoryEntries = [...historyEntries];
+                                                                                updatedHistoryEntries[index].reward = reward; // Store unformatted value
+                                                                                setHistoryEntries(updatedHistoryEntries);
+                                                                                localStorage.setItem('historyEntries', JSON.stringify(updatedHistoryEntries));
+                                                                                
+                                                                                // Set the formatted value in the input
+                                                                                e.target.value = formattedReward;
+                                                                            }}
+                                                                            onClick={(e) => e.stopPropagation()}
+                                                                        />
+                                                                        <span className="currency-label">aUEC</span>
+                                                                    </div>
+                                                                    <span className="collapse-arrow">{collapsed[`${date}-${index}`] ? '▲' : '▼'}</span>
                                                                 </div>
                                                                 {!collapsed[`${date}-${index}`] && (
                                                                     <table className="payouts-table">
@@ -3496,17 +3736,31 @@ const App = () => {
                                                                                 <th>Drop Off</th>
                                                                                 <th>Commodity</th>
                                                                                 <th>QTY</th>
+                                                                                <th style={{ width: '80px' }}>%</th> {/* Fixed width column */}
                                                                             </tr>
                                                                         </thead>
                                                                         <tbody>
-                                                                            {group.entries.map((entry, idx) => (
-                                                                                <tr key={idx}>
-                                                                                    <td>{entry.pickupPoint}</td>
-                                                                                    <td>{entry.dropOffPoint}</td>
-                                                                                    <td>{entry.commodity}</td>
-                                                                                    <td>{entry.currentAmount}/{entry.originalAmount}</td>
-                                                                                </tr>
-                                                                            ))}
+                                                                            {group.entries.map((entry, idx) => {
+                                                                                // Calculate percentage
+                                                                                const percentage = Math.round((parseInt(entry.currentAmount) / parseInt(entry.originalAmount)) * 100);
+                                                                                
+                                                                                return (
+                                                                                    <tr key={idx}>
+                                                                                        <td>{entry.pickupPoint}</td>
+                                                                                        <td>{entry.dropOffPoint}</td>
+                                                                                        <td>{entry.commodity}</td>
+                                                                                        <td>{entry.currentAmount}/{entry.originalAmount}</td>
+                                                                                        <td style={{ 
+                                                                                            width: '80px',
+                                                                                            backgroundColor: percentage < 55 ? '#ff44444d' : 'transparent', // Semi-transparent red background
+                                                                                            color: 'var(--row-text-color)', // Use the variable color
+                                                                                            transition: 'background-color 0.3s ease'
+                                                                                        }}>
+                                                                                            {percentage}%
+                                                                                        </td>
+                                                                                    </tr>
+                                                                                );
+                                                                            })}
                                                                         </tbody>
                                                                     </table>
                                                                 )}
@@ -3664,101 +3918,134 @@ const App = () => {
                     <div className="changelog">
                         <div className="changelog-container">
                         <div className="changelog-entry">
-                            <h3>Version 1.3 - Additions and fixes</h3>
-                                <ul>
-                                    <u>Debug Mode for OCR Capture</u>
-                                    <li>New button called debug info under capture tab to see what the OCR is reading - can be turned on/off via the preferences tab under data management </li>
-                                    <li>Turning Debug mode on also shows you the corrections made red being the Mispelled text and green being the Corrected text</li>
-                                    <u>Tooltips</u>
-                                    <li>Added tooltips to give general info and how to use it each tab</li>
-                                    <li>Clicking on the "?" next to the tabs will display a popout you can adjust in size and postition to give a more indepth idea how that tab works</li>
-                                    <u>Fixes</u>
-                                    <li>Fixed Undo OCR mistake button not working</li>
-
-                                </ul>
-                            </div>
-
-                            <div className="changelog-entry">
-                            <h3>Version 1.2.1 - HotFix</h3>
-                                <ul>
-                                    <u>Fixes</u>
-                                    <li>Mission entries being displayed as Separate mission when adding to payouts tab and having diffrent locations</li>
-                                    <li>OCR no longer shows success message when no text is detected</li>
-                                </ul>
-                            </div>
-                            <div className="changelog-entry">
-                            <h3>Version 1.2.0 - FIxes and Temp Changes</h3>
-                                <ul>
-                                    <li>1AM fixes be like</li>
-                                    <u>FIXES </u>
-                                    <li>Forget to use my index on status toggling so if you have 2 drop off points the top drop off point was the only one being toggled</li>
-                                    <li>Added green text to delviered status of missions in mission table</li>
-                                    <li>Fixed entries added from OCR capture to allow individual status toggle synced with missions using ID</li>
-                                    <li>Added to OCR resuslts table to track missions</li>
-                                    <li>-Each scan is considered a mission - tracks mission in OCR results table aswell</li>
-                                    <li>-No need to click on hauling tab and then come to capture tab to add entries to missions</li>
-                                    <u>KNOWN BUGS</u>
-                                    <li>when adding misison entries to payouts will ignore some tables looking into it</li>
-                                    <u>TODO</u>
-                                    <li>Turn missoin list into dynamic instead of fixed 10 slots</li>
-                                    <li>Add capturing reward amount table for even less input required X_X</li>
-                                </ul>
-                            </div>
-
+                            <h3>Version 1.4.0 - New Features and Changes</h3>
+                            <ul>
+                                <u>CARGO HOLD - TAB - WIP</u>
+                                <li>Will be used for on board Cargo tracking for users that would like to keep things organized</li>
+                                <u>TRADING - TAB - WIP</u>
+                                <li>Placeholder for future trading features, still under consideration</li>
+                                <u>HAULING</u>
+                                <li>-Capture Tab</li>
+                                <li>--Added OCR recognition for mission reward. Draw a box around the right side of the mission in your contract manager.</li>
+                                <li>--Will pull mission reward, all locations, and commodities/qty, then populate the table and mark that group as Mission 1 (mission numbers are for tracking purposes only).</li>
+                                <li>!!Important info!! Larger boxes take longer to register with OCR. Keep this in mind if you notice long load times. Working on better structure and handling to speed this up.</li>
+                                <u>MISSION REWARDS TRACKING</u>
+                                <li>Using the Capture tab and auto-filling everything, your rewards will move from the OCR table to the Hauling Missions tab for better organization and double-checking of cargo.</li>
+                                <li>When all is done, process the orders and send them off to the History/Payouts tab. The value will stay consistent through all steps, and you can edit the rewards at any point if the OCR read the Reward Value incorrectly.</li>
+                                <u>MISSION LIST</u>
+                                <li>Mission List will add an extra entry to list after the previous entry has been filled</li>
+                                <u>GENERAL DASHBOARD</u>
+                                <li>In development as a way to see overall value, cargo delivered, cargo lost, and other metrics. Will be implemented later.</li>
+                            </ul>
+                        </div>
                         <div className="changelog-entry">
-                                <h3>Version 1.1.0 - FIxes and Temp Changes</h3>
-                                <ul>
-                                    <u>ADDITIONAL TABS</u>
-                                    <li>Mining(WIP) - huskerbolt1 - for giving me a new idea</li>
-                                    <u>FIXES</u>
-                                    <li>Non-missions being sent to payouts tab</li>
-                                    <li>imports not be saved on refresh</li>
-                                    <li>constant capture count down going from 3 to the users set time and  then going down</li>
-                                    <li>Clicking Status changes between Pending and Delivered for both misison and cargo manifest by using unique ID to keep track - Ruadhan2300 for pointing out ease of use
-                                    XES</li>
-                                    <u>TEMPORARY REMOVAL</u>
-                                    <li>Removed import/export payouts function.</li>
-
-                                </ul>
-                            </div>
-
-                            <div className="changelog-entry">
-                                <h3>Version 1.0.0 - Initial Release</h3>
-                                <ul>
-                                    <li>Added Hauling Mission tracking system</li>
-                                    <li>Improved OCR accuracy</li>
-                                    <li>Added mission management system</li>
-                                    <li>Added history tracking</li>
-                                    <li>Added customizable preferences</li>
-                                    <li>Added import/export functionality</li>
-                                </ul>
-                            </div>
-                            <div className="changelog-entry">
-                                <h3>Version 0.9.0 - Beta</h3>
-                                <ul>
-                                    <li>Added constant capture mode</li>
-                                    <li>Added customizable capture intervals</li>
-                                    <li>Implemented OCR capture functionality</li>
-                                    <li>Added status toggling for individual entries</li>
-                                </ul>
-                            </div>
-                            <div className="changelog-entry">
-                                <h3>Version 0.8.0 - Alpha</h3>
-                                <ul>
-                                    <li>Initial implementation of cargo tracking</li>
-                                    <li>Basic mission system</li>
-                                    <li>Basic UI and styling</li>
-                                </ul>
-                            </div>
-                            <div className="changelog-entry">
-                                <h3>Version 1.2.3 - HotFix</h3>
-                                <ul>
-                                    <u>Fixes</u>
-                                    <li>OCR now only shows success if valid mission data is detected after fuzzy matching</li>
-                                </ul>
-                            </div>
+                            <h3>Version 1.3 - Additions and Fixes</h3>
+                            <ul>
+                                <u>DEBUG MODE FOR OCR CAPTURE</u>
+                                <li>New button called "Debug Info" under the Capture tab to see what the OCR is reading. Can be turned on/off via the Preferences tab under Data Management.</li>
+                                <li>Turning Debug mode on also shows corrections made, with red indicating mispelled text and green indicating corrected text.</li>
+                                <u>TOOLTIPS</u>
+                                <li>Added tooltips to provide general info and usage instructions for each tab.</li>
+                                <li>Clicking on the "?" next to the tabs will display a popout that can be adjusted in size and position, offering a more in-depth explanation of how the tab works.</li>
+                                <u>FIXES</u>
+                                <li>Fixed the "Undo OCR Mistake" button not working.</li>
+                            </ul>
+                        </div>
+                        <div className="changelog-entry">
+                            <h3>Version 1.2.1 - HotFix</h3>
+                            <ul>
+                                <u>FIXES</u>
+                                <li>Mission entries being displayed as separate missions when adding to the Payouts tab and having different locations.</li>
+                                <li>OCR no longer shows a success message when no text is detected.</li>
+                            </ul>
+                        </div>
+                        <div className="changelog-entry">
+                            <h3>Version 1.2.0 - Fixes and Temporary Changes</h3>
+                            <ul>
+                                <li>1AM fixes be like</li>
+                                <u>FIXES</u>
+                                <li>Forgot to use my index on status toggling, so if you have 2 drop-off points, only the top drop-off point was being toggled.</li>
+                                <li>Added green text to the "Delivered" status of missions in the mission table.</li>
+                                <li>Fixed entries added from OCR capture to allow individual status toggling synced with missions using ID.</li>
+                                <li>Added to OCR results table to track missions.</li>
+                                <li>- Each scan is considered a mission and is tracked in the OCR results table as well.</li>
+                                <li>- No need to click on the Hauling tab and then come to the Capture tab to add entries to missions.</li>
+                                <u>KNOWN BUGS</u>
+                                <li>When adding mission entries to payouts, some tables are ignored. Looking into it.</li>
+                                <u>TODO</u>
+                                <li>Turn the mission list into a dynamic list instead of a fixed 10 slots.</li>
+                                <li>Add capturing reward amount table for even less input required X_X.</li>
+                            </ul>
+                        </div>
+                        <div className="changelog-entry">
+                            <h3>Version 1.1.0 - Fixes and Temporary Changes</h3>
+                            <ul>
+                                <u>ADDITIONAL TABS</u>
+                                <li>Mining (WIP) - Shoutout to huskerbolt1 for giving me a new idea.</li>
+                                <u>FIXES</u>
+                                <li>Non-missions being sent to the Payouts tab.</li>
+                                <li>Imports not being saved on refresh.</li>
+                                <li>Constant capture countdown going from 3 to the user's set time and then counting down.</li>
+                                <li>Clicking status changes between "Pending" and "Delivered" for both mission and cargo manifest by using a unique ID to keep track. Thanks to Ruadhan2300 for pointing out ease of use.</li>
+                                <u>TEMPORARY REMOVAL</u>
+                                <li>Removed import/export payouts function.</li>
+                            </ul>
+                        </div>
+                        <div className="changelog-entry">
+                            <h3>Version 1.0.0 - Initial Release</h3>
+                            <ul>
+                                <li>Added Hauling Mission tracking system.</li>
+                                <li>Improved OCR accuracy.</li>
+                                <li>Added mission management system.</li>
+                                <li>Added history tracking.</li>
+                                <li>Added customizable preferences.</li>
+                                <li>Added import/export functionality.</li>
+                            </ul>
+                        </div>
+                        <div className="changelog-entry">
+                            <h3>Version 0.9.0 - Beta</h3>
+                            <ul>
+                                <li>Added constant capture mode.</li>
+                                <li>Added customizable capture intervals.</li>
+                                <li>Implemented OCR capture functionality.</li>
+                                <li>Added status toggling for individual entries.</li>
+                            </ul>
+                        </div>
+                        <div className="changelog-entry">
+                            <h3>Version 0.8.0 - Alpha</h3>
+                            <ul>
+                                <li>Initial implementation of cargo tracking.</li>
+                                <li>Basic mission system.</li>
+                                <li>Basic UI and styling.</li>
+                            </ul>
+                        </div>
                         </div>
                     </div>
+                )}
+                {mainTab === 'Cargo Hold' && (
+                    <>
+                        {cargoHoldSubTab === 'Inventory' && (
+                            <div className="inventory-tab">
+                                <h3>Inventory</h3>
+                                {/* Add inventory content here */}
+                                <div>Inventory functionality coming soon...</div>
+                            </div>
+                        )}
+                        {cargoHoldSubTab === 'Ships' && (
+                            <div className="ships-tab">
+                                <h3>Ships</h3>
+                                {/* Add ships content here */}
+                                <div>Ships functionality coming soon...</div>
+                            </div>
+                        )}
+                        {cargoHoldSubTab === 'Storage' && (
+                            <div className="storage-tab">
+                                <h3>Storage</h3>
+                                {/* Add storage content here */}
+                                <div>Storage functionality coming soon...</div>
+                            </div>
+                        )}
+                    </>
                 )}
             </div>
             {showDebugPopup && captureDebugMode && (
