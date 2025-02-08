@@ -1527,8 +1527,34 @@ const App = () => {
             );
             
             const cleanedText = text.replace(/[.,]/g, '');
-            showBannerMessage('OCR capture successful!', true);
-            return cleanedText;
+            
+            // Parse the text first
+            const parsedResults = parseOCRText(cleanedText);
+            
+            // Check if any valid entries were created after fuzzy matching
+            const hasValidEntries = parsedResults.some(result => {
+                const matchedCommodity = findClosestMatch(result.commodity, data.commodities);
+                const matchedPickup = findClosestMatch(result.pickup, [
+                    ...data.pickupPoints,
+                    ...Object.values(data.Dropoffpoints).flat(),
+                    ...Object.values(data.moons).flatMap(moon => Object.values(moon)).flat()
+                ]);
+                const matchedDropoff = findClosestMatch(result.dropoff, [
+                    ...data.pickupPoints,
+                    ...Object.values(data.Dropoffpoints).flat(),
+                    ...Object.values(data.moons).flatMap(moon => Object.values(moon)).flat()
+                ]);
+                
+                return matchedCommodity && matchedPickup && matchedDropoff;
+            });
+
+            if (hasValidEntries) {
+                showBannerMessage('OCR capture successful!', true);
+                return cleanedText;
+            } else {
+                showBannerMessage('No valid mission data detected', false);
+                return '';
+            }
         } catch (error) {
             console.error('OCR Error:', error);
             showBannerMessage('Error processing image. Please try again.', false);
@@ -1708,7 +1734,7 @@ const App = () => {
 
         } catch (error) {
             console.error('Capture Error:', error);
-            showBannerMessage('Error capturing image. Please try again.', false);
+            showBannerMessage('Error capturing text no valid text found. Please check box size and location.', false);
         }
     };
 
@@ -3408,11 +3434,12 @@ const App = () => {
                 {mainTab === 'Changelog' && (
                     <div className="changelog">
                         <div className="changelog-container">
-                        <div className="changelog-entry">
-                        <h3>Version 1.2.1 - HotFix</h3>
+                            <div className="changelog-entry">
+                            <h3>Version 1.2.1 - HotFix</h3>
                                 <ul>
                                     <u>Fixes</u>
                                     <li>Mission entries being displayed as Separate mission when adding to payouts tab and having diffrent locations</li>
+                                    <li>OCR no longer shows success message when no text is detected</li>
                                 </ul>
                             </div>
                             <div className="changelog-entry">
@@ -3477,6 +3504,13 @@ const App = () => {
                                     <li>Initial implementation of cargo tracking</li>
                                     <li>Basic mission system</li>
                                     <li>Basic UI and styling</li>
+                                </ul>
+                            </div>
+                            <div className="changelog-entry">
+                                <h3>Version 1.2.3 - HotFix</h3>
+                                <ul>
+                                    <u>Fixes</u>
+                                    <li>OCR now only shows success if valid mission data is detected after fuzzy matching</li>
                                 </ul>
                             </div>
                         </div>
