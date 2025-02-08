@@ -1528,8 +1528,8 @@ const App = () => {
             
             const cleanedText = text.replace(/[.,]/g, '');
             
-            // Parse the text first
-            const parsedResults = parseOCRText(cleanedText);
+            // Parse the text using existing parseOCRResults function
+            const parsedResults = parseOCRResults(cleanedText);
             
             // Check if any valid entries were created after fuzzy matching
             const hasValidEntries = parsedResults.some(result => {
