@@ -862,77 +862,70 @@ const App = () => {
         console.log('Delivered entries:', deliveredEntries);
         
         if (deliveredEntries.length > 0) {
-            // Group entries by mission index first, then by dropoff point
-            const groupedEntries = deliveredEntries.reduce((acc, entry) => {
-                if (!entry.isMissionEntry) {
-                    const key = `regular_${entry.dropOffPoint}`;
-                    if (!acc[key]) acc[key] = [];
-                    acc[key].push({
-                        ...entry,
-                        timestamp: new Date().toISOString(),
-                        status: 'Delivered'
-                    });
-                    return acc;
+            // First, group entries by mission
+            const groupedByMission = deliveredEntries.reduce((acc, entry) => {
+                // Ensure we have a valid mission index for mission entries
+                const missionKey = entry.isMissionEntry && entry.missionIndex !== undefined ? 
+                    `mission_${entry.missionIndex}` : 'regular';
+                
+                if (!acc[missionKey]) {
+                    acc[missionKey] = {
+                        entries: [],
+                        missionIndex: entry.missionIndex,
+                        isMissionEntry: entry.isMissionEntry,
+                        timestamp: new Date().toISOString()
+                    };
                 }
-
-                // Ensure mission index stays within 0-9 range
-                const missionIndex = Math.min(Math.max(entry.missionIndex || 0, 0), 9);
-                const key = `mission_${missionIndex}_${entry.dropOffPoint}`;
-                if (!acc[key]) acc[key] = [];
-                acc[key].push({
+                acc[missionKey].entries.push({
                     ...entry,
-                    timestamp: new Date().toISOString(),
-                    status: 'Delivered',
-                    missionIndex // Ensure consistent mission index
+                    status: 'Delivered'
                 });
                 return acc;
             }, {});
 
-            console.log('Grouped entries:', groupedEntries);
+            // Create history entries - one entry per mission, containing all drop-off points
+            const newHistoryEntries = Object.entries(groupedByMission).map(([missionKey, missionGroup]) => {
+                // Only create a single history entry per mission
+                return {
+                    dropOffPoint: missionGroup.entries[0].dropOffPoint, // Use first drop-off point as main reference
+                    entries: missionGroup.entries, // Keep all entries together
+                    timestamp: missionGroup.timestamp,
+                    isMissionEntry: missionGroup.isMissionEntry,
+                    missionIndex: missionGroup.missionIndex,
+                    missionKey
+                };
+            });
 
-            // Create history entries
-            const updatedHistory = [
-                ...historyEntries,
-                ...Object.entries(groupedEntries).map(([key, entries]) => {
-                    const [type, ...rest] = key.split('_');
-                    const isMissionEntry = type === 'mission';
-                    const missionIndex = isMissionEntry ? Math.min(parseInt(rest[0]), 9) : null;
-                    const dropOffPoint = rest.slice(isMissionEntry ? 1 : 0).join('_');
-                    
-                    return {
-                        dropOffPoint,
-                        entries,
-                        timestamp: new Date().toISOString(),
-                        isMissionEntry,
-                        missionIndex // Will be null for regular entries
-                    };
-                })
-            ];
-            
+            // Update history entries
+            const updatedHistory = [...historyEntries, ...newHistoryEntries];
             console.log('Updated history:', updatedHistory);
             setHistoryEntries(updatedHistory);
             localStorage.setItem('historyEntries', JSON.stringify(updatedHistory));
-            
-            // Update mission entries - maintain 10 slots
-            const updatedMissionEntries = Array(10).fill(null).map((_, index) => {
+
+            // Update mission entries - maintain empty arrays for all 10 slots
+            const updatedMissionEntries = Array(10).fill().map((_, index) => {
                 const currentMission = missionEntries[index] || [];
                 return currentMission.filter(entry => 
-                    !entry.status || entry.status !== 'Delivered'
+                    !deliveredEntries.some(delivered => 
+                        delivered.id === entry.id && 
+                        delivered.missionIndex === index
+                    )
                 );
             });
             
             console.log('Updated mission entries:', updatedMissionEntries);
             setMissionEntries(updatedMissionEntries);
             localStorage.setItem('missionEntries', JSON.stringify(updatedMissionEntries));
-            
+
             // Update main entries
             const updatedEntries = entries.filter(entry => 
-                !entry.status || entry.status !== 'Delivered'
+                !deliveredEntries.some(delivered => delivered.id === entry.id)
             );
+            
             console.log('Updated main entries:', updatedEntries);
             setEntries(updatedEntries);
             localStorage.setItem('entries', JSON.stringify(updatedEntries));
-            
+
             showBannerMessage(`${deliveredEntries.length} orders processed and moved to history.`, true);
         } else {
             console.log('No delivered orders to process');
