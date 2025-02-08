@@ -3409,7 +3409,14 @@ const App = () => {
                     <div className="changelog">
                         <div className="changelog-container">
                         <div className="changelog-entry">
-                                <h3>Version 1.2.0 - FIxes and Temp Changes</h3>
+                        <h3>Version 1.2.1 - HotFix</h3>
+                                <ul>
+                                    <u>Fixes</u>
+                                    <li>Mission entries being displayed as Separate mission when adding to payouts tab and having diffrent locations</li>
+                                </ul>
+                            </div>
+                            <div className="changelog-entry">
+                            <h3>Version 1.2.0 - FIxes and Temp Changes</h3>
                                 <ul>
                                     <li>1AM fixes be like</li>
                                     <u>FIXES </u>
