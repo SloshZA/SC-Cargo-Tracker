@@ -1516,21 +1516,29 @@ const App = () => {
 
             console.log('Starting OCR processing...');
             
-            const { data: { text } } = await Tesseract.recognize(
-                image,
-                'eng',
-                {
-                    logger: m => {
-                        if (m.status === 'recognizing text') {
-                            console.log(`OCR Progress: ${Math.round(m.progress * 100)}%`);
-                        }
-                    },
-                    errorHandler: (err) => {
-                        console.error('Tesseract Error:', err);
-                        showBannerMessage('OCR processing error', false);
+            const worker = await Tesseract.createWorker({
+                logger: m => {
+                    if (m.status === 'recognizing text') {
+                        console.log(`OCR Progress: ${Math.round(m.progress * 100)}%`);
                     }
+                },
+                errorHandler: (err) => {
+                    console.error('Tesseract Error:', err);
+                    showBannerMessage('OCR processing error', false);
                 }
-            );
+            });
+
+            await worker.load();
+            await worker.loadLanguage('eng');
+            await worker.initialize('eng');
+            
+            // Add the --pm6 parameter for improved performance
+            await worker.setParameters({
+                tessedit_pageseg_mode: '6' // --pm6 parameter
+            });
+
+            const { data: { text } } = await worker.recognize(image);
+            await worker.terminate();
 
             if (!text || text.trim() === '') {
                 console.log('No text detected in image');
@@ -1866,7 +1874,7 @@ const App = () => {
         let currentDropoff = null;
 
         // Look for the word "Collect" and extract the immediately following word
-        const collectPattern = /Collect\s+([\w\s]+?)\s+from/i; // Modified to capture multiple words
+        const collectPattern = /Collect\s+([\w\s]+?)\s+from/i;
         // Look for the word "from" and extract the pickup location
         const pickupPattern = /from\s+(.+)/i;
         // Look for the word "To" and extract the drop-off location
@@ -1877,6 +1885,9 @@ const App = () => {
         const specialCommodityPattern = /(Ship|Quantum)\s+([\w\s]+?)\s+from/i;
         // Pattern for raw materials
         const rawMaterialPattern = /(Corundum|Quartz|Silicon|Tin|Titanium|Tungsten)\s+\(Raw\)/i;
+
+        // Track multiple entries for the same commodity
+        const commodityEntries = {};
 
         for (let i = 0; i < lines.length; i++) {
             const line = lines[i];
@@ -1932,17 +1943,28 @@ const App = () => {
                     i++; // Skip the next line since we've processed it
                 }
                 
-                // Add a new row for each Deliver entry
-                results.push({
-                    commodity: currentCommodity,
-                    quantity: quantity,
-                    pickup: currentPickup || '',
-                    dropoff: currentDropoff || ''
-                });
+                // Create a unique key for this commodity-pickup-dropoff combination
+                const entryKey = `${currentCommodity}-${currentPickup}-${currentDropoff}`;
+                
+                // If we already have an entry for this combination, add to the quantity
+                if (commodityEntries[entryKey]) {
+                    const existingQuantity = parseInt(commodityEntries[entryKey].quantity, 10) || 0;
+                    const newQuantity = parseInt(quantity, 10) || 0;
+                    commodityEntries[entryKey].quantity = (existingQuantity + newQuantity).toString();
+                } else {
+                    // Add a new row for each Deliver entry
+                    commodityEntries[entryKey] = {
+                        commodity: currentCommodity,
+                        quantity: quantity,
+                        pickup: currentPickup || '',
+                        dropoff: currentDropoff || ''
+                    };
+                }
             }
         }
 
-        return results;
+        // Convert the commodity entries object to an array
+        return Object.values(commodityEntries);
     };
 
     const [useVideoStream, setUseVideoStream] = useState(false);
@@ -3917,6 +3939,17 @@ const App = () => {
                 {mainTab === 'Changelog' && (
                     <div className="changelog">
                         <div className="changelog-container">
+                        <div className="changelog-entry">
+                            <h3>Version 1.5.0 - Changes and Fixes</h3>
+                            <ul>
+                                <u>CAPTURE TAB</u>
+                                <li>Changed Tesseract capture method seems to be working really good</li>
+                                <li>Around 28 entries of missions the OCR starts to just spit out old results, to fix turn video off and then on again fixes this</li>
+                                <li>Success Rate is really good. Out of 25 missions only 1 was read wrong by leaving out an entry.</li>
+                                <li>Disclaimer: results may vary depending on users screen size, resolution, render method and sharpness, opening console F12 and clicking on console will give you a process on whats happening</li>
+                                <li>The OCR picked up the entry but never parsed it because of no matching text. Easier to hard code matches for these things.</li>
+                            </ul>
+                        </div>
                         <div className="changelog-entry">
                             <h3>Version 1.4.0 - New Features and Changes</h3>
                             <ul>
