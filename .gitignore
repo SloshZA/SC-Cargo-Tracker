@@ -77,3 +77,4 @@ yarn.lock
 *.sln
 *.sw?
 /.parcel-cache
+/.cache

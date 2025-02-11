@@ -70,7 +70,7 @@ body {
     border: 1px solid #00ffcc;
     padding: 10px;
     border-radius: 5px;
-    width: 350px;
+    width: 380px;
 }
 
 .mission-checkbox .column {
@@ -202,5 +202,5 @@ body {
     border: 1px solid var(--button-color);
     padding: 10px;
     border-radius: 5px;
-    width: 300px;
+    width: 320px;
 } 
