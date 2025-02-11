@@ -1,0 +1,170 @@
+/* Payouts Section */
+
+
+.payouts-group-box {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.payouts-date-group {
+    background-color: #1a1a1a;
+    border: 1px solid var(--table-outline-color);
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.payouts-date-header {
+    padding: 10px;
+    background-color: #333;
+    color: var(--drop-off-header-text-color);
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.payouts-date-header:hover {
+    background-color: #444;
+}
+
+.payouts-date-header span:last-child {
+    float: right;
+    margin-left: 10px;
+}
+
+.payouts-mission-group {
+    margin: 10px;
+    border-radius: 5px;
+    overflow: hidden;
+}
+
+.payouts-mission-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px;
+    background-color: #333;
+    border: 1px solid #000000;
+    border-radius: 5px;
+    margin-bottom: 10px;
+    font-size: 23px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.payouts-mission-header:hover {
+    background-color: #333;
+}
+
+.payouts-mission-header span {
+    color: var(--drop-off-header-text-color);
+}
+
+/* Mission Reward Input Styles */
+.mission-reward-input {
+    max-width: 120px;
+    background-color: transparent;
+    color: var(--dropdown-text-color);
+    border: none;
+    padding: 4px 8px;
+    font-size: 18px;
+    text-align: right;
+    font-family: 'Orbitron', sans-serif;
+    position: relative;
+}
+
+.mission-reward-input::after {
+    content: ' aUEC';
+    position: absolute;
+    right: -45px;
+    color: var(--dropdown-text-color);
+}
+
+.mission-reward-input:focus {
+    outline: none;
+    border: none;
+    box-shadow: 0 0 0 1px var(--button-color);
+}
+
+.mission-reward-mission-table {
+    max-width: 120px;
+    background-color: transparent;
+    color: var(--dropdown-text-color);
+    border: none;
+    padding: 4px 8px;
+    font-size: 18px;
+    text-align: right;
+    position: relative;
+}
+
+.mission-reward-mission-table::after {
+    content: ' aUEC';
+    position: absolute;
+    right: -45px;
+    color: var(--dropdown-text-color);
+}
+
+.ocr-mission-payout-capture {
+    flex: 1;
+    max-width: 136px;
+    padding: 3.4px 6.8px;
+    background-color: transparent;
+    color: var(--dropdown-text-color);
+    border: none;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 18px;
+    text-align: right;
+    position: relative;
+}
+
+.ocr-mission-payout-capture::after {
+    content: ' aUEC';
+    position: absolute;
+    right: -45px;
+    color: var(--dropdown-text-color);
+}
+
+.ocr-mission-payout-capture::placeholder {
+    color: #666;
+}
+
+.ocr-mission-payout-capture:focus {
+    outline: none;
+    border: none;
+    box-shadow: 0 0 0 1px var(--button-color);
+}
+
+/* Mission Group Header */
+.mission-group-header {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 10px;
+}
+
+.mission-group-header h5 {
+    margin: 0;
+}
+
+/* Currency Label */
+.currency-label {
+    white-space: nowrap;
+    margin-left: 5px;
+    padding: 0;
+    box-shadow: none;
+    background: none;
+    -webkit-background-clip: none;
+    -webkit-text-fill-color: inherit;
+}
+
+/* Reward Input Container */
+.reward-input-container {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    background-color: transparent;
+}
+
+/* ... rest of payouts styles ... */ 

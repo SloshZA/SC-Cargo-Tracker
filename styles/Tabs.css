@@ -1,15 +1,41 @@
+/* Main Tabs */
+.main-tabs {
+    display: flex;
+    justify-content: space-around;
+    padding: 10px;
+    background-color: var(--secondary-background);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.main-tab {
+    padding: 10px 20px;
+    cursor: pointer;
+    color: var(--dropdown-text-color);
+    transition: color 0.3s, border-bottom 0.3s;
+}
+
+.main-tab:hover {
+    color: #00cc99;
+}
+
+.active-main-tab {
+    font-weight: bold;
+    border-bottom: 2px solid var(--dropdown-text-color);
+}
+
+/* Sub Tabs */
 .tabs {
     display: flex;
     justify-content: space-around;
     padding: 10px;
-    background-color: #1a1a1a;
-    border-bottom: 1px solid #333;
+    background-color: var(--secondary-background);
+    border-bottom: 1px solid var(--border-color);
 }
 
 .tab {
-    padding: 10px 20px;
+    border-radius: 5px;
     cursor: pointer;
-    color: #00ffcc;
+    color: var(--dropdown-text-color);
     transition: color 0.3s, border-bottom 0.3s;
 }
 
@@ -19,5 +45,14 @@
 
 .active-tab {
     font-weight: bold;
-    border-bottom: 2px solid #00ffcc;
+    border-bottom: 2px solid var(--dropdown-text-color);
+}
+
+/* Example if the styles are in Tabs.css */
+.tab-content input[type="color"] {
+  /* Existing styles... */
+  border-radius: 0; /* Change to square */
+  /* Other styles to ensure square shape */
+  width: 20px;
+  height: 20px;
 } 

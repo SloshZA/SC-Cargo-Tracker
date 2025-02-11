@@ -1,0 +1,146 @@
+/* Input Base Styles */
+input, select, textarea {
+    font-family: 'Orbitron', sans-serif;
+    background-color: #333;
+    color: var(--dropdown-text-color);
+    border: 1px solid #333;
+    border-radius: 5px;
+    transition: all 0.3s ease;
+}
+
+/* SCU Input Styles */
+.scu-input {
+    width: 40px;
+    background-color: #333;
+    color: #00ffcc;
+    border: 1px solid #333;
+    border-radius: 5px;
+    margin-top: 10px;
+    padding: 10px;
+    align-items: center;
+}
+
+.amount-input {
+    width: 30px;
+    height: 20px;
+    background-color: #333;
+    color: #00ffcc;
+    border: 1px solid #333;
+    border-radius: 5px;
+    padding: 10px;
+}
+
+/* Checkbox Styles */
+.checkbox-wrapper {
+    margin-bottom: 15px;
+    padding: 10px;
+    background-color: #2a2a2a;
+    border-radius: 5px;
+    border: 1px solid #444;
+}
+
+.checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--dropdown-text-color);
+    margin-bottom: 5px;
+}
+
+.checkbox-label input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--button-color);
+    cursor: pointer;
+}
+
+.checkbox-description {
+    display: block;
+    font-size: 12px;
+    color: #888;
+    margin-left: 28px;
+    margin-top: 2px;
+}
+
+/* File Input Styles */
+input[type="file"] {
+    display: none;
+}
+
+/* Color Input Styles */
+input[type="color"] {
+    -webkit-appearance: none;
+    width: 50px;
+    height: 50px;
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+}
+
+input[type="color"]::-webkit-color-swatch-wrapper {
+    padding: 0;
+}
+
+input[type="color"]::-webkit-color-swatch {
+    border: none;
+    border-radius: 50%;
+}
+
+/* Font Select Styles */
+.font-select {
+    background-color: #333;
+    border: 1px solid #333;
+    color: var(--dropdown-text-color);
+    font-family: inherit;
+}
+
+.font-select .react-select__menu {
+    background-color: #333;
+    color: var(--dropdown-text-color);
+}
+
+.font-select .react-select__option {
+    background-color: #333;
+    color: var(--dropdown-text-color);
+}
+
+.font-select .react-select__option--is-focused {
+    background-color: #444;
+}
+
+.font-select .react-select__single-value {
+    color: var(--dropdown-text-color);
+}
+
+/* Keybinding Controls */
+.keybinding-control {
+    margin-left: 20px;
+    display: flex;
+    align-items: center;
+}
+
+.keybinding-button {
+    background-color: var(--button-color);
+    color: #000;
+    border: none;
+    padding: 5px 10px;
+    border-radius: 3px;
+    cursor: pointer;
+    font-family: 'Orbitron', sans-serif;
+    transition: background-color 0.3s;
+}
+
+.keybinding-button:hover {
+    background-color: #00ccaa;
+}
+
+.key-input {
+    background-color: #333;
+    color: var(--dropdown-text-color);
+    border: 1px solid var(--table-outline-color);
+    padding: 5px;
+    width: 50px;
+    text-align: center;
+    border-radius: 3px;
+    font-family: 'Orbitron', sans-serif;
+} 

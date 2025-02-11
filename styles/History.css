@@ -1,7 +1,7 @@
 .history-container {
     padding: 20px;
-    background-color: #1a1a1a;
-    border: 1px solid #333;
+    background-color: var(--secondary-background);
+    border: 1px solid var(--border-color);
     border-radius: 10px;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
@@ -13,7 +13,7 @@
 }
 
 .history-date-group {
-    background-color: #1a1a1a;
+    background-color: var(--secondary-background);
     border: 1px solid var(--table-outline-color);
     border-radius: 10px;
     overflow: hidden;
@@ -24,10 +24,8 @@
     background-color: #333;
     color: var(--drop-off-header-text-color);
     font-size: 16px;
+    font-weight: bold;
     cursor: pointer;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
     transition: background-color 0.3s;
 }
 
@@ -35,32 +33,35 @@
     background-color: #444;
 }
 
-.commodity-group {
+.drop-off-group-history {
     display: flex;
     flex-direction: column;
     gap: 2px;
     padding: 2px;
 }
 
-.commodity-section {
-    background-color: #1a1a1a;
-    border: 1px solid #333;
-    border-radius: 5px;
+.drop-off-header-history-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
     padding: 10px;
+    background-color: #333;
+    border: 1px solid var(--border-color);
+    border-radius: 5px;
+    margin-bottom: 10px;
+    font-size: 22px;
+    cursor: pointer;
+    transition: background-color 0.3s;
 }
 
-.commodity-header {
-    color: var(--table-header-text-color);
-    font-size: 16px;
-    margin-bottom: 10px;
-    padding-bottom: 5px;
-    border-bottom: 1px solid #333;
+.drop-off-header-history-header:hover {
+    background-color: #444;
 }
 
 .history-table {
     width: 100%;
     border-collapse: separate;
-    background-color: #1a1a1a;
+    background-color: var(--secondary-background);
     border: 1px solid var(--table-outline-color);
     border-radius: 5px;
     overflow: hidden;
@@ -95,10 +96,6 @@
     .history-date-header {
         font-size: 16px;
         padding: 10px;
-    }
-    
-    .commodity-header {
-        font-size: 14px;
     }
     
     .history-table th,

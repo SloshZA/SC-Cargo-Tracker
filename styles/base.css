@@ -1,0 +1,81 @@
+/* Root Variables */
+:root {
+    --dropdown-label-color: #00ffcc;
+    --dropdown-text-color: #00ffcc;
+    --button-color: #00ffcc;
+    --title-color: #00ffcc;
+    --drop-off-header-text-color: #00ffcc;
+    --table-header-text-color: #00ffcc;
+    --pickup-text-color: #00ffcc;
+    --commodity-text-color: #00ffcc;
+    --amount-text-color: #00ffcc;
+    --row-text-color: #00ffcc;
+    --mission-text-color: #00ffcc;
+    --table-outline-color: #00ffcc;
+    --background-color: #0d0d0d;
+    --secondary-background: #1a1a1a;
+    --border-color: #333;
+}
+
+/* Base Styles */
+body {
+    font-family: 'Orbitron', sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: var(--background-color);
+    color: var(--dropdown-text-color);
+    transition: background-color 0.3s, color 0.3s;
+    width: 1200px;
+    height: 800px;
+    margin: 0 auto;
+}
+
+/* Dark Mode */
+.dark-mode {
+    background-color: var(--background-color);
+    color: var(--dropdown-text-color);
+}
+
+/* Header */
+header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px;
+    background-color: var(--secondary-background);
+    border-bottom: 1px solid var(--border-color);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+header h1 {
+    margin: 0;
+    font-size: 24px;
+    color: var(--title-color);
+}
+
+/* Main Container */
+.main-container {
+    background-color: var(--background-color);
+    min-height: 100vh;
+    padding: 20px;
+}
+
+/* Remove all text shadows */
+h1, h2, h3, h4, h5, h6, p, span, a, div, label, button, input, select, textarea {
+    text-shadow: none !important;
+}
+
+/* Ensure no text glow effects */
+.glow-text, .text-glow, .glowing-text {
+    text-shadow: none !important;
+}
+
+/* Remove any potential text effects from table elements */
+table, th, td, tr {
+    text-shadow: none !important;
+}
+
+/* Remove text shadows from form elements */
+input, select, textarea, button {
+    text-shadow: none !important;
+} 

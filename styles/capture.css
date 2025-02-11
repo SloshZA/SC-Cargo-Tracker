@@ -1,0 +1,174 @@
+/* Capture Tab */
+.capture-tab {
+    padding: 20px;
+    background-color: #1a1a1a;
+    border: 1px solid #333;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    color: #00ffcc;
+}
+
+.capture-tab h3 {
+    color: var(--title-color);
+    margin-bottom: 15px;
+}
+
+.capture-tab p {
+    color: var(--row-text-color);
+}
+
+/* OCR Results */
+.ocr-results {
+    margin-top: 20px;
+    padding: 15px;
+    background-color: #1a1a1a;
+    border: 1px solid #333;
+    border-radius: 5px;
+    color: #00ffcc;
+    font-family: 'Orbitron', sans-serif;
+    max-height: 300px;
+    overflow-y: auto;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.process-log {
+    outline: 1px solid var(--table-outline-color);
+    margin-top: 20px;
+    padding: 15px;
+    background-color: #1a1a1a;
+    border: 1px solid #333;
+    border-radius: 5px;
+    color: #00ffcc;
+    font-family: 'Orbitron', sans-serif;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.process-log h4 {
+    margin-top: 0;
+    color: #00ffcc;
+}
+
+.process-log p {
+    margin: 5px 0;
+    color: #00ffcc;
+}
+
+.highlight {
+    background-color: #00ffcc;
+    color: #000;
+    padding: 2px 4px;
+    border-radius: 3px;
+    font-weight: bold;
+}
+
+/* OCR Table */
+.ocr-table {
+    width: 100%;
+    margin-top: 20px;
+    border-collapse: collapse;
+    background-color: #333;
+    color: var(--dropdown-text-color);
+}
+
+.ocr-table th,
+.ocr-table td {
+    outline: 1px solid var(--table-outline-color);
+    padding: 8px;
+    border: 1px solid var(--table-outline-color);
+    text-align: left;
+}
+
+.ocr-table th {
+    outline: 1px solid var(--table-outline-color);
+    background-color: #444;
+    color: var(--table-header-text-color);
+}
+
+.ocr-table tr:nth-child(even) {
+    outline: 1px solid var(--table-outline-color);
+    background-color: #3a3a3a;
+}
+
+.ocr-table tr:hover {
+    background-color: #4a4a4a;
+}
+
+/* Stream Toggle */
+.stream-toggle {
+    margin-bottom: 15px;
+}
+
+.stream-toggle label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--dropdown-text-color);
+    cursor: pointer;
+}
+
+.stream-toggle input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--button-color);
+}
+
+/* Video Container */
+.video-container {
+    position: relative;
+    width: 100%;
+    max-width: 800px;
+    margin: 0 auto;
+    border: 2px solid var(--table-outline-color);
+    border-radius: 5px;
+    overflow: hidden;
+    background-color: #000;
+}
+
+.video-container video {
+    width: 100%;
+    height: auto;
+    display: block;
+}
+
+/* OCR Counters */
+.ocr-counters {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 15px;
+    padding: 10px;
+    background-color: #1a1a1a;
+    border: 1px solid var(--table-outline-color);
+    border-radius: 5px;
+    flex-wrap: wrap;
+}
+
+.ocr-counter {
+    color: var(--dropdown-text-color);
+    font-size: 14px;
+    min-width: fit-content;
+}
+
+.ocr-counter strong {
+    color: var(--button-color);
+    margin-right: 5px;
+}
+
+/* Capture Mode Button */
+#capture-mode-btn {
+    background-color: #4CAF50;
+    color: white;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    margin: 10px;
+    transition: background-color 0.3s;
+}
+
+#capture-mode-btn:hover {
+    background-color: #45a049;
+}
+
+#capture-mode-btn:active {
+    background-color: #3d8b40;
+} 

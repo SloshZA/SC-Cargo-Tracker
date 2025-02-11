@@ -1,0 +1,164 @@
+/* Form Elements */
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    margin-bottom: 10px;
+}
+
+.form-group label:not(.preferences label) {
+    color: var(--dropdown-label-color);
+    text-align: center;
+}
+
+.form-group label[for="location-type"] {
+    white-space: nowrap;
+}
+
+/* Dropdown Styles */
+select.location-type, 
+select.location,
+select.moon,
+select.drop-off,
+select.commodity {
+    background-color: #333;
+    color: var(--dropdown-text-color);
+    border: 1px solid #333;
+    border-radius: 5px;
+    padding: 10px;
+    font-family: 'Orbitron', sans-serif;
+}
+
+select.location-type {
+    width: 85px;
+}
+
+select.location,
+select.moon {
+    width: 110px;
+}
+
+select.drop-off {
+    width: 300px;
+}
+
+select.commodity {
+    width: 120px;
+}
+
+/* Input Styles */
+.scu-input {
+    width: 40px;
+    background-color: #333;
+    color: #00ffcc;
+    border: 1px solid #333;
+    border-radius: 5px;
+    margin-top: 10px;
+    padding: 10px;
+    align-items: center;
+}
+
+.amount-input {
+    width: 30px;
+    height: 20px;
+    background-color: #333;
+    color: #00ffcc;
+    border: 1px solid #333;
+    border-radius: 5px;
+    padding: 10px;
+}
+
+/* Form Layout */
+.form-row {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.form-group.button-group {
+    width: 750px;
+    margin-left: 70px;
+}
+
+/* React Select Custom Styles */
+.react-select__control {
+    background-color: #333;
+    border: 1px solid #333;
+    border-radius: 5px;
+    padding: 5px;
+    font-family: 'Orbitron', sans-serif;
+    color: var(--dropdown-text-color);
+    font-size: 14px;
+}
+
+.react-select__menu {
+    background-color: #333;
+    color: var(--dropdown-text-color);
+    width: auto;
+}
+
+.react-select__option {
+    background-color: #333;
+    color: var(--dropdown-text-color);
+}
+
+.react-select__option--is-focused {
+    background-color: #444;
+}
+
+.react-select__option--is-selected {
+    background-color: #555;
+}
+
+.react-select__single-value {
+    color: var(--dropdown-text-color);
+}
+
+.react-select__menu-list {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    width: auto;
+}
+
+.react-select__menu-list::-webkit-scrollbar {
+    display: none;
+}
+
+.react-select__input input {
+    color: white;
+}
+
+/* Specific Select Widths */
+.first-dropdown-select .react-select__control {
+    width: 350px;
+}
+
+.second-dropdown-select .react-select__control {
+    width: 350px;
+}
+
+.location-type-select .react-select__control {
+    width: 90px;
+}
+
+.planet-select .react-select__control {
+    width: 119px;
+}
+
+.moon-select .react-select__control {
+    width: 110px;
+}
+
+.drop-off-select .react-select__control {
+    width: 300px;
+}
+
+.commodity-select .react-select__control {
+    width: 200px;
+}
+
+.station-select .react-select__control {
+    width: 119px;
+}
+
+/* ... rest of form styles ... */ 

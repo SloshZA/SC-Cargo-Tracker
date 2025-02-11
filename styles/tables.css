@@ -1,0 +1,483 @@
+/* Table Styles */
+.table-container {
+    margin-top: 20px;
+    overflow-x: auto;
+    border-radius: 10px;
+}
+
+/* Common Table Header Styles */
+.hauling-manifest-table th,
+.history-table th {
+    background-color: var(--secondary-background);
+    color: var(--table-header-text-color);
+    font-weight: bold;
+    padding: 12px;
+    text-align: center;
+    border: 1px solid var(--table-outline-color);
+    text-transform: uppercase;
+    font-size: 14px;
+}
+
+/* Hauling Manifest Table */
+.hauling-manifest-table {
+    width: 100%;
+    border-collapse: separate;
+    background-color: var(--secondary-background);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    border: 1px solid var(--table-outline-color);
+    border-radius: 10px;
+    overflow: hidden;
+    margin-bottom: 20px;
+}
+
+.hauling-manifest-table th {
+    background-color: #1a1a1a;
+    color: var(--table-header-text-color);
+    font-weight: bold;
+    padding: 12px;
+    text-align: center;
+    border: 1px solid var(--table-outline-color);
+    text-transform: uppercase;
+    font-size: 14px;
+}
+
+.hauling-manifest-table td {
+    padding: 8px;
+    text-align: center;
+    border: 1px solid var(--table-outline-color);
+    color: var(--row-text-color);
+    line-height: 1.2;
+}
+
+/* Column specific styles */
+.hauling-manifest-table th.pickup,
+.hauling-manifest-table td.pickup {
+    width: 33%;
+    white-space: nowrap;
+}
+
+.hauling-manifest-table th.commodity,
+.hauling-manifest-table td.commodity {
+    width: 19%;
+    white-space: nowrap;
+}
+
+.hauling-manifest-table th.amount,
+.hauling-manifest-table td.amount {
+    width: 100px;
+    white-space: nowrap;
+}
+
+.hauling-manifest-table th.actions,
+.hauling-manifest-table td.actions {
+    width: auto;
+    white-space: nowrap;
+}
+
+.hauling-manifest-table th.status,
+.hauling-manifest-table td.status {
+    width: 8.2%;
+    white-space: nowrap;
+}
+
+/* Row hover effect */
+.hauling-manifest-table tr:hover {
+    background-color: rgba(0, 255, 204, 0.1);
+}
+
+/* Last row styling */
+.hauling-manifest-table tr:last-child td {
+    border-bottom: none;
+}
+
+/* Action buttons within table */
+.hauling-manifest-table .actions button {
+    background-color: var(--button-color);
+    color: #0d0d0d;
+    border: none;
+    padding: 5px 10px;
+    cursor: pointer;
+    font-size: 13px;
+    border-radius: 5px;
+    transition: background-color 0.3s;
+}
+
+.hauling-manifest-table .actions button:hover {
+    background-color: #00cc99;
+}
+
+.hauling-manifest-table .actions .remove-cargo-button {
+    background-color: #ff6666;
+    color: #0d0d0d;
+    font-size: 12px;
+}
+
+.hauling-manifest-table .actions .remove-cargo-button:hover {
+    background-color: #ff3333;
+}
+
+/* Status colors */
+.hauling-manifest-table .status-pending {
+    color: #FFA500;
+}
+
+.hauling-manifest-table .status-delivered {
+    color: #00FF00;
+}
+
+/* History Table */
+.history-table {
+    width: 100%;
+    border-collapse: separate;
+    background-color: var(--secondary-background);
+    border: 1px solid var(--table-outline-color);
+    border-radius: 5px;
+    overflow: hidden;
+    margin-top: 10px;
+}
+
+.history-table td {
+    padding: 8px;
+    text-align: center;
+    border: 1px solid var(--table-outline-color);
+    color: var(--row-text-color);
+    font-size: 14px;
+}
+
+/* Table Cell Hover Effects */
+.hauling-manifest-table td:hover,
+.history-table td:hover {
+    background-color: rgba(0, 255, 204, 0.05);
+}
+
+/* Payouts Table */
+.payouts-table {
+    width: 100%;
+    border-collapse: separate;
+    background-color: #1a1a1a;
+    border: 1px solid var(--table-outline-color);
+    border-radius: 5px;
+    overflow: hidden;
+}
+
+.payouts-table th,
+.payouts-table td {
+    padding: 6px;
+    text-align: left;
+    border: 1px solid var(--table-outline-color);
+}
+
+.payouts-table th {
+    background-color: #333;
+    color: var(--table-header-text-color);
+    font-weight: bold;
+    font-size: 14px;
+    padding: 8px;
+}
+
+.payouts-table td {
+    color: var(--row-text-color);
+    font-size: 12px;
+    padding: 4px;
+}
+
+.payouts-table tr:hover {
+    background-color: #333;
+}
+
+.payouts-table th:last-child,
+.payouts-table td:last-child {
+    width: 80px;
+    text-align: center;
+    padding: 4px 8px;
+    color: var(--row-text-color);
+}
+
+.payouts-table td:last-child {
+    transition: background-color 0.3s ease;
+}
+
+/* Add hover effect for red cells */
+.payouts-table td:last-child[style*="background-color: #ff44444d"]:hover {
+    background-color: #ff444466 !important;
+}
+
+/* Drop-off Header Styles */
+.drop-off-header {
+    padding: 10px;
+    background-color: var(--secondary-background);
+    border: 1px solid var(--border-color);
+    border-radius: 5px;
+    margin-bottom: 10px;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    color: var(--drop-off-header-text-color);
+    transition: background-color 0.3s, color 0.3s;
+    font-size: 20px;
+    outline: 1px solid var(--table-outline-color);
+}
+
+.drop-off-header:hover {
+    background-color: #333;
+    color: #00cc99;
+}
+
+.drop-off-header .left-box {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+
+}
+
+.drop-off-header .left-box button {
+    background-color: var(--button-color);
+    color: #0d0d0d;
+    border: none;
+    padding: 5px 10px;
+    cursor: pointer;
+    font-size: 14px;
+    border-radius: 5px;
+    transition: background-color 0.3s, color 0.3s;
+    
+}
+
+.drop-off-header .left-box button:hover {
+    background-color: #00cc99;
+}
+
+.drop-off-header .right-box {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    
+}
+
+.drop-off-header .right-box span {
+    padding: 5px 10px;
+    background-color: #333;
+    border-radius: 5px;
+    color: var(--dropdown-text-color);
+    font-size: 14px;
+}
+
+.drop-off-header .right-box button {
+    background-color: var(--button-color);
+    color: #0d0d0d;
+    border: none;
+    padding: 5px 10px;
+    cursor: pointer;
+    font-size: 14px;
+    border-radius: 5px;
+    transition: background-color 0.3s, color 0.3s;
+}
+
+.drop-off-header .right-box button:hover {
+    background-color: #00cc99;
+}
+
+.drop-off-header .right-box .ocr-mission-payout-capture {
+    max-width: 120px;
+    background-color: #333;
+    color: var(--dropdown-text-color);
+    border: 1px solid #555;
+    border-radius: 4px;
+    padding: 4px 8px;
+    font-size: 14px;
+    text-align: left;
+}
+
+.drop-off-header .right-box .ocr-mission-payout-capture:focus {
+    outline: none;
+    border-color: var(--button-color);
+    box-shadow: 0 0 0 1px var(--button-color);
+}
+
+.drop-off-header .right-box .ocr-mission-payout-capture::placeholder {
+    color: #666;
+}
+
+/* Add these missing styles from Table.css to tables.css */
+.table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    background-color: #1a1a1a;
+    margin: 0;
+}
+
+/* Add mission group styles that were unique in Table.css */
+.mission-group {
+    border: 2px solid var(--table-outline-color);
+    border-radius: 5px;
+    margin-bottom: 20px;
+    background-color: #1a1a1a;
+    overflow: hidden;
+}
+
+.mission-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px;
+    background-color: #1a1a1a;
+    border-bottom: 2px solid var(--table-outline-color);
+    color: var(--mission-text-color);
+}
+
+/* Hauling Mission Table */
+.hauling-mission-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    background-color: #262626;
+    margin-bottom: 0;
+    border: 1px solid var(--table-outline-color);
+    border-radius: 5px;
+    overflow: hidden;
+}
+
+.hauling-mission-table th {
+    background-color: #1a1a1a;
+    color: var(--table-header-text-color);
+    padding: 10px 12px;
+    text-align: left;
+    border: 1px solid var(--table-outline-color);
+    font-size: 14px;
+    font-weight: bold;
+    text-transform: uppercase;
+}
+
+.hauling-mission-table td {
+    padding: 8px 12px;
+    border: 1px solid var(--table-outline-color);
+    color: var(--row-text-color);
+    line-height: 1.2;
+}
+
+/* Column specific widths */
+.hauling-mission-table th.pickup,
+.hauling-mission-table td.pickup {
+    width: 35%;
+    white-space: nowrap;
+}
+
+.hauling-mission-table th.commodity,
+.hauling-mission-table td.commodity {
+    width: 25%;
+    white-space: nowrap;
+}
+
+.hauling-mission-table th.amount,
+.hauling-mission-table td.amount {
+    width: 15%;
+    white-space: nowrap;
+    text-align: center;
+    font-family: 'Orbitron', sans-serif;
+    background-color: #1a1a1a;
+    padding: 4px 8px;
+    color: var(--row-text-color);
+}
+
+.hauling-mission-table th.actions,
+.hauling-mission-table td.actions {
+    width: auto;
+    white-space: nowrap;
+}
+
+.hauling-mission-table th.status,
+.hauling-mission-table td.status {
+    width: 10%;
+    white-space: nowrap;
+}
+
+/* Row styling */
+.hauling-mission-table tr {
+    line-height: 1.2;
+}
+
+.hauling-mission-table tr:hover {
+    background-color: rgba(0, 255, 204, 0.05);
+}
+
+/* Last row styling */
+.hauling-mission-table tr:last-child td {
+    border-bottom: none;
+}
+
+/* Status colors */
+.hauling-mission-table .status-pending {
+    color: #FFA500;
+}
+
+.hauling-mission-table .status-delivered {
+    color: #00FF00;
+}
+
+/* Action buttons */
+.hauling-mission-table .actions button {
+    background-color: var(--button-color);
+    color: #0d0d0d;
+    border: none;
+    padding: 5px 10px;
+    cursor: pointer;
+    font-size: 13px;
+    border-radius: 5px;
+    transition: background-color 0.3s;
+    margin: 0 2px;
+}
+
+.hauling-mission-table .actions button:hover {
+    background-color: #00cc99;
+}
+
+.hauling-mission-table .actions .remove-cargo-button {
+    background-color: #ff4444;
+    color: #0d0d0d;
+}
+
+.hauling-mission-table .actions .remove-cargo-button:hover {
+    background-color: #ff6666;
+}
+
+/* Input styling */
+.hauling-mission-table .actions input[type="text"] {
+    width: 60px;
+    background-color: #333;
+    color: var(--dropdown-text-color);
+    border: 1px solid #444;
+    border-radius: 4px;
+    padding: 4px 8px;
+    font-size: 13px;
+    text-align: center;
+}
+
+/* Table container */
+.hauling-mission-table-container {
+    margin: 20px 0;
+    border: 1px solid var(--table-outline-color);
+    border-radius: 5px;
+    overflow: hidden;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* QTY column header specific style */
+.hauling-mission-table th.amount {
+    text-align: center;
+    background-color: #1a1a1a;
+    color: var(--table-header-text-color);
+    font-weight: bold;
+    text-transform: uppercase;
+}
+
+/* Amount column cells */
+.hauling-mission-table td.amount {
+    width: 15%;
+    white-space: nowrap;
+    text-align: center;
+    font-family: 'Orbitron', sans-serif;
+    background-color: #1a1a1a;
+    padding: 4px 8px;
+    color: var(--row-text-color);
+} 

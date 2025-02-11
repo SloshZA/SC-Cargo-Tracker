@@ -1,23 +1,22 @@
 .table-container {
-    margin-top: 20px;
-    overflow-x: auto;
-    border-radius: 10px;
+    margin: 0;
+    padding: 0;
+    border: 2px solid var(--table-outline-color);
+    border-radius: 5px;
+    overflow: hidden;
 }
 
 .table {
     width: 100%;
     border-collapse: separate;
+    border-spacing: 0;
     background-color: #1a1a1a;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-    border: 1px solid var(--table-outline-color);
-    border-radius: 10px;
-    overflow: hidden;
+    margin: 0;
 }
 
 .table th, .table td {
-    padding: 10px;
-    text-align: left;
     border: 1px solid var(--table-outline-color);
+    padding: 10px;
 }
 
 .table th.pickup, .table td.pickup {
@@ -99,4 +98,184 @@
     border-radius: 5px;
     padding: 5px;
     font-family: 'Orbitron', sans-serif;
+}
+
+/* Hauling manifest table styling */
+.hauling-manifest-table {
+    border: 2px solid var(--table-outline-color);
+    border-collapse: separate;
+    border-spacing: 0;
+    border-radius: 5px;
+    margin: 10px 0;
+    width: 100%;
+}
+
+.hauling-manifest-table th,
+.hauling-manifest-table td {
+    border: 1px solid var(--table-outline-color);
+    padding: 8px;
+}
+
+.hauling-manifest-table th {
+    background-color: #1a1a1a;
+    color: var(--table-header-text-color);
+    font-weight: bold;
+}
+
+/* Mission table styling */
+.mission-table {
+    border: 2px solid var(--table-outline-color);
+    border-collapse: separate;
+    border-spacing: 0;
+    border-radius: 5px;
+    margin: 10px 0;
+    width: 100%;
+}
+
+.mission-table th,
+.mission-table td {
+    border: 1px solid var(--table-outline-color);
+    padding: 8px;
+}
+
+.mission-table th {
+    background-color: #1a1a1a;
+    color: var(--table-header-text-color);
+    font-weight: bold;
+}
+
+/* Common table header styling */
+.table-header {
+    color: var(--drop-off-header-text-color);
+    font-weight: bold;
+    padding: 10px;
+    background-color: #1a1a1a;
+    border-bottom: 2px solid var(--table-outline-color);
+}
+
+/* Row text color */
+.hauling-manifest-table td,
+.mission-table td {
+    color: var(--row-text-color);
+}
+
+/* Mission text color */
+.mission-header,
+.mission-info {
+    color: var(--mission-text-color);
+}
+
+/* Mission group container styling */
+.mission-group {
+    border: 2px solid var(--table-outline-color);
+    border-radius: 5px;
+    margin-bottom: 20px;
+    background-color: #1a1a1a;
+    overflow: hidden;
+}
+
+/* Mission header styling */
+.mission-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px;
+    background-color: #1a1a1a;
+    border-bottom: 2px solid var(--table-outline-color);
+    color: var(--mission-text-color);
+}
+
+/* Header row specific styling */
+.table thead tr {
+    background-color: #1a1a1a;
+    border-bottom: 2px solid var(--table-outline-color);
+}
+
+.table thead th {
+    border-top: none;
+    border-bottom: 2px solid var(--table-outline-color);
+    color: var(--table-header-text-color);
+    font-weight: bold;
+}
+
+/* First and last cells in each row for side borders */
+.table tr td:first-child,
+.table tr th:first-child {
+    border-left: none;
+}
+
+.table tr td:last-child,
+.table tr th:last-child {
+    border-right: none;
+}
+
+/* Last row bottom border */
+.table tr:last-child td {
+    border-bottom: none;
+}
+
+/* Section title styling */
+.section-title {
+    color: var(--dropdown-text-color);
+    padding: 10px;
+    margin-bottom: 5px;
+    border-bottom: 2px solid var(--table-outline-color);
+}
+
+/* Input section container */
+.input-section {
+    border: 2px solid var(--table-outline-color);
+    border-radius: 5px;
+    padding: 10px;
+    margin-bottom: 15px;
+    background-color: #1a1a1a;
+}
+
+/* Group titles in a row */
+.title-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin-bottom: 10px;
+}
+
+/* Location type row */
+.location-row {
+    display: grid;
+    grid-template-columns: auto 1fr 1fr 1.5fr;
+    gap: 10px;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+/* Commodity row */
+.commodity-row {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 20px;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+/* Title labels */
+.title-label {
+    color: var(--dropdown-text-color);
+    font-weight: bold;
+    padding: 5px 0;
+    border-bottom: 2px solid var(--table-outline-color);
+}
+
+/* Section dividers */
+.section-divider {
+    border-left: 2px solid var(--table-outline-color);
+    height: 100%;
+    margin: 0 10px;
+}
+
+/* Mission selection box */
+.mission-selection {
+    border: 2px solid var(--table-outline-color);
+    border-radius: 5px;
+    padding: 10px;
+    background-color: rgba(0, 0, 0, 0.2);
 } 
