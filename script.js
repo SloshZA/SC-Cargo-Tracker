@@ -639,14 +639,18 @@ const App = () => {
                 // Add non-mission entries to history
                 ...nonMissionEntries.map(entry => ({
                     ...entry,
-                    date: new Date().toISOString()
+                    date: new Date().toISOString(),
+                    currentAmount: entry.currentAmount,
+                    originalAmount: entry.originalAmount
                 })),
                 // Add mission entries to history
                 ...Object.entries(missionGroups).flatMap(([missionIndex, group]) => 
                     group.entries.map(entry => ({
                         ...entry,
                         date: new Date().toISOString(),
-                        reward: group.reward
+                        reward: group.reward,
+                        currentAmount: entry.currentAmount,
+                        originalAmount: entry.originalAmount
                     }))
                 )
             ];
@@ -661,14 +665,15 @@ const App = () => {
                 id: crypto.randomBytes(16).toString('hex'),
                 missionId: missionId,
                 commodity: entry.commodity,
-                amount: entry.currentAmount || entry.amount,
+                amount: `${entry.currentAmount}/${entry.originalAmount}`,
                 pickup: entry.pickup || entry.pickupPoint,
                 dropOffPoint: entry.dropOffPoint,
                 status: 'Completed',
                 date: new Date().toISOString(),
                 reward: group.reward,
                 missionIndex: parseInt(missionIndex),
-                originalAmount: entry.originalAmount
+                originalAmount: entry.originalAmount,
+                currentAmount: entry.currentAmount
             }));
 
             setPayoutEntries(prev => [...prev, ...formattedEntries]);
@@ -678,11 +683,13 @@ const App = () => {
         const formattedNonMissionEntries = nonMissionEntries.map(entry => ({
             id: crypto.randomBytes(16).toString('hex'),
             commodity: entry.commodity,
-            amount: entry.currentAmount || entry.amount,
+            amount: `${entry.currentAmount}/${entry.originalAmount}`,
             pickup: entry.pickup || entry.pickupPoint,
             dropOffPoint: entry.dropOffPoint,
             status: 'Completed',
-            date: new Date().toISOString()
+            date: new Date().toISOString(),
+            originalAmount: entry.originalAmount,
+            currentAmount: entry.currentAmount
         }));
 
         setPayoutEntries(prev => [...prev, ...formattedNonMissionEntries]);
@@ -1347,7 +1354,7 @@ const App = () => {
                 id: crypto.randomBytes(16).toString('hex'),
                 missionId: missionId, // Add mission ID to group entries
                 commodity: entry.commodity,
-                amount: entry.currentAmount || entry.amount,
+                amount: entry.currentAmount,
                 pickup: entry.pickup || entry.pickupPoint,
                 dropOffPoint: entry.dropOffPoint,
                 status: 'Completed',

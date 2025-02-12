@@ -336,7 +336,8 @@
 .scu-total-container label {
     color: var(--dropdown-label-color);
     font-family: var(--main-font), sans-serif;
-    font-size: 14px;
+    font-size: 18px;
+    font-weight: bold;
 }
 
 .scu-total-input {
@@ -346,7 +347,20 @@
     border-radius: 4px;
     padding: 5px 10px;
     font-family: var(--main-font), sans-serif;
-    font-size: 14px;
-    width: 40px;
+    font-size: 18px;
+    width: 50px;
     text-align: right;
+    pointer-events: none;
+    user-select: none;
+}
+
+.automatic-mission-label {
+    cursor: pointer;
+    color: var(--mission-text-color);
+    user-select: none;
+    text-decoration: underline;
+    font-size: 1.2em;
+    font-weight: bold;
+    display: block;
+    text-align: left;
 } 

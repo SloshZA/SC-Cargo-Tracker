@@ -1,10 +1,5 @@
 /* Form Elements */
-.form-group {
-    display: flex;
-    flex-direction: column;
-    gap: 5px;
-    margin-bottom: 10px;
-}
+
 
 .form-group label:not(.preferences label) {
     color: var(--dropdown-label-color);
@@ -75,10 +70,6 @@ select.commodity {
     align-items: center;
 }
 
-.form-group.button-group {
-    width: 770px;
-    margin-left: 20px;
-}
 
 /* React Select Custom Styles */
 .react-select__control {

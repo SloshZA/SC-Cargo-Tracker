@@ -100,8 +100,10 @@ export const HaulingSubTabPayouts = ({ entries, setEntries }) => {
                                                     <th style={{ width: '27%' }}>Pickup</th>
                                                     <th style={{ width: '27%' }}>Drop Off</th>
                                                     <th style={{ width: '16%' }}>Commodity</th>
-                                                    <th style={{ width: '10%' }}>Amount</th>
+                                                    <th style={{ width: '10%' }}>QTY</th>
                                                     <th style={{ width: '5%' }}>%</th>
+                                                    <th style={{ display: 'none' }}>Current Amount</th>
+                                                    <th style={{ display: 'none' }}>Original Amount</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
@@ -110,8 +112,10 @@ export const HaulingSubTabPayouts = ({ entries, setEntries }) => {
                                                         <td>{entry.pickup}</td>
                                                         <td>{entry.dropOffPoint}</td>
                                                         <td>{entry.commodity}</td>
-                                                        <td>{formatAmount(entry.amount, entry.originalAmount)}</td>
-                                                        <td style={{ color: calculatePercentageColor(entry.amount, entry.originalAmount) }}>{calculatePercentage(entry.amount, entry.originalAmount)}</td>
+                                                        <td style={{ width: '10%' }}>{entry.amount}</td>
+                                                        <td style={{ color: calculatePercentageColor(entry.currentAmount, entry.originalAmount) }}>{calculatePercentage(entry.currentAmount, entry.originalAmount)}</td>
+                                                        <td style={{ display: 'none' }}>{entry.currentAmount}</td>
+                                                        <td style={{ display: 'none' }}>{entry.originalAmount}</td>
                                                     </tr>
                                                 ))}
                                             </tbody>
