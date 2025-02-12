@@ -665,13 +665,8 @@ const App = () => {
                 id: crypto.randomBytes(16).toString('hex'),
                 missionId: missionId,
                 commodity: entry.commodity,
-<<<<<<< HEAD
-                amount: entry.currentAmount || entry.amount,
-                pickup: entry.pickup,
-=======
-                amount: `${entry.currentAmount}/${entry.originalAmount}`,
+                amount: entry.currentAmount && entry.originalAmount ? `${entry.currentAmount}/${entry.originalAmount}` : (entry.currentAmount || entry.amount),
                 pickup: entry.pickup || entry.pickupPoint,
->>>>>>> 64b00ff21de42e195cd31e5594d59d3eba59aa92
                 dropOffPoint: entry.dropOffPoint,
                 status: 'Completed',
                 date: new Date().toISOString(),
@@ -688,13 +683,8 @@ const App = () => {
         const formattedNonMissionEntries = nonMissionEntries.map(entry => ({
             id: crypto.randomBytes(16).toString('hex'),
             commodity: entry.commodity,
-<<<<<<< HEAD
-            amount: entry.currentAmount || entry.amount,
-            pickup: entry.pickup,
-=======
-            amount: `${entry.currentAmount}/${entry.originalAmount}`,
+            amount: entry.currentAmount && entry.originalAmount ? `${entry.currentAmount}/${entry.originalAmount}` : (entry.currentAmount || entry.amount),
             pickup: entry.pickup || entry.pickupPoint,
->>>>>>> 64b00ff21de42e195cd31e5594d59d3eba59aa92
             dropOffPoint: entry.dropOffPoint,
             status: 'Completed',
             date: new Date().toISOString(),
@@ -1369,13 +1359,8 @@ const App = () => {
                 id: crypto.randomBytes(16).toString('hex'),
                 missionId: missionId, // Add mission ID to group entries
                 commodity: entry.commodity,
-<<<<<<< HEAD
-                amount: entry.currentAmount || entry.amount,
-                pickup: entry.pickup,
-=======
-                amount: entry.currentAmount,
+                amount: entry.currentAmount && entry.originalAmount ? `${entry.currentAmount}/${entry.originalAmount}` : (entry.currentAmount || entry.amount),
                 pickup: entry.pickup || entry.pickupPoint,
->>>>>>> 64b00ff21de42e195cd31e5594d59d3eba59aa92
                 dropOffPoint: entry.dropOffPoint,
                 status: 'Completed',
                 date: new Date().toISOString(),

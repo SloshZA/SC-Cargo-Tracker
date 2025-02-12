@@ -877,26 +877,21 @@ export const MissionSubTabHauling = ({
                                                         onChange={(e) => {
                                                             updateCargo(index, e.target.value);
                                                         }}
-<<<<<<< HEAD
                                                         onKeyPress={(e) => handleAmountKeyPress(e, index)}
-=======
->>>>>>> 64b00ff21de42e195cd31e5594d59d3eba59aa92
                                                     />
                                                     <button onClick={() => updateCargo(index, entry.currentAmount)}>Update Cargo</button>
                                                     <button className="remove-cargo-button" onClick={() => removeCargo(index)}>Remove Cargo</button>
                                                 </td>
-                                                <td className="status"
-                                                    style={{
-                                                        color: entry.status === 'Delivered' ? 'green' : 'inherit',
-                                                        cursor: 'pointer'
-                                                    }}
-                                                    onClick={() => toggleStatus(
-                                                        entries.filter(e => e.dropOffPoint === entry.dropOffPoint)
-                                                              .findIndex(e => e.id === entry.id),
-                                                        entry.dropOffPoint
-                                                    )}
-                                                >
-                                                    {entry.status || 'Pending'}
+                                                <td className="status">
+                                                    <select
+                                                        value={entry.status}
+                                                        onChange={(e) => toggleStatus(index, entry.dropOffPoint)}
+                                                        className="status-dropdown"
+                                                    >
+                                                        {STATUS_OPTIONS.map(option => (
+                                                            <option key={option} value={option}>{option}</option>
+                                                        ))}
+                                                    </select>
                                                 </td>
                                             </tr>
                                         );})}

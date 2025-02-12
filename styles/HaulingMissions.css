@@ -350,7 +350,6 @@
     font-size: 18px;
     width: 50px;
     text-align: right;
-<<<<<<< HEAD
 }
 
 /* Ensure that the manifest table's pickup column displays correctly */
@@ -360,10 +359,435 @@
     white-space: normal;
     overflow: visible;
     color: var(--row-text-color); /* Adjust if needed */
-=======
-    pointer-events: none;
-    user-select: none;
 }
+
+/* General styles for the hauling missions tab */
+.hauling-missions-tab {
+    padding: 20px;
+    font-family: 'Orbitron', sans-serif;
+    color: var(--text-color);
+}
+
+/* Styles for the mission entry form */
+.mission-entry-form {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+    .mission-entry-form > * {
+        flex: 1 1 auto;
+        min-width: 120px; /* Adjust as needed */
+    }
+
+    .mission-entry-form label {
+        display: block;
+        margin-bottom: 5px;
+        color: var(--dropdown-label-color);
+    }
+
+    .mission-entry-form input[type="text"],
+    .mission-entry-form select {
+        width: 100%;
+        padding: 8px;
+        border: 1px solid #333;
+        border-radius: 4px;
+        background-color: #333;
+        color: var(--dropdown-text-color);
+        font-family: 'Orbitron', sans-serif;
+        box-sizing: border-box;
+    }
+
+    .mission-entry-form button {
+        padding: 10px 15px;
+        border: none;
+        border-radius: 4px;
+        background-color: var(--button-color);
+        color: white;
+        cursor: pointer;
+        font-family: 'Orbitron', sans-serif;
+        transition: background-color 0.3s ease;
+    }
+
+        .mission-entry-form button:hover {
+            background-color: #00bfa5;
+        }
+
+/* Styles for the manifest table */
+.manifest-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+}
+
+    .manifest-table th,
+    .manifest-table td {
+        border: 1px solid var(--table-outline-color);
+        padding: 8px;
+        text-align: left;
+        color: var(--row-text-color);
+    }
+
+    .manifest-table th {
+        background-color: #333;
+        color: var(--table-header-text-color);
+    }
+
+    .manifest-table tr:nth-child(even) {
+        background-color: #444;
+    }
+
+    .manifest-table tr:hover {
+        background-color: #555;
+    }
+
+/* Styles for the drop-off point groups */
+.drop-off-group {
+    margin-bottom: 20px;
+    border: 1px solid #333;
+    border-radius: 4px;
+}
+
+.drop-off-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px;
+    background-color: #333;
+    color: var(--drop-off-header-text-color);
+    cursor: pointer;
+    border-bottom: 1px solid #333;
+}
+
+    .drop-off-header h3 {
+        margin: 0;
+        flex-grow: 1;
+    }
+
+    .drop-off-header button {
+        padding: 5px 10px;
+        border: none;
+        border-radius: 4px;
+        background-color: var(--button-color);
+        color: white;
+        cursor: pointer;
+        font-family: 'Orbitron', sans-serif;
+        transition: background-color 0.3s ease;
+    }
+
+        .drop-off-header button:hover {
+            background-color: #00bfa5;
+        }
+
+.drop-off-content {
+    padding: 10px;
+}
+
+/* Styles for the individual entries within a drop-off group */
+.entry {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px;
+    border-bottom: 1px solid #333;
+}
+
+    .entry:last-child {
+        border-bottom: none;
+    }
+
+    .entry span {
+        flex: 1;
+        margin-right: 10px;
+    }
+
+    .entry button {
+        padding: 5px 10px;
+        border: none;
+        border-radius: 4px;
+        background-color: var(--button-color);
+        color: white;
+        cursor: pointer;
+        font-family: 'Orbitron', sans-serif;
+        transition: background-color 0.3s ease;
+    }
+
+        .entry button:hover {
+            background-color: #00bfa5;
+        }
+
+/* Styles for the total SCU display */
+.total-scu {
+    margin-top: 20px;
+    font-size: 1.2em;
+    color: var(--text-color);
+}
+
+/* Additional styles for responsiveness */
+@media (max-width: 768px) {
+    .mission-entry-form {
+        flex-direction: column;
+    }
+
+        .mission-entry-form > * {
+            width: 100%;
+        }
+
+    .manifest-table th,
+    .manifest-table td {
+        display: block;
+        width: 100%;
+        box-sizing: border-box;
+    }
+
+        .manifest-table th {
+            text-align: center;
+        }
+
+    .entry {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+        .entry span {
+            margin-bottom: 5px;
+        }
+}
+
+.manifest-table .amount-input {
+    width: 80px; /* Adjust as needed */
+    padding: 4px;
+    border: 1px solid #333;
+    border-radius: 4px;
+    background-color: #333;
+    color: var(--dropdown-text-color);
+    font-family: 'Orbitron', sans-serif;
+    box-sizing: border-box;
+}
+
+.manifest-table .status-dropdown {
+    padding: 4px;
+    border: 1px solid #333;
+    border-radius: 4px;
+    background-color: #333;
+    color: var(--dropdown-text-color);
+    font-family: 'Orbitron', sans-serif;
+    box-sizing: border-box;
+}
+
+.manifest-table .remove-button {
+    padding: 4px 8px;
+    border: none;
+    border-radius: 4px;
+    background-color: var(--button-color);
+    color: white;
+    cursor: pointer;
+    font-family: 'Orbitron', sans-serif;
+    transition: background-color 0.3s ease;
+}
+
+    .manifest-table .remove-button:hover {
+        background-color: #00bfa5;
+    }
+
+.manifest-table .move-button {
+    padding: 4px 8px;
+    border: none;
+    border-radius: 4px;
+    background-color: var(--button-color);
+    color: white;
+    cursor: pointer;
+    font-family: 'Orbitron', sans-serif;
+    transition: background-color 0.3s ease;
+    margin-right: 5px; /* Add some spacing between buttons */
+}
+
+    .manifest-table .move-button:hover {
+        background-color: #00bfa5;
+    }
+
+.manifest-table .mark-delivered-button {
+    padding: 4px 8px;
+    border: none;
+    border-radius: 4px;
+    background-color: var(--button-color);
+    color: white;
+    cursor: pointer;
+    font-family: 'Orbitron', sans-serif;
+    transition: background-color 0.3s ease;
+}
+
+    .manifest-table .mark-delivered-button:hover {
+        background-color: #00bfa5;
+    }
+
+/* Ensure that the manifest table's pickup column displays correctly */
+.manifest-table td:nth-child(4) { /* Targeting the 4th column which is pickup */
+    word-break: break-word; /* This will break words to prevent overflow */
+    max-width: 150px; /* Adjust max-width as needed */
+}
+
+/* Ensure that the manifest table's dropOffPoint column displays correctly */
+.manifest-table td:nth-child(5) { /* Targeting the 5th column which is dropOffPoint */
+    word-break: break-word; /* This will break words to prevent overflow */
+    max-width: 150px; /* Adjust max-width as needed */
+}
+
+/* Ensure that the manifest table's commodity column displays correctly */
+.manifest-table td:nth-child(2) { /* Targeting the 2nd column which is commodity */
+    word-break: break-word; /* This will break words to prevent overflow */
+    max-width: 100px; /* Adjust max-width as needed */
+}
+
+/* Ensure that the manifest table's amount column displays correctly */
+.manifest-table td:nth-child(3) { /* Targeting the 3rd column which is amount */
+    word-break: break-word; /* This will break words to prevent overflow */
+    max-width: 80px; /* Adjust max-width as needed */
+}
+
+/* Ensure that the manifest table's status column displays correctly */
+.manifest-table td:nth-child(6) { /* Targeting the 6th column which is status */
+    word-break: break-word; /* This will break words to prevent overflow */
+    max-width: 100px; /* Adjust max-width as needed */
+}
+
+/* Style for the mission header */
+.mission-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px;
+    background-color: #333;
+    color: var(--mission-text-color);
+    cursor: pointer;
+    border-bottom: 1px solid #333;
+    border-radius: 4px;
+    margin-bottom: 10px;
+}
+
+    .mission-header h3 {
+        margin: 0;
+        flex-grow: 1;
+    }
+
+    .mission-header button {
+        padding: 5px 10px;
+        border: none;
+        border-radius: 4px;
+        background-color: var(--button-color);
+        color: white;
+        cursor: pointer;
+        font-family: 'Orbitron', sans-serif;
+        transition: background-color 0.3s ease;
+    }
+
+        .mission-header button:hover {
+            background-color: #00bfa5;
+        }
+
+/* Style for the mission content */
+.mission-content {
+    padding: 10px;
+    border: 1px solid #333;
+    border-radius: 4px;
+    margin-bottom: 20px;
+}
+
+/* Style for the mission entries table */
+.mission-entries-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+}
+
+    .mission-entries-table th,
+    .mission-entries-table td {
+        border: 1px solid var(--table-outline-color);
+        padding: 8px;
+        text-align: left;
+        color: var(--row-text-color);
+    }
+
+    .mission-entries-table th {
+        background-color: #333;
+        color: var(--table-header-text-color);
+    }
+
+    .mission-entries-table tr:nth-child(even) {
+        background-color: #444;
+    }
+
+    .mission-entries-table tr:hover {
+        background-color: #555;
+    }
+
+/* Style for the mission checkbox */
+.mission-checkbox {
+    margin-right: 10px;
+}
+
+/* Style for the mission reward input */
+.mission-reward-input {
+    width: 80px;
+    padding: 4px;
+    border: 1px solid #333;
+    border-radius: 4px;
+    background-color: #333;
+    color: var(--dropdown-text-color);
+    font-family: 'Orbitron', sans-serif;
+    box-sizing: border-box;
+}
+
+/* Style for the mission preview */
+.mission-preview {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    background-color: #333;
+    border: 1px solid #333;
+    border-radius: 4px;
+    padding: 10px;
+    z-index: 100;
+    width: 300px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    color: var(--dropdown-text-color);
+}
+
+    .mission-preview table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+        .mission-preview th,
+        .mission-preview td {
+            border: 1px solid var(--table-outline-color);
+            padding: 4px;
+            text-align: left;
+            color: var(--row-text-color);
+        }
+
+        .mission-preview th {
+            background-color: #444;
+            color: var(--table-header-text-color);
+        }
+
+/* Style for the toggle view button */
+.toggle-view-button {
+    padding: 10px 15px;
+    border: none;
+    border-radius: 4px;
+    background-color: var(--button-color);
+    color: white;
+    cursor: pointer;
+    font-family: 'Orbitron', sans-serif;
+    transition: background-color 0.3s ease;
+    margin-bottom: 20px;
+}
+
+    .toggle-view-button:hover {
+        background-color: #00bfa5;
+    }
 
 .automatic-mission-label {
     cursor: pointer;
@@ -374,5 +798,4 @@
     font-weight: bold;
     display: block;
     text-align: left;
->>>>>>> 64b00ff21de42e195cd31e5594d59d3eba59aa92
 } 
