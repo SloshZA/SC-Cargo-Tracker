@@ -769,8 +769,19 @@ export const MissionSubTabHauling = ({
                                                         <td style={{ width: `${Math.max(50, entry.currentAmount.length * 8)}px` }}>
                                                             {formatAmount(entry.currentAmount, entry.originalAmount)}
                                                         </td>
-                                                        <td style={{ color: entry.status === 'Delivered' ? 'green' : 'inherit' }}>
-                                                            {entry.status}
+                                                        <td className="status">
+                                                            <span 
+                                                                onClick={() => {
+                                                                    const newStatus = entry.status === 'Pending' ? 'Delivered' : entry.status;
+                                                                    toggleStatus(index, entry.dropOffPoint, newStatus);
+                                                                }}
+                                                                style={{ 
+                                                                    cursor: 'pointer',
+                                                                    color: entry.status === 'Delivered' ? 'green' : 'inherit'
+                                                                }}
+                                                            >
+                                                                {entry.status}
+                                                            </span>
                                                         </td>
                                                     </tr>
                                                 ))}
@@ -883,15 +894,18 @@ export const MissionSubTabHauling = ({
                                                     <button className="remove-cargo-button" onClick={() => removeCargo(index)}>Remove Cargo</button>
                                                 </td>
                                                 <td className="status">
-                                                    <select
-                                                        value={entry.status}
-                                                        onChange={(e) => toggleStatus(index, entry.dropOffPoint)}
-                                                        className="status-dropdown"
+                                                    <span 
+                                                        onClick={() => {
+                                                            const newStatus = entry.status === 'Pending' ? 'Delivered' : entry.status;
+                                                            toggleStatus(index, entry.dropOffPoint, newStatus);
+                                                        }}
+                                                        style={{ 
+                                                            cursor: 'pointer',
+                                                            color: entry.status === 'Delivered' ? 'green' : 'inherit'
+                                                        }}
                                                     >
-                                                        {STATUS_OPTIONS.map(option => (
-                                                            <option key={option} value={option}>{option}</option>
-                                                        ))}
-                                                    </select>
+                                                        {entry.status}
+                                                    </span>
                                                 </td>
                                             </tr>
                                         );})}
