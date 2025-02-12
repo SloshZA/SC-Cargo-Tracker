@@ -349,4 +349,13 @@
     font-size: 14px;
     width: 40px;
     text-align: right;
+}
+
+/* Ensure that the manifest table's pickup column displays correctly */
+.hauling-mission-table th.pickup,
+.hauling-mission-table td.pickup {
+    width: auto;
+    white-space: normal;
+    overflow: visible;
+    color: var(--row-text-color); /* Adjust if needed */
 } 

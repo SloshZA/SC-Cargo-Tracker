@@ -662,7 +662,7 @@ const App = () => {
                 missionId: missionId,
                 commodity: entry.commodity,
                 amount: entry.currentAmount || entry.amount,
-                pickup: entry.pickup || entry.pickupPoint,
+                pickup: entry.pickup,
                 dropOffPoint: entry.dropOffPoint,
                 status: 'Completed',
                 date: new Date().toISOString(),
@@ -679,7 +679,7 @@ const App = () => {
             id: crypto.randomBytes(16).toString('hex'),
             commodity: entry.commodity,
             amount: entry.currentAmount || entry.amount,
-            pickup: entry.pickup || entry.pickupPoint,
+            pickup: entry.pickup,
             dropOffPoint: entry.dropOffPoint,
             status: 'Completed',
             date: new Date().toISOString()
@@ -1166,14 +1166,18 @@ const App = () => {
         const newMissionEntries = [...missionEntries];
         let currentMissionIndex = 0;
 
-        // Find the first empty mission slot
-        while (currentMissionIndex < newMissionEntries.length && newMissionEntries[currentMissionIndex].length > 0) {
+        // Find the first empty mission slot.  Corrected loop condition:
+        while (currentMissionIndex < newMissionEntries.length &&
+               (newMissionEntries[currentMissionIndex] !== null && newMissionEntries[currentMissionIndex].length > 0)) {
             currentMissionIndex++;
         }
 
+        // If we've reached the end of the array, and *all* slots are full,
+        // we need to *extend* the array.  The original code didn't handle
+        // running out of slots.
         if (currentMissionIndex >= newMissionEntries.length) {
-            showBannerMessage('No empty mission slots available', false);
-            return;
+            // Extend the array with a new, empty mission slot.
+            newMissionEntries.push([]);
         }
 
         if (shouldLog(debugFlags, 'haulingMissions', 'statusChanges')) {
@@ -1192,6 +1196,7 @@ const App = () => {
             commodity: entry.commodity,
             amount: entry.quantity,
             currentAmount: entry.quantity,
+            originalAmount: entry.quantity,
             pickup: entry.pickup,
             dropOffPoint: entry.dropoff,
             status: 'Pending',
@@ -1233,7 +1238,7 @@ const App = () => {
 
         // Update hauling manifest entries
         setEntries(prev => [...prev, ...formattedManifestEntries]);
-        
+
         // Use the updated entries array for localStorage
         const updatedEntries = [...entries, ...formattedManifestEntries];
         localStorage.setItem('entries', JSON.stringify(updatedEntries));
@@ -1248,7 +1253,7 @@ const App = () => {
                     reward: cleanReward
                 });
             }
-            
+
             const updatedRewards = { ...missionRewards };
             updatedRewards[`mission_${currentMissionIndex}`] = cleanReward;
             setMissionRewards(updatedRewards);
@@ -1348,7 +1353,7 @@ const App = () => {
                 missionId: missionId, // Add mission ID to group entries
                 commodity: entry.commodity,
                 amount: entry.currentAmount || entry.amount,
-                pickup: entry.pickup || entry.pickupPoint,
+                pickup: entry.pickup,
                 dropOffPoint: entry.dropOffPoint,
                 status: 'Completed',
                 date: new Date().toISOString(),
@@ -1558,7 +1563,7 @@ const App = () => {
         const historyEntries = entries.map(entry => {
             const qtyString = `${entry.currentAmount}/${entry.originalAmount}`; // Create the combined string
             return {
-                pickup: entry.pickupPoint,
+                pickup: entry.pickup,
                 commodity: entry.commodity,
                 amount: qtyString, // Send the combined string as "amount"
                 dropOffPoint: entry.dropOffPoint,

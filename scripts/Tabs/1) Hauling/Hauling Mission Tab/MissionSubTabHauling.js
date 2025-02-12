@@ -822,7 +822,7 @@ export const MissionSubTabHauling = ({
                                 </div>
                             </div>
                             {!collapsed[dropOffPoint] && (
-                                <table className="hauling-mission-table">
+                                <table className="hauling-manifest-table">
                                     <thead>
                                         <tr>
                                             <th className="pickup">Pickup</th>
@@ -842,28 +842,49 @@ export const MissionSubTabHauling = ({
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {entries.filter(entry => entry.dropOffPoint === dropOffPoint).map((entry, index) => (
+                                        {entries.filter(entry => entry.dropOffPoint === dropOffPoint).map((entry, index) => {
+                                            // --- Logging for each column ---
+                                            const pickupPresent = entry.pickup !== null && entry.pickup !== undefined && entry.pickup !== '';
+                                            const commodityPresent = entry.commodity !== null && entry.commodity !== undefined && entry.commodity !== '';
+                                            const amountPresent = entry.currentAmount !== null && entry.currentAmount !== undefined && entry.currentAmount !== '';
+                                            const actionsPresent = true; // Actions always exist (buttons)
+                                            const statusPresent = entry.status !== null && entry.status !== undefined && entry.status !== '';
+
+                                            console.log(`Manifest Entry Logging - Row ${index + 1} (${dropOffPoint}):`, {
+                                                pickup: entry.pickup,
+                                                pickupPresent,
+                                                commodity: entry.commodity,
+                                                commodityPresent,
+                                                amount: entry.currentAmount,
+                                                amountPresent,
+                                                actionsPresent, // No need to log the content, just presence
+                                                status: entry.status,
+                                                statusPresent,
+                                            });
+                                            // --- End Logging ---
+
+                                            return (
                                             <tr key={index}>
-                                                <td className="pickup">{entry.pickupPoint}</td>
+                                                <td className="pickup">{entry.pickup}</td>
                                                 <td className="commodity">{entry.commodity}</td>
                                                 <td className="amount">
                                                     {formatAmount(entry.currentAmount, entry.originalAmount)}
                                                 </td>
                                                 <td className="actions">
-                                                    <input 
-                                                        type="text" 
-                                                        defaultValue={entry.currentAmount} 
-                                                        size="10" 
+                                                    <input
+                                                        type="text"
+                                                        defaultValue={entry.currentAmount}
+                                                        size="10"
                                                         onChange={(e) => {
                                                             updateCargo(index, e.target.value);
                                                         }}
-                                                        onKeyPress={(e) => handleAmountKeyPress(e, index)} 
+                                                        onKeyPress={(e) => handleAmountKeyPress(e, index)}
                                                     />
                                                     <button onClick={() => updateCargo(index, entry.currentAmount)}>Update Cargo</button>
                                                     <button className="remove-cargo-button" onClick={() => removeCargo(index)}>Remove Cargo</button>
                                                 </td>
-                                                <td className="status" 
-                                                    style={{ 
+                                                <td className="status"
+                                                    style={{
                                                         color: entry.status === 'Delivered' ? 'green' : 'inherit',
                                                         cursor: 'pointer'
                                                     }}
@@ -876,7 +897,7 @@ export const MissionSubTabHauling = ({
                                                     {entry.status || 'Pending'}
                                                 </td>
                                             </tr>
-                                        ))}
+                                        );})}
                                     </tbody>
                                 </table>
                             )}
