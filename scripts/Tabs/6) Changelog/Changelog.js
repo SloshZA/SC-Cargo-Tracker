@@ -5,6 +5,35 @@ export const ChangelogTab = () => {
         <div className="changelog">
             <div className="changelog-container">
                 <div className="changelog-entry">
+                    <h3>Version 1.6.1</h3>
+                    <h4>Hotfix</h4>
+                    <ul>
+                        <li>UI issues when using certain fonts causing increased text size and pushing boxes off - fixed.</li>
+                        <li>Payouts table not displaying amount - fixed.</li>
+                        <li>Changed "amount" to "QTY" to match other table formats.</li>
+                    </ul>
+                    <h4>Note</h4>
+                    <ul>
+                        <li>Looks like most things are done on the hauling tab. I will be adding some features to the Cargo Hold, which is more just of spice of life features.</li>
+                        <li>Inventory tab will just be for the users that want to keep track of the total of all boxes in the ship currently.
+                            <ul>
+                                <li>Mainly for users that want to track mining or salvaging or even bounty cargo they "Rightfully acquired" just a way to log it for immersion reasons.</li>
+                                <li>WIP will take some time - 3D cargo grid for a select few ships for the start - will add drag function. End goal will be to have the tab allow auto sorting to give you an idea of more efficient packing (this will be later).</li>
+                            </ul>
+                        </li>
+                        <li>Route Planner/Automation
+                            <ul>
+                                <li>This will be a tab for cargo hauling that lets the user set a custom route so when adding entries from either capture tab or manually will update the list and place them in the order you prefer.</li>
+                                <li>Aimed at the users that like 1 specific set route.</li>
+                            </ul>
+                        </li>
+                        <li>Ships / Brainstorming</li>
+                        <li>Storage - not sure if it's needed.</li>
+                        <li>Mining Tab - still thinking about this one as there are 2 sites with good mining apps already.</li>
+                        <li>Trading - will see about getting an API key for UEX, I don't want to do what they do I just want a way to keep track of trading I've done how far I've flown money made etc etc.</li>
+                    </ul>
+                </div>
+                <div className="changelog-entry">
                     <h3>Version 1.6.0</h3>
                     <h4>Important Note</h4>
                     <ul>

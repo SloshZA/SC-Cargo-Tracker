@@ -664,10 +664,9 @@ export const MissionSubTabHauling = ({
                         className="amount-input"
                         ref={amountInputRef}
                         onKeyPress={(e) => {
-                            if (!/[0-9]/.test(e.key)) {
-                                e.preventDefault();
+                            if (e.key === 'Enter') {
+                                addEntry();
                             }
-                            handleAmountKeyPress(e);
                         }}
                     />
                 </div>
@@ -878,7 +877,10 @@ export const MissionSubTabHauling = ({
                                                         onChange={(e) => {
                                                             updateCargo(index, e.target.value);
                                                         }}
+<<<<<<< HEAD
                                                         onKeyPress={(e) => handleAmountKeyPress(e, index)}
+=======
+>>>>>>> 64b00ff21de42e195cd31e5594d59d3eba59aa92
                                                     />
                                                     <button onClick={() => updateCargo(index, entry.currentAmount)}>Update Cargo</button>
                                                     <button className="remove-cargo-button" onClick={() => removeCargo(index)}>Remove Cargo</button>
