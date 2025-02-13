@@ -45,6 +45,9 @@ const CaptureSubTabHauling = ({
         const saved = localStorage.getItem('captureSelectionBox');
         return saved ? JSON.parse(saved) : null;
     });
+    const [ocrProgress, setOcrProgress] = useState(0);
+    const [firstDropdownValue, setFirstDropdownValue] = useState('');
+    const [entries, setEntries] = useState([]);
 
     // Refs
     const videoRef = useRef(null);
@@ -157,21 +160,17 @@ const CaptureSubTabHauling = ({
             console.log('Parsed OCR results:', newResults);
                     
             if (newResults && newResults.length > 0) {
-                // Extract reward before adding to mission groups
-                const reward = extractReward(rawOcrText);
-                
-                setOcrCaptureHistory(prev => [...prev, newResults]);
-                setCurrentParsedResults(newResults);
-                
-                // Add to mission groups with reward
+                // Add reward to mission group
                 setOcrMissionGroups(prev => {
                     const newIndex = prev.length;
                     return [...prev, newResults];
                 });
 
+                // Add reward to mission rewards
+                const reward = newResults[0]?.reward;
                 if (reward) {
-                    setOcrMissionRewards(prevRewards => ({
-                        ...prevRewards,
+                    setOcrMissionRewards(prev => ({
+                        ...prev,
                         [ocrMissionGroups.length]: reward
                     }));
                 }
@@ -190,6 +189,7 @@ const CaptureSubTabHauling = ({
 
     const performOCR = async (image) => {
         try {
+            setOcrProgress(0);
             if (!image || typeof image !== 'string' || !image.startsWith('data:image')) {
                 logOCRError(captureDebugMode, debugFlags, 'Invalid image data provided to OCR');
                 showBannerMessage('Invalid image data', false);
@@ -202,6 +202,15 @@ const CaptureSubTabHauling = ({
                 logger: m => {
                     if (m.status === 'recognizing text') {
                         logOCRProgress(captureDebugMode, debugFlags, m.progress);
+                        setOcrProgress(Math.round(m.progress * 100));
+                        
+                        // Check for reward at every progress update
+                        if (m.text) {
+                            const reward = extractReward(m.text);
+                            if (reward) {
+                                logOCRProcess(captureDebugMode, debugFlags, 'Found reward during progress:', reward);
+                            }
+                        }
                     }
                 },
                 errorHandler: (err) => {
@@ -229,7 +238,7 @@ const CaptureSubTabHauling = ({
 
             logOCRProcess(captureDebugMode, debugFlags, 'Raw OCR text:', text);
             
-            // Extract reward as soon as we get the text
+            // Extract reward regardless of progress
             const reward = extractReward(text);
             if (reward) {
                 logOCRProcess(captureDebugMode, debugFlags, 'Found reward:', reward);
@@ -257,6 +266,8 @@ const CaptureSubTabHauling = ({
             logOCRError(captureDebugMode, debugFlags, 'OCR Error:', error);
             showBannerMessage('Error processing image. Please try again.', false);
             return '';
+        } finally {
+            setOcrProgress(0);
         }
     };
 
@@ -337,7 +348,15 @@ const CaptureSubTabHauling = ({
             }
         }
 
-        return Object.values(commodityEntries);
+        // Extract reward and add to all entries
+        const reward = extractReward(text);
+        const entries = Object.values(commodityEntries);
+        
+        if (reward && entries.length > 0) {
+            entries[0].reward = reward;
+        }
+
+        return entries;
     };
 
     const handleConstantCapture = () => {
@@ -431,6 +450,7 @@ const CaptureSubTabHauling = ({
             clearInterval(captureInterval);
         }
         setCaptureTimer(0);
+        setOcrProgress(0);
         showBannerMessage('OCR missions cleared.', true);
     };
 
@@ -527,46 +547,23 @@ const CaptureSubTabHauling = ({
 
     const handleAddOCRToManifest = () => {
         if (ocrMissionGroups.length > 0) {
-            // Extract reward from OCR text
-            const reward = extractReward(ocrText);
-            logOCRProcess(captureDebugMode, debugFlags, 'Processing mission with reward:', reward);
-
-            // Flatten all entries from all mission groups into a single array
             const entries = ocrMissionGroups.flatMap((missionGroup, missionIndex) => {
-                const missionEntries = missionGroup.map((result, resultIndex) => {
+                return missionGroup.map((result, resultIndex) => {
                     const validation = validateOCRData(result, data);
-                    const entry = {
+                    return {
                         commodity: validation.matchedValues.commodity,
                         quantity: result.quantity.split('/')[1] || result.quantity,
                         pickup: validation.matchedValues.pickup,
                         dropoff: validation.matchedValues.dropoff,
+                        reward: resultIndex === 0 ? (result.reward || ocrMissionRewards[missionIndex] || '0') : '0'
                     };
-
-                    // Only add reward to the first entry of each mission group
-                    if (resultIndex === 0) {
-                        // Get reward from OCR text or from the mission reward input
-                        const missionReward = reward || ocrMissionRewards[missionIndex] || '0';
-                        entry.reward = missionReward.replace(/[^\d]/g, '');
-                        logOCRProcess(captureDebugMode, debugFlags, `Setting reward for mission ${missionIndex}:`, entry.reward);
-                    }
-
-                    return entry;
                 });
-
-                logOCRProcess(captureDebugMode, debugFlags, `Mission ${missionIndex} entries:`, missionEntries);
-                return missionEntries;
             });
 
             if (entries.length > 0) {
-                logOCRProcess(captureDebugMode, debugFlags, 'Final entries to add:', entries);
                 addOCRToManifest(entries);
                 clearOCRMissions();
-                setOcrMissionGroups([]);
-                setOcrMissionRewards({});
-                setOcrText('');
                 showBannerMessage('Mission added successfully!', true);
-            } else {
-                showBannerMessage('No valid entries to add', false);
             }
         }
     };
@@ -885,7 +882,8 @@ const CaptureSubTabHauling = ({
                     justifyContent: 'space-between',
                     alignItems: 'center',
                     width: 'fit-content',
-                    backgroundColor: '#2a2a2a'
+                    backgroundColor: '#2a2a2a',
+                    position: 'relative'
                 }}>
                     <label style={{ marginRight: '15px' }}>
                         <input 
@@ -939,6 +937,7 @@ const CaptureSubTabHauling = ({
                             </button>
                         )}
                     </div>
+                    <div className="ocr-progress-bar" style={{ width: `${ocrProgress}%` }} />
                 </div>
                 <div 
                     className="video-container"

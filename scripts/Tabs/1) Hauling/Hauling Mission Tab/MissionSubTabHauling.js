@@ -26,7 +26,6 @@ export const MissionSubTabHauling = ({
     handleTopAmountKeyPress,
     toggleCollapse,
     clearLog,
-    processOrders,
     handlePlanetSelectChange,
     collapsed,
     isAlternateTable,
@@ -63,7 +62,7 @@ export const MissionSubTabHauling = ({
     handleMoveToPayouts,
     calculateTotalSCU,
     amountInputRef,
-    sendEntriesToHistory
+    setHistoryEntries
 }) => {
     // Local state
     const [needsClearConfirmation, setNeedsClearConfirmation] = useState(false);
@@ -92,8 +91,10 @@ export const MissionSubTabHauling = ({
 
     const handleCheckboxChange = (index) => {
         setSelectedMissions(prev => {
-            const updated = [...prev];
-            updated[index] = !updated[index];
+            // Create a new array with all checkboxes unselected
+            const updated = Array(prev.length).fill(false);
+            // Set only the clicked checkbox to true
+            updated[index] = !prev[index];
             localStorage.setItem('selectedMissions', JSON.stringify(updated));
             return updated;
         });
@@ -141,9 +142,8 @@ export const MissionSubTabHauling = ({
             if (lockedMissionIndex.current === null) {
                 lockedMissionIndex.current = selectedMissionIndex;
             }
-
         } else {
-            // Manual mode: Check if a checkbox is selected
+            // Manual mode: Only set as mission entry if a checkbox is selected
             selectedMissionIndex = selectedMissions.findIndex(mission => mission);
             isMissionEntry = selectedMissionIndex !== -1;
         }
@@ -157,6 +157,7 @@ export const MissionSubTabHauling = ({
             currentAmount: amountValue,
             status: STATUS_OPTIONS[0],
             pickupPoint: firstDropdownValue,
+            pickup: firstDropdownValue,
             planet: selectedPlanet,
             moon: selectedMoon,
             isMissionEntry,
@@ -228,6 +229,8 @@ export const MissionSubTabHauling = ({
 
     const getMissionPreview = (missionIndex) => {
         const missionEntriesForIndex = missionEntries[missionIndex];
+        
+        if (!missionEntriesForIndex) return null;
 
         return (
             <div className="tooltip">
@@ -241,7 +244,7 @@ export const MissionSubTabHauling = ({
                         </tr>
                     </thead>
                     <tbody>
-                        {missionEntriesForIndex?.map((entry, index) => (
+                        {missionEntriesForIndex.map((entry, index) => (
                             <tr key={index}>
                                 <td>{entry.dropOffPoint}</td>
                                 <td>{entry.commodity}</td>
@@ -328,6 +331,165 @@ export const MissionSubTabHauling = ({
     // Function to force a re-render of the component
     const [, updateState] = useState();
     const forceUpdate = useCallback(() => updateState({}), []);
+
+    const addToHistoryFromManifest = () => {
+        // Get all delivered entries from manifest, only check delivery status
+        const deliveredEntries = entries.filter(entry => 
+            entry.status === 'Delivered'
+        );
+
+        console.log('All entries:', entries);
+        console.log('Delivered entries:', deliveredEntries);
+        console.log('Entry statuses:', entries.map(e => ({
+            status: e.status,
+            id: e.id
+        })));
+
+        if (deliveredEntries.length === 0) {
+            showBannerMessage('No delivered entries to process');
+            return;
+        }
+
+        // Format entries for history, ensuring status is properly set
+        const historyEntries = deliveredEntries.map(entry => {
+            // Calculate delivery percentage
+            const current = Number(entry.currentAmount) || 0;
+            const original = Number(entry.originalAmount) || 0;
+            const deliveryPercentage = original > 0 ? (current / original) * 100 : 0;
+
+            // Determine status based on delivery percentage
+            const status = deliveryPercentage < 49 ? 'Failed' : 'Delivered';
+
+            return {
+                pickup: entry.pickup || entry.pickupPoint,
+                commodity: entry.commodity,
+                currentAmount: entry.currentAmount,
+                originalAmount: entry.originalAmount,
+                dropOffPoint: entry.dropOffPoint,
+                status: status,
+                date: new Date().toISOString(),
+                planet: entry.planet,
+                moon: entry.moon
+            };
+        });
+
+        // Get existing history entries
+        const existingHistory = JSON.parse(localStorage.getItem('historyEntries')) || [];
+        
+        // Combine with new entries
+        const updatedHistory = [...existingHistory, ...historyEntries];
+        
+        // Update history state and localStorage
+        setHistoryEntries(updatedHistory);
+        localStorage.setItem('historyEntries', JSON.stringify(updatedHistory));
+
+        // Remove processed entries from manifest, only check delivery status
+        const remainingEntries = entries.filter(entry => 
+            entry.status !== 'Delivered'
+        );
+        setEntries(remainingEntries);
+        localStorage.setItem('entries', JSON.stringify(remainingEntries));
+
+        showBannerMessage('Entries processed to history successfully');
+
+        // After processing manifest entries, call the mission processing function
+        addMissionEntriesToPayouts();
+    };
+
+    const generateUUID = () => {
+        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+            const r = Math.random() * 16 | 0;
+            const v = c === 'x' ? r : (r & 0x3 | 0x8);
+            return v.toString(16);
+        });
+    };
+
+    const addMissionEntriesToPayouts = () => {
+        // Get all delivered mission entries
+        const deliveredMissionEntries = entries.filter(entry => 
+            entry.status === 'Delivered' && entry.isMissionEntry
+        );
+
+        console.log('Mission Processing:', {
+            allEntries: entries,
+            deliveredMissionEntries: deliveredMissionEntries,
+            entriesWithMissionFlag: entries.filter(e => e.isMissionEntry)
+        });
+
+        if (deliveredMissionEntries.length === 0) {
+            console.log('No mission entries to process');
+            return;
+        }
+
+        // Group entries by mission index
+        const entriesByMission = deliveredMissionEntries.reduce((acc, entry) => {
+            const missionIndex = entry.missionIndex;
+            if (!acc[missionIndex]) {
+                acc[missionIndex] = [];
+            }
+            acc[missionIndex].push(entry);
+            return acc;
+        }, {});
+
+        console.log('Grouped Mission Entries:', entriesByMission);
+
+        // Format entries for payouts
+        const formattedPayoutEntries = Object.entries(entriesByMission).map(([missionIndex, missionEntries]) => {
+            const missionId = generateUUID();
+            return missionEntries.map(entry => {
+                // Calculate delivery percentage
+                const current = Number(entry.currentAmount) || 0;
+                const original = Number(entry.originalAmount) || 0;
+                const deliveryPercentage = original > 0 ? ((current / original) * 100).toFixed(2) : '0';
+
+                return {
+                    id: generateUUID(),
+                    missionId: missionId,
+                    commodity: entry.commodity,
+                    amount: `${entry.currentAmount}/${entry.originalAmount}`,
+                    pickup: entry.pickup || entry.pickupPoint,
+                    dropOffPoint: entry.dropOffPoint,
+                    status: 'Completed',
+                    date: new Date().toISOString(),
+                    reward: missionRewards[`mission_${entry.missionIndex}`] || '0',
+                    missionIndex: entry.missionIndex,
+                    originalAmount: entry.originalAmount,
+                    currentAmount: entry.currentAmount,
+                    percentage: deliveryPercentage // Add percentage to payout entry
+                };
+            });
+        }).flat();
+
+        console.log('Formatted Payout Entries:', formattedPayoutEntries);
+
+        // Get existing payouts
+        const existingPayouts = JSON.parse(localStorage.getItem('payoutEntries')) || [];
+        console.log('Existing Payouts:', existingPayouts);
+        
+        // Combine with new entries
+        const updatedPayouts = [...existingPayouts, ...formattedPayoutEntries];
+        console.log('Updated Payouts:', updatedPayouts);
+        
+        // Update both localStorage AND state
+        localStorage.setItem('payoutEntries', JSON.stringify(updatedPayouts));
+        
+        // Call the parent component's setPayoutEntries to update state
+        if (typeof window.updatePayoutEntries === 'function') {
+            window.updatePayoutEntries(updatedPayouts);
+        }
+
+        // Update mission entries state
+        setMissionEntries(prevMissionEntries => {
+            const updatedMissionEntries = prevMissionEntries.map(mission => {
+                if (!mission) return mission;
+                return mission.filter(entry => !deliveredMissionEntries.find(de => de.id === entry.id));
+            });
+            localStorage.setItem('missionEntries', JSON.stringify(updatedMissionEntries));
+            return updatedMissionEntries;
+        });
+
+        showBannerMessage('Mission entries processed to payouts successfully');
+    };
 
     return (
         <div className="hauling-missions">
@@ -675,7 +837,7 @@ export const MissionSubTabHauling = ({
                     <button className="table-view-button" onClick={toggleTableView}>
                         {isAlternateTable ? 'Manifest' : 'Missions'}
                     </button>
-                    <button className="process-orders-button" onClick={processOrders}>Process Orders</button>
+                    <button className="process-orders-button" onClick={addToHistoryFromManifest}>Process Order</button>
                     <form onSubmit={(e) => e.preventDefault()}>
                         <button
                             type="button"
@@ -853,26 +1015,9 @@ export const MissionSubTabHauling = ({
                                     </thead>
                                     <tbody>
                                         {entries.filter(entry => entry.dropOffPoint === dropOffPoint).map((entry, index) => {
-                                            // --- Logging for each column ---
-                                            const pickupPresent = entry.pickup !== null && entry.pickup !== undefined && entry.pickup !== '';
-                                            const commodityPresent = entry.commodity !== null && entry.commodity !== undefined && entry.commodity !== '';
-                                            const amountPresent = entry.currentAmount !== null && entry.currentAmount !== undefined && entry.currentAmount !== '';
-                                            const actionsPresent = true; // Actions always exist (buttons)
-                                            const statusPresent = entry.status !== null && entry.status !== undefined && entry.status !== '';
-
-                                            console.log(`Manifest Entry Logging - Row ${index + 1} (${dropOffPoint}):`, {
-                                                pickup: entry.pickup,
-                                                pickupPresent,
-                                                commodity: entry.commodity,
-                                                commodityPresent,
-                                                amount: entry.currentAmount,
-                                                amountPresent,
-                                                actionsPresent, // No need to log the content, just presence
-                                                status: entry.status,
-                                                statusPresent,
-                                            });
-                                            // --- End Logging ---
-
+                                            // Calculate the absolute index in the entries array
+                                            const absoluteIndex = entries.findIndex(e => e.id === entry.id);
+                                            
                                             return (
                                             <tr key={index}>
                                                 <td className="pickup">{entry.pickup}</td>
@@ -886,18 +1031,18 @@ export const MissionSubTabHauling = ({
                                                         defaultValue={entry.currentAmount}
                                                         size="10"
                                                         onChange={(e) => {
-                                                            updateCargo(index, e.target.value);
+                                                            updateCargo(absoluteIndex, e.target.value);
                                                         }}
-                                                        onKeyPress={(e) => handleAmountKeyPress(e, index)}
+                                                        onKeyPress={(e) => handleAmountKeyPress(e, absoluteIndex)}
                                                     />
-                                                    <button onClick={() => updateCargo(index, entry.currentAmount)}>Update Cargo</button>
-                                                    <button className="remove-cargo-button" onClick={() => removeCargo(index)}>Remove Cargo</button>
+                                                    <button onClick={() => updateCargo(absoluteIndex, entry.currentAmount)}>Update Cargo</button>
+                                                    <button className="remove-cargo-button" onClick={() => removeCargo(absoluteIndex)}>Remove Cargo</button>
                                                 </td>
                                                 <td className="status">
                                                     <span 
                                                         onClick={() => {
                                                             const newStatus = entry.status === 'Pending' ? 'Delivered' : entry.status;
-                                                            toggleStatus(index, entry.dropOffPoint, newStatus);
+                                                            toggleStatus(absoluteIndex, entry.dropOffPoint, newStatus);
                                                         }}
                                                         style={{ 
                                                             cursor: 'pointer',

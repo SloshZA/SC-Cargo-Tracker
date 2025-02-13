@@ -176,7 +176,9 @@ const App = () => {
     const [isMission, setIsMission] = useState(false);
     const [entries, setEntries] = useState(() => {
         const savedEntries = localStorage.getItem('entries');
-        return savedEntries ? JSON.parse(savedEntries) : [];
+        const parsedEntries = savedEntries ? JSON.parse(savedEntries) : [];
+        console.log('Loaded entries from localStorage:', parsedEntries);
+        return parsedEntries;
     });
 
     const [historyEntries, setHistoryEntries] = useState(() => {
@@ -428,6 +430,7 @@ const App = () => {
     const handlePickupPointChange = (selectedOption) => {
         if (selectedOption) {
             const location = selectedOption.value;
+            console.log('Pickup point selected:', location);
             // Only validate if there's a location value
             if (location && location.trim() !== '') {
                 const validation = validatePickupPoint(location);
@@ -601,126 +604,6 @@ const App = () => {
             }
         };
     });
-
-    const processOrders = () => {
-        const completedEntries = entries.filter(entry => entry.status === 'Delivered');
-        
-        if (shouldLog(debugFlags, 'haulingMissions', 'processOrders')) {
-            DebugLogs.haulingMissions.processOrders.completedEntries(completedEntries);
-        }
-
-        if (completedEntries.length === 0) {
-            showBannerMessage('No completed orders to process.', false);
-            return;
-        }
-
-        // Group completed entries by mission
-        const missionGroups = {};
-        const nonMissionEntries = [];
-
-        completedEntries.forEach(entry => {
-            if (entry.isMissionEntry && entry.missionIndex !== undefined) {
-                if (!missionGroups[entry.missionIndex]) {
-                    missionGroups[entry.missionIndex] = {
-                        entries: [],
-                        reward: missionRewards[`mission_${entry.missionIndex}`] || '0'
-                    };
-                }
-                missionGroups[entry.missionIndex].entries.push(entry);
-            } else {
-                nonMissionEntries.push(entry);
-            }
-        });
-
-        // Add to history first
-        setHistoryEntries(prev => {
-            const newHistoryEntries = [
-                ...prev,
-                // Add non-mission entries to history
-                ...nonMissionEntries.map(entry => ({
-                    ...entry,
-                    date: new Date().toISOString(),
-                    currentAmount: entry.currentAmount,
-                    originalAmount: entry.originalAmount
-                })),
-                // Add mission entries to history
-                ...Object.entries(missionGroups).flatMap(([missionIndex, group]) => 
-                    group.entries.map(entry => ({
-                        ...entry,
-                        date: new Date().toISOString(),
-                        reward: group.reward,
-                        currentAmount: entry.currentAmount,
-                        originalAmount: entry.originalAmount
-                    }))
-                )
-            ];
-            localStorage.setItem('historyEntries', JSON.stringify(newHistoryEntries));
-            return newHistoryEntries;
-        });
-
-        // Move mission groups to payouts
-        Object.entries(missionGroups).forEach(([missionIndex, group]) => {
-            const missionId = crypto.randomBytes(16).toString('hex');
-            const formattedEntries = group.entries.map(entry => ({
-                id: crypto.randomBytes(16).toString('hex'),
-                missionId: missionId,
-                commodity: entry.commodity,
-                amount: entry.currentAmount && entry.originalAmount ? `${entry.currentAmount}/${entry.originalAmount}` : (entry.currentAmount || entry.amount),
-                pickup: entry.pickup || entry.pickupPoint,
-                dropOffPoint: entry.dropOffPoint,
-                status: 'Completed',
-                date: new Date().toISOString(),
-                reward: group.reward,
-                missionIndex: parseInt(missionIndex),
-                originalAmount: entry.originalAmount,
-                currentAmount: entry.currentAmount
-            }));
-
-            setPayoutEntries(prev => [...prev, ...formattedEntries]);
-        });
-
-        // Move non-mission entries to payouts
-        const formattedNonMissionEntries = nonMissionEntries.map(entry => ({
-            id: crypto.randomBytes(16).toString('hex'),
-            commodity: entry.commodity,
-            amount: entry.currentAmount && entry.originalAmount ? `${entry.currentAmount}/${entry.originalAmount}` : (entry.currentAmount || entry.amount),
-            pickup: entry.pickup || entry.pickupPoint,
-            dropOffPoint: entry.dropOffPoint,
-            status: 'Completed',
-            date: new Date().toISOString(),
-            originalAmount: entry.originalAmount,
-            currentAmount: entry.currentAmount
-        }));
-
-        setPayoutEntries(prev => [...prev, ...formattedNonMissionEntries]);
-
-        // Update localStorage for payouts
-        const updatedPayouts = [...payoutEntries, ...Object.values(missionGroups).flatMap(g => g.entries), ...formattedNonMissionEntries];
-        localStorage.setItem('payoutEntries', JSON.stringify(updatedPayouts));
-
-        // Remove processed entries from main entries
-        const remainingEntries = entries.filter(entry => entry.status !== 'Delivered');
-        setEntries(remainingEntries);
-        localStorage.setItem('entries', JSON.stringify(remainingEntries));
-
-        // Clear processed mission entries
-        const updatedMissionEntries = missionEntries.map(missionGroup => {
-            if (!missionGroup) return [];
-            return missionGroup.filter(entry => entry.status !== 'Delivered');
-        });
-        setMissionEntries(updatedMissionEntries);
-        localStorage.setItem('missionEntries', JSON.stringify(updatedMissionEntries));
-
-        // Clear processed mission rewards
-        const updatedRewards = { ...missionRewards };
-        Object.keys(missionGroups).forEach(missionIndex => {
-            delete updatedRewards[`mission_${missionIndex}`];
-        });
-        setMissionRewards(updatedRewards);
-        localStorage.setItem('missionRewards', JSON.stringify(updatedRewards));
-
-        showBannerMessage('Orders processed successfully!', true);
-    };
 
     const updateCargo = (index, newAmount) => {
         const updatedEntries = [...entries];
@@ -1248,6 +1131,7 @@ const App = () => {
 
         // Use the updated entries array for localStorage
         const updatedEntries = [...entries, ...formattedManifestEntries];
+        console.log('Storing entries in localStorage:', updatedEntries);
         localStorage.setItem('entries', JSON.stringify(updatedEntries));
 
         // Update mission rewards if available
@@ -1335,75 +1219,27 @@ const App = () => {
         }
     };
 
-    // Add these functions to the App component
-    const handleMoveToPayouts = (deliveredEntries) => {
-        if (!deliveredEntries || deliveredEntries.length === 0) {
-            showBannerMessage('No delivered entries to move', false);
-            return;
-        }
-
-        // Group entries by mission index
-        const entriesByMission = deliveredEntries.reduce((acc, entry) => {
-            const missionIndex = entry.missionIndex;
-            if (!acc[missionIndex]) {
-                acc[missionIndex] = [];
-            }
-            acc[missionIndex].push(entry);
-            return acc;
-        }, {});
-
-        // Format entries for payouts, keeping mission groups together
-        const formattedPayoutEntries = Object.entries(entriesByMission).map(([missionIndex, missionEntries]) => {
-            const missionId = crypto.randomBytes(16).toString('hex');
-            return missionEntries.map(entry => ({
-                id: crypto.randomBytes(16).toString('hex'),
-                missionId: missionId, // Add mission ID to group entries
-                commodity: entry.commodity,
-                amount: entry.currentAmount && entry.originalAmount ? `${entry.currentAmount}/${entry.originalAmount}` : (entry.currentAmount || entry.amount),
-                pickup: entry.pickup || entry.pickupPoint,
-                dropOffPoint: entry.dropOffPoint,
-                status: 'Completed',
-                date: new Date().toISOString(),
-                reward: missionRewards[`mission_${entry.missionIndex}`] || '0',
-                missionIndex: entry.missionIndex,
-                originalAmount: entry.originalAmount // Ensure originalAmount is passed
-            }));
-        }).flat();
-
-        // Add to payouts
-        setPayoutEntries(prev => [...prev, ...formattedPayoutEntries]);
-        
-        // Remove from mission entries
-        const newEntries = entries.filter(entry => entry.status !== 'Delivered');
-        setEntries(newEntries);
-
-        // Update localStorage
-        localStorage.setItem('payoutEntries', JSON.stringify([...payoutEntries, ...formattedPayoutEntries]));
-        localStorage.setItem('entries', JSON.stringify(newEntries));
-
-        showBannerMessage('Entries moved to payouts successfully!', true);
-    };
-
     const addEntry = () => {
         const amountValue = amountInputRef.current.value;
 
         // Check if amountValue is empty or zero
         if (!amountValue || amountValue <= 0) {
             showBannerMessage('Please enter a valid amount greater than 0.');
-            return; // Exit the function, preventing the entry from being added
+            return;
         }
 
-        // Remove the confirmation check for missions
         const newEntry = {
             id: crypto.randomBytes(16).toString('hex'),
             commodity: selectedCommodity,
             amount: amountValue,
             currentAmount: amountValue,
-            pickup: firstDropdownValue,
+            pickupPoint: firstDropdownValue,
             dropOffPoint: selectedDropOffPoint,
             status: 'Pending',
             timestamp: Date.now()
         };
+
+        console.log('New entry:', newEntry);
 
         // If a mission is selected, add the mission properties without confirmation
         const selectedMissionIndex = selectedMissions.findIndex(selected => selected);
@@ -1424,8 +1260,10 @@ const App = () => {
             localStorage.setItem('missionEntries', JSON.stringify(updatedMissionEntries));
         }
 
-        setEntries(prevEntries => [...prevEntries, newEntry]);
-        localStorage.setItem('entries', JSON.stringify([...entries, newEntry]));
+        const updatedEntries = [...entries, newEntry];
+        setEntries(updatedEntries);
+        console.log('Storing entries in localStorage:', updatedEntries);
+        localStorage.setItem('entries', JSON.stringify(updatedEntries));
 
         // Reset input fields
         amountInputRef.current.focus();
@@ -1565,33 +1403,9 @@ const App = () => {
         return headerRow + '\n' + dataRows.join('\n');
     }
 
-    // Assuming this is the code that sends the entries from the manifest table to the history table
-    const sendEntriesToHistory = (entries) => {
-        const historyEntries = entries.map(entry => {
-            const qtyString = `${entry.currentAmount}/${entry.originalAmount}`; // Create the combined string
-            return {
-                pickup: entry.pickup,
-                commodity: entry.commodity,
-                amount: qtyString, // Send the combined string as "amount"
-                dropOffPoint: entry.dropOffPoint,
-                status: entry.status,
-                date: new Date().toLocaleDateString(),
-                reward: entry.reward,
-                originalAmount: entry.originalAmount // Keep originalAmount for other calculations if needed
-            };
-        });
-
-        // Get existing history entries from local storage
-        const existingHistoryEntries = JSON.parse(localStorage.getItem('historyEntries')) || [];
-
-        // Add new history entries to existing entries
-        const updatedHistoryEntries = [...existingHistoryEntries, ...historyEntries];
-
-        // Save updated history entries to local storage
-        localStorage.setItem('historyEntries', JSON.stringify(updatedHistoryEntries));
-
-        // Update the history entries state
-        setHistoryEntries(updatedHistoryEntries);
+    // Add this near the top of your App component
+    window.updatePayoutEntries = (newPayouts) => {
+        setPayoutEntries(newPayouts);
     };
 
     return (
@@ -1658,7 +1472,6 @@ const App = () => {
                                 handleTopAmountKeyPress={handleTopAmountKeyPress}
                                 toggleCollapse={toggleCollapse}
                                 clearLog={clearLog}
-                                processOrders={processOrders}
                                 handlePlanetSelectChange={handlePlanetSelectChange}
                                 collapsed={collapsed}
                                 isAlternateTable={isAlternateTable}
@@ -1690,11 +1503,9 @@ const App = () => {
                                 moveDropOffPoint={moveDropOffPoint}
                                 markAsDelivered={markAsDelivered}
                                 toggleStatus={toggleStatus}
-                                setPayoutEntries={setPayoutEntries}
-                                handleMoveToPayouts={handleMoveToPayouts}
                                 calculateTotalSCU={calculateTotalSCU}
                                 amountInputRef={amountInputRef}
-                                sendEntriesToHistory={sendEntriesToHistory}
+                                setHistoryEntries={setHistoryEntries}
                             />
                         )}
                         {haulingSubTab === 'History' && (
