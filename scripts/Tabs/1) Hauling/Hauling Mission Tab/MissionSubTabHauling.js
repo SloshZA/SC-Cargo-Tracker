@@ -53,7 +53,7 @@ export const MissionSubTabHauling = ({
     handlePickupPointChange,
     handleQuickLookupChange,
     updateCargo,
-    removeCargo,
+    //const removeCargo = (index) => { // Remove duplicate declaration
     moveDropOffPoint,
     markAsDelivered,
     toggleStatus,
@@ -491,6 +491,33 @@ export const MissionSubTabHauling = ({
         showBannerMessage('Mission entries processed to payouts successfully');
     };
 
+    //const removeCargo = (index) => { // Remove duplicate declaration
+    const removeCargo = (index) => {
+        const entryToRemove = entries[index];
+        logProcessOrders(debugFlags, 'Removing cargo', { index, entry: entryToRemove });
+
+        setEntries(prevEntries => {
+            const updatedEntries = [...prevEntries];
+            updatedEntries.splice(index, 1);
+            localStorage.setItem('entries', JSON.stringify(updatedEntries));
+            return updatedEntries;
+        });
+
+        // Remove from missionEntries if it's a mission entry
+        if (entryToRemove.isMissionEntry) {
+            setMissionEntries(prev => {
+                const updated = prev.map(mission => {
+                    if (mission) {
+                        return mission.filter(entry => entry.id !== entryToRemove.id);
+                    }
+                    return mission;
+                });
+                localStorage.setItem('missionEntries', JSON.stringify(updated));
+                return updated;
+            });
+        }
+    };
+
     return (
         <div className="hauling-missions">
             
@@ -825,9 +852,18 @@ export const MissionSubTabHauling = ({
                         type="text"
                         className="amount-input"
                         ref={amountInputRef}
+                        onKeyDown={(e) => {
+                            if (e.key.toUpperCase() === nextMissionHotkey.toUpperCase() && autoMissionAllocation) {
+                                unlockMission();
+                            }
+                        }}
                         onKeyPress={(e) => {
                             if (e.key === 'Enter') {
                                 addEntry();
+                            }
+                            // Only allow numbers and prevent other characters
+                            if (!/^\d$/.test(e.key)) {
+                                e.preventDefault();
                             }
                         }}
                     />

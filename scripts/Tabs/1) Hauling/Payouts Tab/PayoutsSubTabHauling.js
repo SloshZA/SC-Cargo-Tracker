@@ -10,16 +10,44 @@ export const HaulingSubTabPayouts = ({ entries, setEntries }) => {
         }));
     };
 
+    // Helper function to find the next available mission index
+    const getNextAvailableMissionIndex = (date, missionGroups) => {
+        const existingMissionIndices = Object.keys(missionGroups).map(missionId => {
+            const match = missionId.match(/mission-(\d+)/);
+            return match ? parseInt(match[1]) : null;
+        }).filter(index => index !== null);
+
+        let nextIndex = 0;
+        while (existingMissionIndices.includes(nextIndex)) {
+            nextIndex++;
+        }
+        return nextIndex;
+    };
+
     // First group by date, then by mission ID
     const entriesByDateAndMission = entries.reduce((acc, entry) => {
         const date = new Date(entry.date || Date.now()).toLocaleDateString();
         if (!acc[date]) {
             acc[date] = {};
         }
-        if (!acc[date][entry.missionId]) {
-            acc[date][entry.missionId] = [];
+
+        // Check for duplicate mission numbers within the date
+        let missionIndex = entry.missionIndex;
+        let missionId = `mission-${missionIndex}`;
+        if (acc[date][missionId]) {
+            // Find the next available mission index
+            const nextAvailableIndex = getNextAvailableMissionIndex(date, acc[date]);
+            missionIndex = nextAvailableIndex;
+            missionId = `mission-${nextAvailableIndex}`;
+
+            // Update the entry with the new mission index
+            entry.missionIndex = missionIndex;
         }
-        acc[date][entry.missionId].push(entry);
+
+        if (!acc[date][missionId]) {
+            acc[date][missionId] = [];
+        }
+        acc[date][missionId].push(entry);
         return acc;
     }, {});
 
