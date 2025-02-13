@@ -410,12 +410,6 @@ export const MissionSubTabHauling = ({
             entry.status === 'Delivered' && entry.isMissionEntry
         );
 
-        console.log('Mission Processing:', {
-            allEntries: entries,
-            deliveredMissionEntries: deliveredMissionEntries,
-            entriesWithMissionFlag: entries.filter(e => e.isMissionEntry)
-        });
-
         if (deliveredMissionEntries.length === 0) {
             console.log('No mission entries to process');
             return;
@@ -435,6 +429,7 @@ export const MissionSubTabHauling = ({
 
         // Format entries for payouts
         const formattedPayoutEntries = Object.entries(entriesByMission).map(([missionIndex, missionEntries]) => {
+            // Generate a single missionId for the entire group
             const missionId = generateUUID();
             return missionEntries.map(entry => {
                 // Calculate delivery percentage
@@ -444,7 +439,7 @@ export const MissionSubTabHauling = ({
 
                 return {
                     id: generateUUID(),
-                    missionId: missionId,
+                    missionId: missionId, // Use the same missionId for all entries in this group
                     commodity: entry.commodity,
                     amount: `${entry.currentAmount}/${entry.originalAmount}`,
                     pickup: entry.pickup || entry.pickupPoint,
@@ -463,7 +458,7 @@ export const MissionSubTabHauling = ({
         console.log('Formatted Payout Entries:', formattedPayoutEntries);
 
         // Get existing payouts
-        const existingPayouts = JSON.parse(localStorage.getItem('payoutEntries')) || [];
+        const existingPayouts = JSON.parse(localStorage.getItem('payouts')) || [];
         console.log('Existing Payouts:', existingPayouts);
         
         // Combine with new entries
@@ -471,7 +466,7 @@ export const MissionSubTabHauling = ({
         console.log('Updated Payouts:', updatedPayouts);
         
         // Update both localStorage AND state
-        localStorage.setItem('payoutEntries', JSON.stringify(updatedPayouts));
+        localStorage.setItem('payouts', JSON.stringify(updatedPayouts));
         
         // Call the parent component's setPayoutEntries to update state
         if (typeof window.updatePayoutEntries === 'function') {

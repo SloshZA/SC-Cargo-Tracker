@@ -446,4 +446,13 @@ export const PreferencesTab = ({
             </div>
         </div>
     );
+
+};
+
+
+const clearHistoryLogDebug = () => {
+    localStorage.removeItem('payoutEntries');
+    localStorage.removeItem('historyEntries');
+    localStorage.removeItem('payouts');
+
 };

@@ -13,7 +13,6 @@ console.log('Script is running');
 const data = {
     planets: ['Arccorp', 'Crusader', 'Hurston', 'Microtech'],
     stations: [
-<<<<<<< HEAD
         '--Stations--',
         'Baijini Point','Everus Harbor','Grimm Hex','Magnus Gateway','Port Tressler','Pyro Gateway','Seraphim Station',
         '--Lagrange Stations--',
@@ -21,13 +20,6 @@ const data = {
         'CRU-L1 Ambitious Dream Station','CRU-L4 Shallow Fields Station','CRU-L5 Beautiful Glen Station',
         'HUR-L1 Green Glade Station','HUR-L2 Faithful Dream Station','HUR-L3 Thundering Express Station','HUR-L4 Melodic Fields Station','HUR-L5 High Course Station',
         'MIC-L1 Shallow Frontier Station','MIC-L2 Long Forest Station','MIC-L3 Endless Odyssey Station','MIC-L4 Red Crossroads Station','MIC-L5 Modern Icarus Station',
-=======
-        'Grimm Hex',
-        'Everus Harbor',
-        'Baijini Point',
-        'Seraphim Station',
-        'Port Tressler'
->>>>>>> parent of 3602d96 (update to file structure)
     ],
     Dropoffpoints: {
         Arccorp: ['--City--','Area 18'],
@@ -35,36 +27,15 @@ const data = {
         Hurston: [
             '--City--',//
             'Lorville',
-<<<<<<< HEAD
             '--Distribution Center--',
             'Covalex Distribution Centre S1DC06','Greycat Stanton 1 Production Complex-B','HDPC-Cassillo','HDPC-Farnesway','Sakura Sun Magnolia Workcenter'
-=======
-            '--Distribution Center--',//
-            'Covalex Distribution Centre S1DC06',
-            'Greycat Stanton 1 Production Complex-B',
-            'HDPC-Cassillo',
-            'HDPC-Farnesway',
-            'Sakura Sun Magnolia Workcenter'
->>>>>>> parent of 3602d96 (update to file structure)
         ],
         Microtech: [
             '--City--',
             'New Babbage',
             '--Distribution Center--',
-<<<<<<< HEAD
             'Covalex Distribution Center S4DC05','Greycat Stanton IV Production Complex-A','Sakura Sun Goldenrod Workcenter','microTech Logistics Depot S4LD01','microTech Logistics Depot S4LD13',
             'Shubin Mining Facility SM0-10','Shubin Mining Facility SM0-13','Shubin Mining Facility SM0-18','Shubin Mining Facility SM0-22'
-=======
-            'Covalex Distribution Centre S4DC05',
-            'Greycat Stanton IV Production Complex-A',
-            'Sakura Sun Goldenrod Workcenter',
-            'microTech Logistics Depot S4LD01',
-            'microTech Logistics Depot S4LD13',
-            'Shubin Mining Facility SM0-10',
-            'Shubin Mining Facility SM0-13',
-            'Shubin Mining Facility SM0-18',
-            'Shubin Mining Facility SM0-22'
->>>>>>> parent of 3602d96 (update to file structure)
         ]
     },
     moons: {
@@ -97,27 +68,12 @@ const data = {
         }
     },
     commodities: [
-<<<<<<< HEAD
         'Agricultural Supplies','Aluminum',
         'Carbon','Corundum (Raw)','Corundum',
-=======
-        'Aluminium',
-        'Carbon',
-        'Corundum',
-        'Processed Food',
-        'Pressurized ice',
-        'Quartz',
-        'Silicon',
-        'Stims',
-        'Tin',
-        'Titanium',
-        'Tungsten',
->>>>>>> parent of 3602d96 (update to file structure)
         'Hydrogen Fuel',
         'Pressurized ice','Processed Food',
         'Quantum Fuel','Quartz (Raw)','Quartz',
         'Scrap',
-<<<<<<< HEAD
         'Ship Ammunition',
         'Silicon (Raw)','Silicon','Stims',
         'Tin (Raw)','Tin',
@@ -139,58 +95,6 @@ const data = {
         'Covalex Distribution Center S4DC05','Covalex Distribution Centre S1DC06','Greycat Stanton I Production Complex-B','Greycat Stanton IV Production Complex-A',
         'HDPC-Cassillo','HDPC-Farnesway','microTech Logistics Depot S4LD01','microTech Logistics Depot S4LD13','Sakura Sun Goldenrod Workcenter','Sakura Sun Magnolia Workcenter',
         'Shubin Mining Facility SM0-10','Shubin Mining Facility SM0-13','Shubin Mining Facility SM0-18','Shubin Mining Facility SM0-22',
-=======
-        'Waste'
-    ],
-    pickupPoints: [
-        '--City--',
-        'Lorville',
-        'New Babbage',
-        'Area 18',
-        'Orison',
-        '--Station--',
-        'Grimm Hex',
-        'Everus Harbor',
-        'Baijini Point',
-        'Seraphim Station',
-        'Port Tressler',
-        '--Lagrange Station--',
-        'ARC-L1 Wide Forest Station',
-        'ARC-L2',
-        'ARC-L3',
-        'ARC-L4',
-        'ARC-L5',
-        'CRU-L1 Shallow Frontier Station',
-        'CRU-L2',
-        'CRU-L3',
-        'CRU-L4',
-        'CRU-L5',
-        'HUR-L1 Green Glade Station',
-        'HUR-L2',
-        'HUR-L3',
-        'HUR-L4',
-        'HUR-L5',
-        'MIC-L1 Shallow Frontier Station',
-        'MIC-L2',
-        'MIC-L3',
-        'MIC-L4',
-        'MIC-L5',
-        '--Distribution Center--',
-        'Covalex Distribution Centre S4DC05',
-        'Greycat Stanton IV Production Complex-A',
-        'Sakura Sun Goldenrod Workcenter',
-        'microTech Logistics Depot S4LD01',
-        'microTech Logistics Depot S4LD13',
-        'Shubin Mining Facility SM0-10',
-        'Shubin Mining Facility SM0-13',
-        'Shubin Mining Facility SM0-18',
-        'Shubin Mining Facility SM0-22',
-        'Covalex Distribution Centre S1DC06',
-        'Greycat Stanton 1 Production Complex-B',
-        'HDPC-Cassillo',
-        'HDPC-Farnesway',
-        'Sakura Sun Magnolia Workcenter',
->>>>>>> parent of 3602d96 (update to file structure)
         '--Outpost--',
         'ArcCorp Mining Area 045','ArcCorp Mining Area 048','ArcCorp Mining Area 056','ArcCorp Mining Area 061','ArcCorp Mining Area 141','ArcCorp Mining Area 157',
         'Benson Mining Outpost','Bountiful Harvest Hydroponics','Brios Breaker Yard',
@@ -207,7 +111,6 @@ const data = {
     ],
     quickLookup: [
         '--City--',
-<<<<<<< HEAD
         'Lorville','NB Int Spaceport','Area 18','Orison',
         '--Station--',
         'Grimm Hex','Everus Harbor','Baijini Point','Seraphim Station','Port Tressler','Pyro Gateway','Magnus Gateway',
@@ -220,54 +123,6 @@ const data = {
         'Covalex Distribution Center S4DC05','Covalex Distribution Centre S1DC06','Greycat Stanton I Production Complex-B','Greycat Stanton IV Production Complex-A',
         'HDPC-Cassillo','HDPC-Farnesway','microTech Logistics Depot S4LD01','microTech Logistics Depot S4LD13','Sakura Sun Goldenrod Workcenter','Sakura Sun Magnolia Workcenter',
         'Shubin Mining Facility SM0-10','Shubin Mining Facility SM0-13','Shubin Mining Facility SM0-18','Shubin Mining Facility SM0-22',
-=======
-        'Lorville',
-        'New Babbage',
-        'Area 18',
-        'Orison',
-        '--Station--',
-        'Grimm Hex',
-        'Everus Harbor',
-        'Baijini Point',
-        'Seraphim Station',
-        'Port Tressler',
-        '--Lagrange Station--',
-        'ARC-L1 Wide Forest Station',
-        'ARC-L2',
-        'ARC-L3',
-        'ARC-L4',
-        'ARC-L5',
-        'CRU-L1 Shallow Frontier Station',
-        'CRU-L2',
-        'CRU-L3',
-        'CRU-L4',
-        'CRU-L5',
-        'HUR-L1 Green Glade Station',
-        'HUR-L2',
-        'HUR-L3',
-        'HUR-L4',
-        'HUR-L5',
-        'MIC-L1 Shallow Frontier Station',
-        'MIC-L2',
-        'MIC-L3',
-        'MIC-L4',
-        'MIC-L5',
-        '--Distribution Center--',
-        'Covalex Distribution Centre S4DC05',
-        'Greycat Stanton IV Production Complex-A',
-        'Sakura Sun Goldenrod Workcenter',
-        'microTech Logistics Depot S4LD01',
-        'microTech Logistics Depot S4LD13',
-        'Shubin Mining Facility SM0-10',
-        'Shubin Mining Facility SM0-13',
-        'Shubin Mining Facility SM0-18',
-        'Shubin Mining Facility SM0-22',
-        'Covalex Distribution Centre S1DC06',
-        'Greycat Stanton 1 Production Complex-B',
-        'HDPC-Cassillo',
-        'HDPC-Farnesway',
-        'Sakura Sun Magnolia Workcenter',
->>>>>>> parent of 3602d96 (update to file structure)
         '--Outpost--',
         'ArcCorp Mining Area 045','ArcCorp Mining Area 048','ArcCorp Mining Area 056','ArcCorp Mining Area 061','ArcCorp Mining Area 141','ArcCorp Mining Area 157',
         'Benson Mining Outpost','Bountiful Harvest Hydroponics','Brios Breaker Yard',
@@ -752,7 +607,6 @@ const App = () => {
         setSelectedPlanet(selectedOption ? selectedOption.value : '');
         setSelectedMoon('');
         setSelectedDropOffPoint('');
-<<<<<<< HEAD
         setSecondDropdownValue('');
     };
 
@@ -1984,9 +1838,6 @@ const App = () => {
             localStorage.setItem('entries', JSON.stringify(newEntries));
             return newEntries;
         });
-=======
-        setSecondDropdownValue(''); // Clear quick lookup
->>>>>>> parent of 3602d96 (update to file structure)
     };
 
     return (

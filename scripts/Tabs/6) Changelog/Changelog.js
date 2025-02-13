@@ -5,6 +5,14 @@ export const ChangelogTab = () => {
         <div className="changelog">
             <div className="changelog-container">
                 <div className="changelog-entry">
+                <h3>Apologies for the issues</h3>
+                    <ul>
+                        <li>issues with the tables not dispalying properly or entries not being processed</li>
+                        <li>This ithe outcome of being lazy and tried then asking Deepseek to change a class name and bam he changed 4 table names and duplicated some functions and renamed them aswell took me awhile to find all the mistakes made and some tables i jsut scraped and re did because im pretty sure theres code in here that does nothing. busy going through all the files and code.</li>
+                        <li>Made some fixes for the tables by just remaking them hopefully these changes work i ran a few tests but knowing this cluster duck, its gonna take some time to fix te last few things, worst issue was it added a new payout and history local storage table and renamed it to Entries Q_Q...</li>
+                        <li>Other than the above rant sorry for the past few days of issues and thanks for your patience.</li>
+                    </ul>
+
                     <h3>Version 1.6.1</h3>
                     <h4>Hotfix</h4>
                     <ul>
