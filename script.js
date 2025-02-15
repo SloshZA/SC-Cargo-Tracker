@@ -135,9 +135,9 @@ const App = () => {
     const [isAutoScaling, setIsAutoScaling] = useState(true);
     const [hasEntries, setHasEntries] = useState(false);
     const [bannerMessage, setBannerMessage] = useState('');
-    const [captureDebugMode, setCaptureDebugMode] = useState(() => {
+    const [debugMode, setDebugMode] = useState(() => {
         // Ensure debug mode is off on page load
-        localStorage.setItem('captureDebugMode', 'false');
+        localStorage.setItem('debugMode', 'false');
         return false;
     });
     const [payoutEntries, setPayoutEntries] = useState(() => {
@@ -164,10 +164,10 @@ const App = () => {
         setCargoHoldSubTab(tab);
     };
 
-    // Add this useEffect for captureDebugMode
+    // Add this useEffect for debugMode
     useEffect(() => {
-        localStorage.setItem('captureDebugMode', JSON.stringify(captureDebugMode));
-    }, [captureDebugMode]);
+        localStorage.setItem('debugMode', JSON.stringify(debugMode));
+    }, [debugMode]);
 
     const [locationType, setLocationType] = useState('planet');
     const [selectedPlanet, setSelectedPlanet] = useState('');
@@ -1047,112 +1047,161 @@ const App = () => {
         localStorage.setItem('entries', JSON.stringify(updatedEntries));
     };
 
-    const addOCRToManifest = (entries) => {
+    const addOCRToManifest = (entries, { missionIndex, reward, missionId } = {}) => {
+        console.log('\n=== Starting OCR to Manifest Process ===');
+        console.log('Input:', { entries, missionIndex, reward, missionId });
+    
         if (!entries || entries.length === 0) {
+            console.log('No valid entries to add');
             showBannerMessage('No valid entries to add', false);
             return;
         }
-
-        const newMissionEntries = [...missionEntries];
-        let currentMissionIndex = 0;
-
-        // Find the first empty mission slot.  Corrected loop condition:
-        while (currentMissionIndex < newMissionEntries.length &&
-               (newMissionEntries[currentMissionIndex] !== null && newMissionEntries[currentMissionIndex].length > 0)) {
-            currentMissionIndex++;
+    
+        // Check if this mission already exists
+        const existingMissionGroup = missionEntries.find(group => 
+            group && group.length > 0 && group[0].missionId === missionId
+        );
+    
+        if (existingMissionGroup) {
+            console.log('Mission already exists:', missionId);
+            showBannerMessage('Mission already added to manifest', false);
+            return;
         }
-
-        // If we've reached the end of the array, and *all* slots are full,
-        // we need to *extend* the array.  The original code didn't handle
-        // running out of slots.
-        if (currentMissionIndex >= newMissionEntries.length) {
-            // Extend the array with a new, empty mission slot.
-            newMissionEntries.push([]);
-        }
-
-        if (shouldLog(debugFlags, 'haulingMissions', 'statusChanges')) {
-            console.log('📥 Adding OCR Entries:', {
-                entriesCount: entries.length,
-                missionIndex: currentMissionIndex
+    
+        // Format entries with rewards and mission ID
+        const formatEntries = (entries, entryIds) => entries.map((entry, index) => {
+            const entryReward = entry.reward || reward || '0';
+            console.log('Formatting entry with reward:', { entry, entryReward });
+            
+            return {
+                id: entryIds[index],
+                commodity: entry.commodity,
+                amount: entry.quantity,
+                currentAmount: entry.quantity,
+                originalAmount: entry.quantity,
+                pickup: entry.pickup,
+                dropOffPoint: entry.dropoff,
+                status: 'Pending',
+                isMissionEntry: true,
+                missionIndex: missionIndex,
+                missionId: missionId, // Add mission ID to each entry
+                reward: entryReward
+            };
+        });
+    
+        // Create new mission entries
+        const entryIds = entries.map(() => crypto.randomBytes(16).toString('hex'));
+        const formattedManifestEntries = formatEntries(entries, entryIds);
+    
+        // Update mission entries
+        setMissionEntries(prev => {
+            const updated = [...prev];
+            // Ensure array is long enough
+            while (updated.length <= missionIndex) {
+                updated.push(null);
+            }
+            updated[missionIndex] = formattedManifestEntries;
+            console.log('Updated mission entries:', updated);
+            localStorage.setItem('missionEntries', JSON.stringify(updated));
+            return updated;
+        });
+    
+        // Update main entries
+        setEntries(prev => {
+            const updated = [...prev, ...formattedManifestEntries];
+            console.log('Updated manifest entries:', updated);
+            localStorage.setItem('entries', JSON.stringify(updated));
+            return updated;
+        });
+    
+        // Update mission rewards
+        if (reward) {
+            setMissionRewards(prev => {
+                const updated = {
+                    ...prev,
+                    [`mission_${missionIndex}`]: reward
+                };
+                console.log('Updated mission rewards:', updated);
+                localStorage.setItem('missionRewards', JSON.stringify(updated));
+                return updated;
             });
         }
-
-        // Generate IDs first to ensure they match between manifest and mission entries
-        const entryIds = entries.map(() => crypto.randomBytes(16).toString('hex'));
-
-        // Format entries for hauling manifest table with proper indexing
-        const formattedManifestEntries = entries.map((entry, index) => ({
-            id: entryIds[index], // Use pre-generated ID
-            commodity: entry.commodity,
-            amount: entry.quantity,
-            currentAmount: entry.quantity,
-            originalAmount: entry.quantity,
-            pickup: entry.pickup,
-            dropOffPoint: entry.dropoff,
-            status: 'Pending',
-            isMissionEntry: true,
-            missionIndex: currentMissionIndex
-        }));
-
-        if (shouldLog(debugFlags, 'haulingMissions', 'statusChanges')) {
-            console.log('✨ Formatted Manifest Entries:', formattedManifestEntries);
-        }
-
-        // Format entries for mission table with proper indexing
-        const formattedMissionEntries = entries.map((entry, index) => ({
-            id: entryIds[index], // Use same ID as manifest entry
-            commodity: entry.commodity,
-            originalAmount: entry.quantity,
-            currentAmount: entry.quantity,
-            amount: entry.quantity,
-            pickup: entry.pickup,
-            dropOffPoint: entry.dropoff,
-            status: 'Pending',
-            isMissionEntry: true,
-            missionIndex: currentMissionIndex
-        }));
-
-        if (shouldLog(debugFlags, 'haulingMissions', 'statusChanges')) {
-            console.log('✨ Formatted Mission Entries:', formattedMissionEntries);
-            console.log('🔄 ID Verification:', formattedManifestEntries.map((entry, i) => ({
-                manifestId: entry.id,
-                missionId: formattedMissionEntries[i].id,
-                match: entry.id === formattedMissionEntries[i].id
-            })));
-        }
-
-        // Update mission entries
-        newMissionEntries[currentMissionIndex] = formattedMissionEntries;
-        setMissionEntries(newMissionEntries);
-        localStorage.setItem('missionEntries', JSON.stringify(newMissionEntries));
-
-        // Update hauling manifest entries
-        setEntries(prev => [...prev, ...formattedManifestEntries]);
-
-        // Use the updated entries array for localStorage
-        const updatedEntries = [...entries, ...formattedManifestEntries];
-        console.log('Storing entries in localStorage:', updatedEntries);
-        localStorage.setItem('entries', JSON.stringify(updatedEntries));
-
-        // Update mission rewards if available
-        const firstEntryWithReward = entries.find(entry => entry.reward);
-        if (firstEntryWithReward?.reward) {
-            const cleanReward = firstEntryWithReward.reward.toString().replace(/[^\d]/g, '');
-            if (shouldLog(debugFlags, 'haulingMissions', 'statusChanges')) {
-                console.log('💰 Setting Mission Reward:', {
-                    missionIndex: currentMissionIndex,
-                    reward: cleanReward
-                });
-            }
-
-            const updatedRewards = { ...missionRewards };
-            updatedRewards[`mission_${currentMissionIndex}`] = cleanReward;
-            setMissionRewards(updatedRewards);
-            localStorage.setItem('missionRewards', JSON.stringify(updatedRewards));
-        }
-
-        showBannerMessage('Mission added successfully!', true);
+    
+        console.log('=== Finished OCR to Manifest Process ===\n');
+        return missionIndex;
     };
+    
+    // Update process orders function
+    const handleMoveToPayouts = (deliveredEntries) => {
+        console.log('\n=== Starting Process Orders ===');
+        console.log('Processing entries:', deliveredEntries);
+    
+        if (!deliveredEntries || deliveredEntries.length === 0) {
+            console.log('No entries to process');
+            showBannerMessage('No delivered entries to move', false);
+            return;
+        }
+    
+        // Group entries by mission
+        const entriesByMission = deliveredEntries.reduce((acc, entry) => {
+            if (entry.missionIndex !== undefined) {
+                const missionKey = `mission_${entry.missionIndex}`;
+                if (!acc[missionKey]) {
+                    acc[missionKey] = {
+                        entries: [],
+                        reward: missionRewards[missionKey]
+                    };
+                }
+                acc[missionKey].entries.push(entry);
+            }
+            return acc;
+        }, {});
+    
+        console.log('Grouped entries by mission:', entriesByMission);
+    
+        // Format entries for payouts
+        const formattedPayoutEntries = Object.entries(entriesByMission).flatMap(([missionKey, { entries, reward }]) => {
+            const missionId = crypto.randomBytes(16).toString('hex');
+            console.log(`Processing mission ${missionKey} with reward:`, reward);
+    
+            return entries.map(entry => ({
+                id: crypto.randomBytes(16).toString('hex'),
+                missionId: missionId,
+                commodity: entry.commodity,
+                amount: `${entry.currentAmount}/${entry.originalAmount}`,
+                pickup: entry.pickup || entry.pickupPoint,
+                dropOffPoint: entry.dropOffPoint,
+                status: 'Completed',
+                date: new Date().toISOString(),
+                reward: reward || '0',
+                missionIndex: entry.missionIndex,
+                originalAmount: entry.originalAmount
+            }));
+        });
+    
+        console.log('Formatted payout entries:', formattedPayoutEntries);
+    
+        // Update payouts state and localStorage
+        setPayoutEntries(prev => {
+            const updated = [...prev, ...formattedPayoutEntries];
+            console.log('Updated payouts:', updated);
+            localStorage.setItem('payoutEntries', JSON.stringify(updated));
+            return updated;
+        });
+    
+        // Remove processed entries
+        setEntries(prev => {
+            const remaining = prev.filter(entry => entry.status !== 'Delivered');
+            console.log('Remaining entries:', remaining);
+            localStorage.setItem('entries', JSON.stringify(remaining));
+            return remaining;
+        });
+    
+        console.log('=== Finished Process Orders ===\n');
+        showBannerMessage('Entries processed to payouts successfully', true);
+    };
+    
+    // ...existing code...
 
     const showBannerMessage = (message, isSuccess = true) => {
         const banner = document.createElement('div');
@@ -1196,10 +1245,10 @@ const App = () => {
     };
 
     // Add with other handlers
-    const handleCaptureDebugMode = () => {
-        setCaptureDebugMode(prev => {
+    const handleDebugMode = () => {
+        setDebugMode(prev => {
             const newValue = !prev;
-            localStorage.setItem('captureDebugMode', JSON.stringify(newValue));
+            localStorage.setItem('debugMode', JSON.stringify(newValue));
             showBannerMessage(
                 `Debug mode ${newValue ? 'enabled' : 'disabled'}`,
                 true
@@ -1403,9 +1452,33 @@ const App = () => {
         return headerRow + '\n' + dataRows.join('\n');
     }
 
-    // Add this near the top of your App component
-    window.updatePayoutEntries = (newPayouts) => {
-        setPayoutEntries(newPayouts);
+    // Assuming this is the code that sends the entries from the manifest table to the history table
+    const sendEntriesToHistory = (entries) => {
+        const historyEntries = entries.map(entry => {
+            const qtyString = `${entry.currentAmount}/${entry.originalAmount}`; // Create the combined string
+            return {
+                pickup: entry.pickup,
+                commodity: entry.commodity,
+                amount: qtyString, // Send the combined string as "amount"
+                dropOffPoint: entry.dropOffPoint,
+                status: entry.status,
+                date: new Date().toLocaleDateString(),
+                reward: entry.reward,
+                originalAmount: entry.originalAmount // Keep originalAmount for other calculations if needed
+            };
+        });
+
+        // Get existing history entries from local storage
+        const existingHistoryEntries = JSON.parse(localStorage.getItem('historyEntries')) || [];
+
+        // Add new history entries to existing entries
+        const updatedHistoryEntries = [...existingHistoryEntries, ...historyEntries];
+
+        // Save updated history entries to local storage
+        localStorage.setItem('historyEntries', JSON.stringify(updatedHistoryEntries));
+
+        // Update the history entries state
+        setHistoryEntries(updatedHistoryEntries);
     };
 
     return (
@@ -1443,8 +1516,10 @@ const App = () => {
                                 hasEntries={hasEntries}
                                 setHasEntries={setHasEntries}
                                 locationCorrections={locationCorrections}
-                                captureDebugMode={captureDebugMode}
+                                debugMode={debugMode}
                                 debugFlags={debugFlags}
+                                missionEntries={missionEntries}        // Add these
+                                setMissionEntries={setMissionEntries} // two props
                             />
                         )}
                         {haulingSubTab === 'Hauling Missions' && (
@@ -1503,8 +1578,11 @@ const App = () => {
                                 moveDropOffPoint={moveDropOffPoint}
                                 markAsDelivered={markAsDelivered}
                                 toggleStatus={toggleStatus}
+                                setPayoutEntries={setPayoutEntries}
+                                handleMoveToPayouts={handleMoveToPayouts}
                                 calculateTotalSCU={calculateTotalSCU}
                                 amountInputRef={amountInputRef}
+                                sendEntriesToHistory={sendEntriesToHistory}
                                 setHistoryEntries={setHistoryEntries}
                             />
                         )}
@@ -1544,7 +1622,7 @@ const App = () => {
                         missionTextColor={missionTextColor}
                         tableOutlineColor={tableOutlineColor}
                         selectedFont={selectedFont}
-                        captureDebugMode={captureDebugMode}
+                        debugMode={debugMode}
                         needsHistoryClearConfirmation={needsHistoryClearConfirmation}
                         setDropdownLabelColor={setDropdownLabelColor}
                         setDropdownTextColor={setDropdownTextColor}
@@ -1556,7 +1634,7 @@ const App = () => {
                         setMissionTextColor={setMissionTextColor}
                         setTableOutlineColor={setTableOutlineColor}
                         setSelectedFont={setSelectedFont}
-                        handleCaptureDebugMode={handleCaptureDebugMode}
+                        handleDebugMode={handleDebugMode}
                         handleImport={handleImport}
                         handleExport={handleExport}
                         clearHistoryLogDebug={clearHistoryLogDebug}
@@ -1593,14 +1671,14 @@ const App = () => {
                         )}
                     </>
                 )}
-                {mainTab === 'Debug Options' && captureDebugMode && (
+                {mainTab === 'Debug Options' && debugMode && (
                     <DebugOptions 
                         debugFlags={debugFlags}
                         setDebugFlags={setDebugFlags}
                     />
                 )}
             </div>
-            {showDebugPopup && captureDebugMode && (
+            {showDebugPopup && debugMode && (
                 <div 
                     className="debug-popup"
                     style={{
@@ -1631,7 +1709,7 @@ const App = () => {
                 </div>
             )}
             <TooltipPopup {...tooltip} />
-            {captureDebugMode && (
+            {debugMode && (
                 <div className="debug-options-box">
                     <div className="tab" onClick={() => handleMainTabChange('Debug Options')}>
                         Debug Options

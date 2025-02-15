@@ -6,6 +6,7 @@ import { findClosestMatch, validateOCRData, processOCRText, validateOCREntries }
 import { logOCRProcess, logOCRError, logOCRProgress, logOCRResults } from '../../7) Debug Options/OCRDebugLogs';
 import { logStreamOperation, logStreamResolution, logSelectionBox, logSelectionBoxUpdate, logLoadedSelectionBox } from '../../7) Debug Options/StreamDebugLogs';
 import '../../../../styles/Tabs/1) Hauling/Capture Tab/CaptureSubTabHauling.css';
+const crypto = require('crypto');
 
 const CaptureSubTabHauling = ({
     data,
@@ -13,9 +14,10 @@ const CaptureSubTabHauling = ({
     showBannerMessage,
     hasEntries,
     setHasEntries,
-    locationCorrections,
     captureDebugMode,
-    debugFlags
+    debugFlags,
+    missionEntries,
+    setMissionEntries  // Add these props
 }) => {
     // State variables
     const [useVideoStream, setUseVideoStream] = useState(false);
@@ -70,17 +72,20 @@ const CaptureSubTabHauling = ({
 
     const handleMouseDown = (e) => {
         if (!useVideoStream || !videoRef.current) return;
+        
+        const rect = videoRef.current.getBoundingClientRect();
+        if (!rect.width || !rect.height) return;
+        
         setIsDrawing(true);
-        const rect = e.currentTarget.getBoundingClientRect();
         const scaleX = videoRef.current.videoWidth / rect.width;
         const scaleY = videoRef.current.videoHeight / rect.height;
         
-        const startX = (e.clientX - rect.left) * scaleX;
-        const startY = (e.clientY - rect.top) * scaleY;
+        const startX = Math.max(0, (e.clientX - rect.left) * scaleX);
+        const startY = Math.max(0, (e.clientY - rect.top) * scaleY);
         
         const newBox = {
-            startX: startX,
-            startY: startY,
+            startX,
+            startY,
             endX: startX,
             endY: startY
         };
@@ -91,53 +96,60 @@ const CaptureSubTabHauling = ({
 
     const handleMouseMove = (e) => {
         if (!isDrawing || !useVideoStream || !videoRef.current) return;
-        const rect = e.currentTarget.getBoundingClientRect();
+        
+        const rect = videoRef.current.getBoundingClientRect();
+        if (!rect.width || !rect.height) return;
+        
         const scaleX = videoRef.current.videoWidth / rect.width;
         const scaleY = videoRef.current.videoHeight / rect.height;
         
-        const currentX = (e.clientX - rect.left) * scaleX;
-        const currentY = (e.clientY - rect.top) * scaleY;
+        const currentX = Math.max(0, Math.min((e.clientX - rect.left) * scaleX, videoRef.current.videoWidth));
+        const currentY = Math.max(0, Math.min((e.clientY - rect.top) * scaleY, videoRef.current.videoHeight));
         
+        // Get current selection box before update
         const updatedBox = {
             ...selectionBox,
             endX: currentX,
             endY: currentY
         };
         
-        setSelectionBox(updatedBox);
+        // Log the update with the new box
         logSelectionBoxUpdate(captureDebugMode, debugFlags, updatedBox, 'mousemove');
+        
+        // Update state with new box
+        setSelectionBox(updatedBox);
     };
 
     const handleMouseUp = async () => {
         setIsDrawing(false);
         if (!selectionBox || !videoRef.current) return;
-
-        // Save selection box as percentages of window size
-        const relativeBox = {
-            startX: (selectionBox.startX / videoRef.current.videoWidth) * 100,
-            startY: (selectionBox.startY / videoRef.current.videoHeight) * 100,
-            endX: (selectionBox.endX / videoRef.current.videoWidth) * 100,
-            endY: (selectionBox.endY / videoRef.current.videoHeight) * 100
-        };
         
-        logSelectionBox(captureDebugMode, debugFlags, relativeBox);
-        setSavedSelectionBox(relativeBox);
-        localStorage.setItem('captureSelectionBox', JSON.stringify(relativeBox));
-
+        // Ensure selection box dimensions are valid
+        const width = Math.abs(selectionBox.endX - selectionBox.startX);
+        const height = Math.abs(selectionBox.endY - selectionBox.startY);
+        
+        if (width < 1 || height < 1) {
+            console.log('Selection box too small');
+            return;
+        }
+        
         try {
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
             
-            canvas.width = Math.abs(selectionBox.endX - selectionBox.startX);
-            canvas.height = Math.abs(selectionBox.endY - selectionBox.startY);
+            canvas.width = width;
+            canvas.height = height;
             
+            // Draw only the selected region
             ctx.drawImage(
                 videoRef.current,
                 Math.min(selectionBox.startX, selectionBox.endX),
                 Math.min(selectionBox.startY, selectionBox.endY),
-                canvas.width,
-                canvas.height,
-                0, 0, canvas.width, canvas.height
+                width,
+                height,
+                0, 0,
+                width,
+                height
             );
             
             const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
@@ -156,31 +168,62 @@ const CaptureSubTabHauling = ({
                 return;
             }
 
-            const newResults = parseOCRResults(rawOcrText);
+            const newResults = parseOCRResults(rawOcrText, false); // Pass false to skip reward extraction
             console.log('Parsed OCR results:', newResults);
-                    
+
             if (newResults && newResults.length > 0) {
-                // Add reward to mission group
+                const nextMissionIndex = ocrMissionGroups.length;
+                const reward = extractReward(rawOcrText);
+
+                if (captureDebugMode) {
+                    console.log('Adding new mission group:', {
+                        index: nextMissionIndex,
+                        entries: newResults,
+                        reward: reward,
+                        currentGroups: ocrMissionGroups
+                    });
+                }
+
+                // Update mission groups
                 setOcrMissionGroups(prev => {
-                    const newIndex = prev.length;
-                    return [...prev, newResults];
+                    // Create a new array with all previous missions
+                    const updated = [...prev];
+                    // Add new mission group
+                    updated.push(newResults);
+                    return updated;
                 });
 
-                // Add reward to mission rewards
-                const reward = newResults[0]?.reward;
+                // Update mission rewards
                 if (reward) {
                     setOcrMissionRewards(prev => ({
                         ...prev,
-                        [ocrMissionGroups.length]: reward
+                        [nextMissionIndex]: reward
                     }));
                 }
-                
+
+                // Also update OCR results for tracking
+                setCurrentParsedResults(newResults);
                 setOcrResults(prev => [...prev, ...newResults]);
-                showBannerMessage('OCR capture successful! Mission group created.', true);
-            } else {
-                showBannerMessage('No valid mission data found in OCR text.', false);
+                setOcrCaptureHistory(prev => [...prev, newResults]);
+                setHasEntries(true);
+
+                showBannerMessage(`Mission group ${nextMissionIndex + 1} created successfully!`, true);
             }
 
+            showBannerMessage('OCR capture successful! Mission group created.', true);
+
+            // Save selection box to local storage
+            const rect = videoRef.current.getBoundingClientRect();
+            const scaleX = videoRef.current.videoWidth / rect.width;
+            const scaleY = videoRef.current.videoHeight / rect.height;
+            const savedBox = {
+                startX: (Math.min(selectionBox.startX, selectionBox.endX) / scaleX) * 100,
+                startY: (Math.min(selectionBox.startY, selectionBox.endY) / scaleY) * 100,
+                endX: (Math.max(selectionBox.startX, selectionBox.endX) / scaleX) * 100,
+                endY: (Math.max(selectionBox.startY, selectionBox.endY) / scaleY) * 100
+            };
+            localStorage.setItem('captureSelectionBox', JSON.stringify(savedBox));
+            setSavedSelectionBox(savedBox);
         } catch (error) {
             console.error('Error in handleMouseUp:', error);
             showBannerMessage('Error capturing text. Please check box size and location.', false);
@@ -238,7 +281,7 @@ const CaptureSubTabHauling = ({
 
             logOCRProcess(captureDebugMode, debugFlags, 'Raw OCR text:', text);
             
-            // Extract reward regardless of progress
+            // Extract reward first
             const reward = extractReward(text);
             if (reward) {
                 logOCRProcess(captureDebugMode, debugFlags, 'Found reward:', reward);
@@ -246,15 +289,14 @@ const CaptureSubTabHauling = ({
 
             const cleanedText = text.replace(/[.,]/g, '');
             
-            const parsedResults = parseOCRResults(cleanedText);
+            // Don't validate here, just parse
+            const parsedResults = parseOCRResults(cleanedText, false);
             logOCRProcess(captureDebugMode, debugFlags, 'Parsed OCR results:', parsedResults);
             
-            const hasValidEntries = validateOCREntries(parsedResults, data);
-
-            if (hasValidEntries) {
+            // Check if we have any parsed results
+            if (parsedResults && parsedResults.length > 0) {
                 logOCRProcess(captureDebugMode, debugFlags, 'Valid entries found:', parsedResults);
                 showBannerMessage('OCR capture successful!', true);
-                logOCRResults(captureDebugMode, debugFlags, text, parsedResults, hasValidEntries);
                 return cleanedText;
             } else {
                 logOCRProcess(captureDebugMode, debugFlags, 'No valid mission data found in:', cleanedText);
@@ -271,91 +313,118 @@ const CaptureSubTabHauling = ({
         }
     };
 
-    const parseOCRResults = (text) => {
+    const parseOCRResults = (text, shouldExtractReward = true) => {
         const processedText = processOCRText(text, locationCorrections);
         const lines = processedText.split('\n').filter(line => line.trim() !== '');
-        const results = [];
+        
+        if (captureDebugMode) {
+            console.log('Processing OCR lines:', lines);
+        }
+    
+        const commodityEntries = {};
         let currentCommodity = null;
         let currentPickup = null;
         let currentDropoff = null;
-
-        const collectPattern = /Collect\s+([\w\s]+?)\s+from/i;
-        const pickupPattern = /from\s+(.+)/i;
-        const dropoffPattern = /To\s+(.+)/i;
-        const deliverPattern = /Deliver\s+(\d+\s*\/\s*\d+)/i;
-        const specialCommodityPattern = /(Ship|Quantum)\s+([\w\s]+?)\s+from/i;
-        const rawMaterialPattern = /(Corundum|Quartz|Silicon|Tin|Titanium|Tungsten)\s+\(Raw\)/i;
-
-        const commodityEntries = {};
-
+    
+        // Modified patterns to be more forgiving
+        const collectPattern = /(?:Collect|O Collect)\s+([\w\s]+?)(?:\s+from|\s*$)/i;
+        const pickupPattern = /(?:from|at)\s+([^.]+?)(?:\.|\s*$)/i;
+        const dropoffPattern = /(?:To|Deliver to|Deliver\s+(?:\d+\/\d+\s+)?SCU\s+to)\s+([^.]+?)(?:\.|\s*$)/i;
+        const deliverPattern = /(?:Deliver|Quantity|SCU)\s*:?\s*(\d+\s*\/\s*\d+)/i;
+        const pickupLocationPattern = /(?:Port\s+Tressler|Area\s+18|Orison|Lorville|New\s+Babbage)/i;
+    
         for (let i = 0; i < lines.length; i++) {
-            const line = lines[i];
+            const line = lines[i].trim();
             
-            const specialCommodityMatch = line.match(specialCommodityPattern);
-            if (specialCommodityMatch) {
-                currentCommodity = `${specialCommodityMatch[1]} ${specialCommodityMatch[2].trim()}`;
+            if (captureDebugMode) {
+                console.log('Processing line:', line);
             }
-            else if (line.match(rawMaterialPattern)) {
-                currentCommodity = line.match(rawMaterialPattern)[0];
-            }
-            else {
-                const collectMatch = line.match(collectPattern);
-                if (collectMatch) {
-                    currentCommodity = collectMatch[1].trim();
+    
+            // First try to find a collection instruction
+            const collectMatch = line.match(collectPattern);
+            if (collectMatch) {
+                currentCommodity = collectMatch[1].trim();
+                
+                // Try to find pickup location in the same line
+                const pickupMatch = line.match(pickupPattern);
+                if (pickupMatch) {
+                    currentPickup = pickupMatch[1].trim();
                 }
-            }
-            
-            const pickupMatch = line.match(pickupPattern);
-            if (pickupMatch) {
-                currentPickup = pickupMatch[1].trim();
-                currentPickup = currentPickup.replace(/[.,]/g, '');
-                if (i + 1 < lines.length && !lines[i + 1].match(/Collect|from|To|Deliver/i)) {
-                    let nextLine = lines[i + 1].trim().replace(/[.,]/g, '');
-                    currentPickup = currentPickup ? `${currentPickup} ${nextLine}` : nextLine;
-                    i++;
+                
+                if (captureDebugMode) {
+                    console.log('Found collection:', { commodity: currentCommodity, pickup: currentPickup });
                 }
+                continue;
             }
-            
-            const dropoffMatch = line.match(dropoffPattern);
-            if (dropoffMatch) {
-                currentDropoff = dropoffMatch[1].trim();
-            }
-            
+    
+            // Check for delivery instruction
             const deliverMatch = line.match(deliverPattern);
             if (deliverMatch && currentCommodity) {
                 let quantity = deliverMatch[1].replace(/\s*\/\s*/, '/').trim();
-                quantity = quantity.split('/')[1];
-                
-                if (i + 1 < lines.length && !lines[i + 1].match(/Collect|from|To|Deliver/i)) {
-                    currentDropoff = currentDropoff ? `${currentDropoff} ${lines[i + 1].trim()}` : lines[i + 1].trim();
-                    i++;
+                quantity = quantity.split('/')[1] || quantity;
+    
+                // Look for dropoff location in this line or next line
+                let dropoffLocation = '';
+                const dropoffMatch = line.match(dropoffPattern);
+                if (dropoffMatch) {
+                    dropoffLocation = dropoffMatch[1].trim();
+                } else if (i + 1 < lines.length) {
+                    // Check next line for dropoff location
+                    const nextLineDropoff = lines[i + 1].match(dropoffPattern);
+                    if (nextLineDropoff) {
+                        dropoffLocation = nextLineDropoff[1].trim();
+                        i++; // Skip next line since we used it
+                    }
                 }
-                
-                const entryKey = `${currentCommodity}-${currentPickup}-${currentDropoff}`;
-                
-                if (commodityEntries[entryKey]) {
-                    const existingQuantity = parseInt(commodityEntries[entryKey].quantity, 10) || 0;
-                    const newQuantity = parseInt(quantity, 10) || 0;
-                    commodityEntries[entryKey].quantity = (existingQuantity + newQuantity).toString();
-                } else {
-                    commodityEntries[entryKey] = {
-                        commodity: currentCommodity,
-                        quantity: quantity,
-                        pickup: currentPickup || '',
-                        dropoff: currentDropoff || ''
-                    };
+    
+                if (dropoffLocation) {
+                    currentDropoff = dropoffLocation;
+                    
+                    const entryKey = `${currentCommodity}-${currentPickup}-${currentDropoff}`;
+                    if (captureDebugMode) {
+                        console.log('Creating entry:', {
+                            commodity: currentCommodity,
+                            quantity,
+                            pickup: currentPickup || '',
+                            dropoff: currentDropoff || ''
+                        });
+                    }
+    
+                    if (!commodityEntries[entryKey]) {
+                        commodityEntries[entryKey] = {
+                            commodity: currentCommodity,
+                            quantity: quantity,
+                            pickup: currentPickup || '',
+                            dropoff: currentDropoff || ''
+                        };
+                    } else {
+                        // If the entry already exists, add the quantity to the existing entry
+                        commodityEntries[entryKey].quantity += `, ${quantity}`;
+                    }
                 }
             }
+    
+            // If we find a pickup location pattern, save it
+            const pickupLocationMatch = line.match(pickupLocationPattern);
+            if (pickupLocationMatch && !currentPickup) {
+                currentPickup = pickupLocationMatch[0].trim();
+            }
         }
-
-        // Extract reward and add to all entries
-        const reward = extractReward(text);
+    
         const entries = Object.values(commodityEntries);
         
-        if (reward && entries.length > 0) {
-            entries[0].reward = reward;
+        if (captureDebugMode) {
+            console.log('Final parsed entries:', entries);
         }
-
+    
+        // Handle reward extraction if needed
+        if (shouldExtractReward && entries.length > 0) {
+            const reward = extractReward(text);
+            if (reward) {
+                entries.forEach(entry => entry.reward = reward);
+            }
+        }
+    
         return entries;
     };
 
@@ -514,61 +583,189 @@ const CaptureSubTabHauling = ({
     const extractReward = (text) => {
         if (!text) return null;
         
-        // Look for "Reward" followed by any characters and a number
-        const rewardLine = text.split('\n').find(line => line.toLowerCase().includes('reward'));
-        if (rewardLine) {
-            // Find all numbers in the line
-            const numbers = rewardLine.match(/\d{1,3}(?:,\d{3})*|\d+/g);
-            if (numbers) {
-                // Convert all numbers to integers (removing commas)
-                const cleanNumbers = numbers.map(num => parseInt(num.replace(/,/g, ''), 10));
-                // Find the largest number that's at least 1000
-                const reward = cleanNumbers.reduce((max, num) => {
-                    return (num >= 1000 && num > max) ? num : max;
-                }, 0);
+        console.log('Attempting to extract reward from:', text);
+        
+        // Split text into lines
+        const lines = text.split('\n');
+        
+        // Find the line containing "Reward"
+        let rewardLineIndex = -1;
+        for (let i = 0; i < lines.length; i++) {
+            const line = lines[i].toLowerCase();
+            if (line.includes('reward')) {
+                rewardLineIndex = i;
+                break;
+            }
+        }
+        
+        if (rewardLineIndex === -1) {
+            console.log('No reward line found');
+            return null;
+        }
+        
+        // Search in the reward line and next few lines
+        for (let i = rewardLineIndex; i < Math.min(rewardLineIndex + 3, lines.length); i++) {
+            const line = lines[i].toLowerCase();
+            console.log('Checking line:', line);
                 
-                if (reward >= 1000) {
-                    logOCRProcess(captureDebugMode, debugFlags, 'Extracted reward:', reward);
-                    
-                    // Set the reward for the current mission group
-                    setOcrMissionRewards(prev => ({
-                        ...prev,
-                        [ocrMissionGroups.length]: reward.toString()
-                    }));
-                    
-                    return reward.toString();
+            // First try to find numbers in the standard format
+            const standardMatch = line.match(/(\d{1,3}(?:,\d{3})*(?:\.\d+)?|\d+)\s*(?:auec|uec)?/i);
+            if (standardMatch && standardMatch[1]) {
+                const value = parseInt(standardMatch[1].replace(/[,\.]/g, ''), 10);
+                if (value >= 1000) {
+                    console.log('Found reward using standard match:', value);
+                    return value.toString();
+                }
+            }
+                
+            // Then try to find any numbers
+            const numbers = line.match(/\d+/g);
+            if (numbers) {
+                const cleanNumbers = numbers
+                    .map(num => parseInt(num.replace(/[,\.]/g, ''), 10))
+                    .filter(num => !isNaN(num) && num >= 1000);
+                
+                if (cleanNumbers.length > 0) {
+                    const maxReward = Math.max(...cleanNumbers);
+                    console.log('Found reward using number search:', maxReward);
+                    return maxReward.toString();
                 }
             }
         }
         
-        logOCRProcess(captureDebugMode, debugFlags, 'No valid reward found in text');
+        console.log('No valid reward found');
         return null;
     };
 
-    const handleAddOCRToManifest = () => {
-        if (ocrMissionGroups.length > 0) {
-            const entries = ocrMissionGroups.flatMap((missionGroup, missionIndex) => {
-                return missionGroup.map((result, resultIndex) => {
-                    const validation = validateOCRData(result, data);
+    const findNextEmptySlot = (missionId) => {
+        // First check if this mission already exists somewhere
+        for (let i = 0; i < missionEntries.length; i++) {
+            const missionGroup = missionEntries[i];
+            if (missionGroup && missionGroup.length > 0) {
+                // Check if any entry in this group has our missionId
+                if (missionGroup.some(entry => entry.missionId === missionId)) {
+                    console.log(`Found existing mission ${missionId} in slot ${i}`);
+                    return { slot: i, isExisting: true };
+                }
+            }
+        }
+
+        // If mission doesn't exist, find first empty slot
+        const emptySlot = missionEntries.findIndex(group => !group || group.length === 0);
+        return { 
+            slot: emptySlot !== -1 ? emptySlot : missionEntries.length,
+            isExisting: false 
+        };
+    };
+
+    const findHighestMissionIndex = () => {
+        let highest = -1;
+        missionEntries.forEach((group, index) => {
+            if (group && group.length > 0) {
+                highest = index;
+            }
+        });
+        return highest;
+    };
+
+    const findNextAvailableSlot = (startFromIndex = 0) => {
+        // First try to find an empty slot after startFromIndex
+        for (let i = startFromIndex; i < 15; i++) {
+            if (!missionEntries[i] || missionEntries[i].length === 0) {
+                console.log(`Found empty slot at index ${i}`);
+                return i;
+            }
+        }
+
+        // If no slots found after startFromIndex, look from beginning up to startFromIndex
+        for (let i = 0; i < startFromIndex; i++) {
+            if (!missionEntries[i] || missionEntries[i].length === 0) {
+                console.log(`Found empty slot at index ${i} (wrapped search)`);
+                return i;
+            }
+        }
+
+        // If no empty slots found at all
+        console.log('No empty slots available');
+        return -1;
+    };
+
+    const handleAddOCRToManifest = async () => {
+        if (ocrMissionGroups.length === 0) {
+            showBannerMessage('No OCR missions to add', false);
+            return;
+        }
+    
+        console.log('=== Starting OCR Mission Processing ===');
+        console.log('Total mission groups in queue:', ocrMissionGroups.length);
+    
+        // Find starting point for mission allocation
+        let nextSlotIndex = findNextAvailableSlot(findHighestMissionIndex() + 1);
+        let processedCount = 0;
+        
+        // Process missions sequentially
+        for (let groupIndex = 0; groupIndex < ocrMissionGroups.length; groupIndex++) {
+            const missionGroup = ocrMissionGroups[groupIndex];
+            const missionId = `ocr_mission_${Date.now()}_${groupIndex}`;
+            
+            console.log(`\n--- Processing Mission ${groupIndex + 1} of ${ocrMissionGroups.length} ---`);
+            console.log('Mission ID:', missionId);
+            console.log('Targeting slot:', nextSlotIndex);
+            
+            if (!missionGroup || missionGroup.length === 0) {
+                console.log(`Skipping empty mission group ${groupIndex + 1}`);
+                continue;
+            }
+    
+            try {
+                const missionReward = ocrMissionRewards[groupIndex];
+                
+                // Check if slot is actually available
+                if (nextSlotIndex >= 15) {
+                    console.log('No more mission slots available');
+                    showBannerMessage('Maximum mission limit reached', false);
+                    break;
+                }
+    
+                // Validate entries before allocation
+                const validatedEntries = missionGroup.map(entry => {
+                    const validation = validateOCRData(entry, data);
                     return {
-                        commodity: validation.matchedValues.commodity,
-                        quantity: result.quantity.split('/')[1] || result.quantity,
-                        pickup: validation.matchedValues.pickup,
-                        dropoff: validation.matchedValues.dropoff,
-                        reward: resultIndex === 0 ? (result.reward || ocrMissionRewards[missionIndex] || '0') : '0'
+                        ...validation.matchedValues,
+                        quantity: entry.quantity.split('/')[1] || entry.quantity,
+                        reward: entry.reward || missionReward || '0',
+                        missionId: missionId
                     };
                 });
-            });
-
-            if (entries.length > 0) {
-                addOCRToManifest(entries);
-                clearOCRMissions();
-                showBannerMessage('Mission added successfully!', true);
+    
+                // Add to manifest and wait for completion
+                await addOCRToManifest(validatedEntries, { 
+                    missionIndex: nextSlotIndex,
+                    reward: missionReward,
+                    missionId: missionId
+                });
+    
+                processedCount++;
+                console.log(`Successfully allocated mission ${groupIndex + 1} to slot ${nextSlotIndex}`);
+                
+                // Find next available slot for next mission
+                nextSlotIndex = findNextAvailableSlot(nextSlotIndex + 1);
+    
+            } catch (error) {
+                console.error(`Error processing mission group ${groupIndex + 1}:`, error);
+                showBannerMessage(`Error processing mission group ${groupIndex + 1}`, false);
             }
+        }
+    
+        console.log('\n=== Mission Processing Summary ===');
+        console.log(`Successfully processed ${processedCount} of ${ocrMissionGroups.length} missions`);
+    
+        if (processedCount > 0) {
+            clearOCRMissions();
+            showBannerMessage(`Successfully added ${processedCount} mission groups to manifest`, true);
         }
     };
 
-    // Modify the focusBrowserWindow function
     const focusBrowserWindow = () => {
         try {
             if (iframeRef.current) {
@@ -665,10 +862,10 @@ const CaptureSubTabHauling = ({
                         setTimeout(() => {
                             if (savedSelectionBox) {
                                 const newBox = {
-                                    startX: (savedSelectionBox.startX * settings.width) / 100,
-                                    startY: (savedSelectionBox.startY * settings.height) / 100,
-                                    endX: (savedSelectionBox.endX * settings.width) / 100,
-                                    endY: (savedSelectionBox.endY * settings.height) / 100
+                                    startX: (savedSelectionBox.startX * resolution.width) / 100,
+                                    startY: (savedSelectionBox.startY * resolution.height) / 100,
+                                    endX: (savedSelectionBox.endX * resolution.width) / 100,
+                                    endY: (savedSelectionBox.endY * resolution.height) / 100
                                 };
                                 setSelectionBox(newBox);
                                 logLoadedSelectionBox(captureDebugMode, debugFlags, savedSelectionBox, newBox);
@@ -1068,24 +1265,8 @@ const CaptureSubTabHauling = ({
                         alignItems: 'center'
                     }}>
                         <button 
-                            className="add-entry-button" 
                             onClick={handleAddOCRToManifest}
-                            disabled={ocrResults.length === 0}
-                            style={{ 
-                                backgroundColor: 'var(--button-color)',
-                                color: '#0d0d0d',
-                                border: 'none',
-                                padding: '5px 20px',
-                                borderRadius: '5px',
-                                cursor: 'pointer',
-                                fontFamily: 'inherit',
-                                fontSize: '16px',
-                                transition: 'background-color 0.3s, color 0.3s',
-                                display: 'inline-block',
-                                textAlign: 'center',
-                                textDecoration: 'none',
-                                whiteSpace: 'nowrap'
-                            }}
+                            className="add-to-manifest-button"
                         >
                             Add to Manifest
                         </button>
@@ -1157,122 +1338,148 @@ const CaptureSubTabHauling = ({
                             </div>
                         </div>
                         <h4>OCR Process Log:</h4>
-                        {ocrMissionGroups.map((missionGroup, missionIndex) => (
-                            <div key={missionIndex} className="capture-table-group">
-                                <div className="capture-tab-header">
-                                    <h5>Mission {missionIndex + 1}</h5>
-                                    <div className="reward-input-container">
-                                        <input
-                                            type="text"
-                                            className="ocr-mission-payout-capture"
-                                            placeholder="Enter reward"
-                                            value={ocrMissionRewards[missionIndex] ? 
-                                                ocrMissionRewards[missionIndex].replace(/\B(?=(\d{3})+(?!\d))/g, ',') : 
-                                                ''}
-                                            onChange={(e) => {
-                                                const reward = e.target.value.replace(/\D/g, '');
-                                                const formattedReward = reward.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-                                                e.target.value = formattedReward;
-                                                setOcrMissionRewards(prev => ({
-                                                    ...prev,
-                                                    [missionIndex]: reward
-                                                }));
-                                            }}
-                                        />
-                                        <span className="currency-label">aUEC</span>
-                                    </div>
-                                </div>
-                                <table className="capture-table">
-                                    <thead>
-                                        <tr>
-                                            <th className="commodity">Commodity</th>
-                                            <th className="qty">QTY</th>
-                                            <th className="pickup">Pickup</th>
-                                            <th className="dropoff">Drop Off</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {missionGroup.map((result, index) => {
-                                            const validation = validateOCRData(result, data);
-                                            const { exactMatches, matchedValues } = validation;
+                        {ocrMissionGroups.map((missionGroup, missionIndex) => {
+                            if (!missionGroup || missionGroup.length === 0) return null;
 
-                                            return (
-                                                <tr key={index}>
-                                                    <td className="commodity" style={{ 
-                                                        color: captureDebugMode && !exactMatches.commodity ? 'red' : 'inherit'
-                                                    }}>
-                                                        {captureDebugMode ? (
-                                                            <>
-                                                                {result.commodity}
-                                                                {!exactMatches.commodity && matchedValues.commodity !== result.commodity && (
-                                                                    <span style={{ color: 'green', marginLeft: '5px', fontWeight: 'bold' }}>
-                                                                        → {matchedValues.commodity}
-                                                                    </span>
-                                                                )}
-                                                            </>
-                                                        ) : (
-                                                            matchedValues.commodity
-                                                        )}
-                                                    </td>
-                                                    <td className="qty">
-                                                        {editedQuantities[index] !== undefined ? (
-                                                            <input
-                                                                type="text"
-                                                                value={editedQuantities[index]}
-                                                                onChange={(e) => handleQuantityEdit(index, e.target.value)}
-                                                                onKeyPress={(e) => {
-                                                                    if (e.key === 'Enter') {
-                                                                        saveQuantityEdit(index);
-                                                                    }
-                                                                }}
-                                                                className="qty-input"
-                                                                autoFocus
-                                                            />
-                                                        ) : (
-                                                            <span className="qty-span" onClick={() => handleQuantityEdit(index, result.quantity)}>
-                                                                {result.quantity}
-                                                            </span>
-                                                        )}
-                                                    </td>
-                                                    <td className="pickup" style={{ 
-                                                        color: captureDebugMode && !exactMatches.pickup ? 'red' : 'inherit'
-                                                    }}>
-                                                        {captureDebugMode ? (
-                                                            <>
-                                                                {result.pickup}
-                                                                {!exactMatches.pickup && matchedValues.pickup !== result.pickup && (
-                                                                    <span style={{ color: 'green', marginLeft: '5px', fontWeight: 'bold' }}>
-                                                                        → {matchedValues.pickup}
-                                                                    </span>
-                                                                )}
-                                                            </>
-                                                        ) : (
-                                                            matchedValues.pickup
-                                                        )}
-                                                    </td>
-                                                    <td className="dropoff" style={{ 
-                                                        color: captureDebugMode && !exactMatches.dropoff ? 'red' : 'inherit'
-                                                    }}>
-                                                        {captureDebugMode ? (
-                                                            <>
-                                                                {result.dropoff}
-                                                                {!exactMatches.dropoff && matchedValues.dropoff !== result.dropoff && (
-                                                                    <span style={{ color: 'green', marginLeft: '5px', fontWeight: 'bold' }}>
-                                                                        → {matchedValues.dropoff}
-                                                                    </span>
-                                                                )}
-                                                            </>
-                                                        ) : (
-                                                            matchedValues.dropoff
-                                                        )}
-                                                    </td>
-                                                </tr>
-                                            );
-                                        })}
-                                    </tbody>
-                                </table>
-                            </div>
-                        ))}
+                            return (
+                                <div key={`mission-${missionIndex}`} className="capture-table-group">
+                                    <div className="capture-tab-header">
+                                        <h5>Mission {missionIndex + 1}</h5>
+                                        <div className="reward-input-container">
+                                            <span className="reward-label">Reward:</span>
+                                            <input
+                                                type="text"
+                                                className="ocr-mission-payout-capture"
+                                                placeholder="Enter reward"
+                                                value={ocrMissionRewards[missionIndex] || missionGroup[0]?.reward || ''}
+                                                onChange={(e) => {
+                                                    let value = e.target.value;
+                                                    // Remove non-numeric characters
+                                                    value = value.replace(/[^\d,]/g, '');
+                                                    // Remove multiple commas
+                                                    value = value.replace(/,+/g, ',');
+                                                    // Remove commas at start/end
+                                                    value = value.replace(/^,|,$/g, '');
+                                                    
+                                                    if (value) {
+                                                        // Convert to number (removing commas)
+                                                        const numericValue = value.replace(/,/g, '');
+                                                        if (!isNaN(numericValue)) {
+                                                            setOcrMissionRewards(prev => {
+                                                                const updated = {
+                                                                    ...prev,
+                                                                    [missionIndex]: numericValue
+                                                                };
+                                                                console.log('Manual reward update:', {
+                                                                    missionIndex,
+                                                                    value: numericValue,
+                                                                    updatedState: updated
+                                                                });
+                                                                return updated;
+                                                            });
+                                                        }
+                                                    }
+                                                }}
+                                                style={{
+                                                    width: '120px',
+                                                    textAlign: 'right'
+                                                }}
+                                            />
+                                            <span className="currency-label">aUEC</span>
+                                        </div>
+                                    </div>
+                                    <table className="capture-table">
+                                        <thead>
+                                            <tr>
+                                                <th className="commodity">Commodity</th>
+                                                <th className="qty">QTY</th>
+                                                <th className="pickup">Pickup</th>
+                                                <th className="dropoff">Drop Off</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {missionGroup.map((result, entryIndex) => {
+                                                const validation = validateOCRData(result, data);
+                                                const { exactMatches, matchedValues } = validation;
+
+                                                return (
+                                                    <tr key={`mission-${missionIndex}-entry-${entryIndex}`}>
+                                                        <td className="commodity" style={{ 
+                                                            color: captureDebugMode && !exactMatches.commodity ? 'red' : 'inherit'
+                                                        }}>
+                                                            {captureDebugMode ? (
+                                                                <>
+                                                                    {result.commodity}
+                                                                    {!exactMatches.commodity && matchedValues.commodity !== result.commodity && (
+                                                                        <span style={{ color: 'green', marginLeft: '5px', fontWeight: 'bold' }}>
+                                                                            → {matchedValues.commodity}
+                                                                        </span>
+                                                                    )}
+                                                                </>
+                                                            ) : (
+                                                                matchedValues.commodity
+                                                            )}
+                                                        </td>
+                                                        <td className="qty">
+                                                            {editedQuantities[entryIndex] !== undefined ? (
+                                                                <input
+                                                                    type="text"
+                                                                    value={editedQuantities[entryIndex]}
+                                                                    onChange={(e) => handleQuantityEdit(entryIndex, e.target.value)}
+                                                                    onKeyPress={(e) => {
+                                                                        if (e.key === 'Enter') {
+                                                                            saveQuantityEdit(entryIndex);
+                                                                        }
+                                                                    }}
+                                                                    className="qty-input"
+                                                                    autoFocus
+                                                                />
+                                                            ) : (
+                                                                <span className="qty-span" onClick={() => handleQuantityEdit(entryIndex, result.quantity)}>
+                                                                    {result.quantity}
+                                                                </span>
+                                                            )}
+                                                        </td>
+                                                        <td className="pickup" style={{ 
+                                                            color: captureDebugMode && !exactMatches.pickup ? 'red' : 'inherit'
+                                                        }}>
+                                                            {captureDebugMode ? (
+                                                                <>
+                                                                    {result.pickup}
+                                                                    {!exactMatches.pickup && matchedValues.pickup !== result.pickup && (
+                                                                        <span style={{ color: 'green', marginLeft: '5px', fontWeight: 'bold' }}>
+                                                                            → {matchedValues.pickup}
+                                                                        </span>
+                                                                    )}
+                                                                </>
+                                                            ) : (
+                                                                matchedValues.pickup
+                                                            )}
+                                                        </td>
+                                                        <td className="dropoff" style={{ 
+                                                            color: captureDebugMode && !exactMatches.dropoff ? 'red' : 'inherit'
+                                                        }}>
+                                                            {captureDebugMode ? (
+                                                                <>
+                                                                    {result.dropoff}
+                                                                    {!exactMatches.dropoff && matchedValues.dropoff !== result.dropoff && (
+                                                                        <span style={{ color: 'green', marginLeft: '5px', fontWeight: 'bold' }}>
+                                                                            → {matchedValues.dropoff}
+                                                                        </span>
+                                                                    )}
+                                                                </>
+                                                            ) : (
+                                                                matchedValues.dropoff
+                                                            )}
+                                                        </td>
+                                                    </tr>
+                                                );
+                                            })}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            );
+                        })}
                         <div className="ocr-actions">
                             <button onClick={handleAddOCRToManifest}>Add All Missions to Manifest</button>
                             <button onClick={clearOCRMissions}>Clear OCR Missions</button>

@@ -77,7 +77,7 @@ export const PreferencesTab = ({
     missionTextColor,
     tableOutlineColor,
     selectedFont,
-    captureDebugMode,
+    debugMode,
     needsHistoryClearConfirmation,
     setDropdownLabelColor,
     setDropdownTextColor,
@@ -89,7 +89,7 @@ export const PreferencesTab = ({
     setMissionTextColor,
     setTableOutlineColor,
     setSelectedFont,
-    handleCaptureDebugMode,
+    handleDebugMode,
     handleImport,
     handleExport,
     clearHistoryLogDebug,
@@ -218,6 +218,14 @@ export const PreferencesTab = ({
             alert('Error reading file.');
         };
         reader.readAsText(file);
+    };
+
+    const handleDeleteLocalStorage = () => {
+        if (window.confirm('Are you sure you want to delete all local storage data? This action cannot be undone.')) {
+            localStorage.clear();
+            alert('Local storage data deleted successfully.');
+            window.location.reload(); // Refresh the page to reflect the changes
+        }
     };
 
     return (
@@ -372,10 +380,10 @@ export const PreferencesTab = ({
                             <label className="checkbox-label">
                                 <input 
                                     type="checkbox"
-                                    checked={captureDebugMode}
-                                    onChange={handleCaptureDebugMode}
+                                    checked={debugMode}
+                                    onChange={handleDebugMode}
                                 />
-                                Capture Debug Mode
+                                Debug Mode
                             </label>
                             <span className="checkbox-description">
                                 Shows additional information during OCR capture process
@@ -427,6 +435,13 @@ export const PreferencesTab = ({
                         >
                             {needsHistoryClearConfirmation ? 'Confirm Clear' : 'Clear History Log'}
                         </button>
+                        <button
+                            className="delete-local-storage-button"
+                            onClick={handleDeleteLocalStorage}
+                            style={{ display: 'block', marginTop: '10px' }}
+                        >
+                            Delete Local Storage
+                        </button>
                     </div>
                 </div>
             </div>
@@ -451,8 +466,37 @@ export const PreferencesTab = ({
 
 
 const clearHistoryLogDebug = () => {
-    localStorage.removeItem('payoutEntries');
+    if (!needsHistoryClearConfirmation) {
+        setNeedsHistoryClearConfirmation(true);
+        showBannerMessage('Click again to confirm clearing all history and payouts', false);
+        setTimeout(() => {
+            setNeedsHistoryClearConfirmation(false);
+        }, 3000);
+        return;
+    }
+
+    // Clear history entries
+    setHistoryEntries([]);
     localStorage.removeItem('historyEntries');
+
+    // Clear payout entries
+    setPayoutEntries([]);
+    localStorage.removeItem('payoutEntries');
+
+    
+    // Clear payout entries
+    setPayouts([]);
     localStorage.removeItem('payouts');
 
+    // Clear mission entries
+    setMissionEntries(Array(10).fill([]));
+    localStorage.removeItem('missionEntries');
+
+    // Clear mission rewards
+    setMissionRewards({});
+    localStorage.removeItem('missionRewards');
+
+    // Reset confirmation state
+    setNeedsHistoryClearConfirmation(false);
+    showBannerMessage('History and payouts cleared successfully', true);
 };

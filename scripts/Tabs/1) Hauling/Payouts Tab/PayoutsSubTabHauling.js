@@ -10,19 +10,16 @@ export const HaulingSubTabPayouts = ({ entries, setEntries }) => {
         }));
     };
 
-    // First group by date, then by missionId
+    // First group by date, then by mission ID
     const entriesByDateAndMission = entries.reduce((acc, entry) => {
         const date = new Date(entry.date || Date.now()).toLocaleDateString();
         if (!acc[date]) {
             acc[date] = {};
         }
-
-        // Group by missionId instead of missionIndex
-        const missionId = entry.missionId;
-        if (!acc[date][missionId]) {
-            acc[date][missionId] = [];
+        if (!acc[date][entry.missionId]) {
+            acc[date][entry.missionId] = [];
         }
-        acc[date][missionId].push(entry);
+        acc[date][entry.missionId].push(entry);
         return acc;
     }, {});
 

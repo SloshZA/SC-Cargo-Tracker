@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import Select from 'react-select';
 import { logAddEntry, logProcessOrders, logMissionGrouping, logStatusChange } from '../../7) Debug Options/HaulingDebugLogs';
+import crypto from 'crypto';
 
 export const MissionSubTabHauling = ({
     data,
@@ -53,16 +54,16 @@ export const MissionSubTabHauling = ({
     handlePickupPointChange,
     handleQuickLookupChange,
     updateCargo,
-    //const removeCargo = (index) => { // Remove duplicate declaration
+    removeCargo,
     moveDropOffPoint,
     markAsDelivered,
     toggleStatus,
     debugFlags,
     setPayoutEntries,
-    handleMoveToPayouts,
     calculateTotalSCU,
     amountInputRef,
-    setHistoryEntries
+    setHistoryEntries,
+    addOCRToManifest
 }) => {
     // Local state
     const [needsClearConfirmation, setNeedsClearConfirmation] = useState(false);
@@ -458,20 +459,26 @@ export const MissionSubTabHauling = ({
         console.log('Formatted Payout Entries:', formattedPayoutEntries);
 
         // Get existing payouts
-        const existingPayouts = JSON.parse(localStorage.getItem('payouts')) || [];
+        const existingPayouts = JSON.parse(localStorage.getItem('payoutEntries')) || [];
         console.log('Existing Payouts:', existingPayouts);
         
         // Combine with new entries
         const updatedPayouts = [...existingPayouts, ...formattedPayoutEntries];
         console.log('Updated Payouts:', updatedPayouts);
         
+        // Ensure unique mission names
+        const uniquePayouts = updatedPayouts.map((entry, index, array) => {
+            let missionName = `Mission ${entry.missionIndex + 1}`;
+            let count = 1;
+            while (array.some(e => e !== entry && e.missionId === entry.missionId && e.missionName === missionName)) {
+                missionName = `Mission ${entry.missionIndex + 1} (${count++})`
+            }
+            return { ...entry, missionName };
+        });
+
         // Update both localStorage AND state
-        localStorage.setItem('payouts', JSON.stringify(updatedPayouts));
-        
-        // Call the parent component's setPayoutEntries to update state
-        if (typeof window.updatePayoutEntries === 'function') {
-            window.updatePayoutEntries(updatedPayouts);
-        }
+        localStorage.setItem('payoutEntries', JSON.stringify(uniquePayouts));
+        setPayoutEntries(uniquePayouts); // Update state
 
         // Update mission entries state
         setMissionEntries(prevMissionEntries => {
@@ -483,34 +490,15 @@ export const MissionSubTabHauling = ({
             return updatedMissionEntries;
         });
 
-        showBannerMessage('Mission entries processed to payouts successfully');
-    };
-
-    //const removeCargo = (index) => { // Remove duplicate declaration
-    const removeCargo = (index) => {
-        const entryToRemove = entries[index];
-        logProcessOrders(debugFlags, 'Removing cargo', { index, entry: entryToRemove });
-
-        setEntries(prevEntries => {
-            const updatedEntries = [...prevEntries];
-            updatedEntries.splice(index, 1);
-            localStorage.setItem('entries', JSON.stringify(updatedEntries));
-            return updatedEntries;
+        // Clear rewards for processed missions
+        const updatedRewards = { ...missionRewards };
+        Object.keys(entriesByMission).forEach(missionIndex => {
+            delete updatedRewards[`mission_${missionIndex}`];
         });
+        setMissionRewards(updatedRewards);
+        localStorage.setItem('missionRewards', JSON.stringify(updatedRewards));
 
-        // Remove from missionEntries if it's a mission entry
-        if (entryToRemove.isMissionEntry) {
-            setMissionEntries(prev => {
-                const updated = prev.map(mission => {
-                    if (mission) {
-                        return mission.filter(entry => entry.id !== entryToRemove.id);
-                    }
-                    return mission;
-                });
-                localStorage.setItem('missionEntries', JSON.stringify(updated));
-                return updated;
-            });
-        }
+        showBannerMessage('Mission entries processed to payouts successfully');
     };
 
     return (

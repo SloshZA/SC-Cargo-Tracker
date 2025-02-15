@@ -5,6 +5,42 @@ export const ChangelogTab = () => {
         <div className="changelog">
             <div className="changelog-container">
                 <div className="changelog-entry">
+                <h3>Important Notice</h3>
+                    <ul>
+                        <li>Finally squashing all the bugs from previous mistakes.</li>
+                        <li>USE the button under the Preferences tab called "Delete Local Storage." There are a ton of old entries causing issues, like duplicate instances of payouts storage.</li>
+                        <li>A clean wipe is best—export your tables if needed. Haven't tested them yet to ensure they repopulate correctly, but I tried keeping most tables the same, so hopefully, they work properly.</li>
+                        <li>So far, I’ve restored a lot of the app’s functionality. Tons of sections have been completely redone due to duplicated code being cut off halfway, which caused a mess of issues.</li>
+                    </ul>
+
+                    <h3>Known Issues - Currently being rewritten</h3>
+
+                    <h4>Capture Tab</h4>
+                    <ul>
+                        <li>When scanning entries with the same reward amount and using "Add to Manifest," only one entry gets the reward value in the Mission Manifest table.</li>
+                        <li><b>Workaround:</b> Manually entering a value fixes this and allows all entries with the same reward to process correctly.</li>
+                        <li>Selection box for the application screen is not loading when loading a stream.</li>
+                        <li>Scanning more than 15 missions and trying to send them to the table results in only the first 15 missions being sent.</li>
+                    </ul>
+
+                    <h4>Hauling Manifest</h4>
+                    <ul>
+                        <li>Max mission entries are currently capped at 15.</li>
+                        <li>UI issues with different font sizes.</li>
+                        <li>Toggling mission status from "Pending" to "Delivered" is working.</li>
+                    </ul>
+
+                    <h4>Payouts Tab</h4>
+                    <ul>
+                        <li>Missions are not indexed correctly. If you add 5 missions and then add another 5 later, instead of numbering them 6-10, they start at 1 again.</li>
+                    </ul>
+
+                    <h4>Debug Options</h4>
+                    <ul>
+                        <li>Currently a jungle in there, but enabling "Debug Mode" (Preferences Tab) shows most processes happening between the Capture Table, Hauling Tables, and History/Payouts Table.</li>
+                    </ul>
+                </div>
+                <div className="changelog-entry">
                 <h3>Apologies for the issues</h3>
                     <ul>
                         <li>issues with the tables not dispalying properly or entries not being processed</li>
@@ -12,7 +48,7 @@ export const ChangelogTab = () => {
                         <li>Made some fixes for the tables by just remaking them hopefully these changes work i ran a few tests but knowing this cluster duck, its gonna take some time to fix te last few things, worst issue was it added a new payout and history local storage table and renamed it to Entries Q_Q...</li>
                         <li>Other than the above rant sorry for the past few days of issues and thanks for your patience.</li>
                     </ul>
-
+                    <div className="changelog-entry">
                     <h3>Version 1.6.1</h3>
                     <h4>Hotfix</h4>
                     <ul>
@@ -40,6 +76,7 @@ export const ChangelogTab = () => {
                         <li>Mining Tab - still thinking about this one as there are 2 sites with good mining apps already.</li>
                         <li>Trading - will see about getting an API key for UEX, I don't want to do what they do I just want a way to keep track of trading I've done how far I've flown money made etc etc.</li>
                     </ul>
+                    </div>
                 </div>
                 <div className="changelog-entry">
                     <h3>Version 1.6.0</h3>

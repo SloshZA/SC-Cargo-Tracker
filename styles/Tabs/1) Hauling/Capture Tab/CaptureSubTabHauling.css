@@ -182,15 +182,43 @@
 .reward-input-container {
     display: flex;
     align-items: center;
-    gap: 5px;
+    gap: 8px;
+    background-color: #1a1a1a;
+    padding: 8px 12px;
+    border-radius: 5px;
+    border: 1px solid var(--table-outline-color);
+}
+
+.reward-label {
+    color: var(--title-color);
+    font-weight: bold;
 }
 
 .ocr-mission-payout-capture {
-    padding: 5px;
-    border-radius: 3px;
+    padding: 6px 10px;
+    border-radius: 4px;
     border: 1px solid var(--table-outline-color);
-    background-color: #1a1a1a;
+    background-color: #2a2a2a;
     color: var(--text-color);
+    font-size: 1.1em;
+    width: 120px;
+    text-align: right;
+    transition: border-color 0.3s, box-shadow 0.3s;
+}
+
+.ocr-mission-payout-capture:focus {
+    outline: none;
+    border-color: var(--button-color);
+    box-shadow: 0 0 0 2px rgba(0, 255, 204, 0.2);
+}
+
+.ocr-mission-payout-capture::placeholder {
+    color: #666;
+}
+
+.ocr-mission-payout-capture:hover {
+    border-color: var(--button-color);
+    background-color: #333;
 }
 
 .currency-label {
