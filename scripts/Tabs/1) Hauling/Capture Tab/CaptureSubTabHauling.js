@@ -39,10 +39,6 @@ const CaptureSubTabHauling = ({
     });
     const [showKeyInput, setShowKeyInput] = useState(false);
     const [ocrMissionRewards, setOcrMissionRewards] = useState({});
-    const [savedResolution, setSavedResolution] = useState(() => {
-        const saved = localStorage.getItem('captureResolution');
-        return saved ? JSON.parse(saved) : null;
-    });
     const [savedSelectionBox, setSavedSelectionBox] = useState(() => {
         const saved = localStorage.getItem('captureSelectionBox');
         return saved ? JSON.parse(saved) : null;
@@ -217,11 +213,12 @@ const CaptureSubTabHauling = ({
             const scaleX = videoRef.current.videoWidth / rect.width;
             const scaleY = videoRef.current.videoHeight / rect.height;
             const savedBox = {
-                startX: (Math.min(selectionBox.startX, selectionBox.endX) / scaleX) * 100,
-                startY: (Math.min(selectionBox.startY, selectionBox.endY) / scaleY) * 100,
-                endX: (Math.max(selectionBox.startX, selectionBox.endX) / scaleX) * 100,
-                endY: (Math.max(selectionBox.startY, selectionBox.endY) / scaleY) * 100
+                startX: (Math.min(selectionBox.startX, selectionBox.endX) / videoRef.current.videoWidth) * 100,
+                startY: (Math.min(selectionBox.startY, selectionBox.endY) / videoRef.current.videoHeight) * 100,
+                endX: (Math.max(selectionBox.startX, selectionBox.endX) / videoRef.current.videoWidth) * 100,
+                endY: (Math.max(selectionBox.startY, selectionBox.endY) / videoRef.current.videoHeight) * 100
             };
+            console.log('Saving selection box to local storage:', savedBox);
             localStorage.setItem('captureSelectionBox', JSON.stringify(savedBox));
             setSavedSelectionBox(savedBox);
         } catch (error) {
@@ -846,15 +843,13 @@ const CaptureSubTabHauling = ({
                 if (videoRef.current) {
                     videoRef.current.srcObject = stream;
                     
-                    // Save resolution when stream starts
+                    // Remove saving resolution when stream starts
                     const track = stream.getVideoTracks()[0];
                     const settings = track.getSettings();
                     const resolution = {
                         width: settings.width,
                         height: settings.height
                     };
-                    setSavedResolution(resolution);
-                    localStorage.setItem('captureResolution', JSON.stringify(resolution));
                     logStreamResolution(captureDebugMode, debugFlags, resolution);
 
                     // Wait for video to be ready
@@ -862,11 +857,13 @@ const CaptureSubTabHauling = ({
                         setTimeout(() => {
                             if (savedSelectionBox) {
                                 const newBox = {
-                                    startX: (savedSelectionBox.startX * resolution.width) / 100,
-                                    startY: (savedSelectionBox.startY * resolution.height) / 100,
-                                    endX: (savedSelectionBox.endX * resolution.width) / 100,
-                                    endY: (savedSelectionBox.endY * resolution.height) / 100
+                                    startX: (savedSelectionBox.startX / 100) * resolution.width,
+                                    startY: (savedSelectionBox.startY / 100) * resolution.height,
+                                    endX: (savedSelectionBox.endX / 100) * resolution.width,
+                                    endY: (savedSelectionBox.endY / 100) * resolution.height
                                 };
+                                console.log('Loading selection box from local storage:', savedSelectionBox);
+                                console.log('Calculated new selection box:', newBox);
                                 setSelectionBox(newBox);
                                 logLoadedSelectionBox(captureDebugMode, debugFlags, savedSelectionBox, newBox);
                             }
@@ -980,9 +977,7 @@ const CaptureSubTabHauling = ({
     // Add button to clear saved selection
     const clearSavedSelection = () => {
         setSavedSelectionBox(null);
-        setSavedResolution(null);
         localStorage.removeItem('captureSelectionBox');
-        localStorage.removeItem('captureResolution');
         setSelectionBox(null);
     };
 

@@ -4,6 +4,11 @@ export const ChangelogTab = () => {
     return (
         <div className="changelog">
             <div className="changelog-container">
+                 <div className="changelog-entry">
+                 <h3>Fixed OCR Selection Box</h3>
+                 <li>OCR Capture Selection box now loads previously saved size wrong math involved was scaling infinitely instead of refrencing the video resolution size</li>
+
+                </div>
                 <div className="changelog-entry">
                 <h3>Important Notice</h3>
                     <ul>
