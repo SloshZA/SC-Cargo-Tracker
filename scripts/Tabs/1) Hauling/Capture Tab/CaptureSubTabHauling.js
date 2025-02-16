@@ -169,7 +169,7 @@ const CaptureSubTabHauling = ({
 
             if (newResults && newResults.length > 0) {
                 const nextMissionIndex = ocrMissionGroups.length;
-                const reward = extractReward(rawOcrText);
+                let reward = extractReward(rawOcrText);
 
                 if (captureDebugMode) {
                     console.log('Adding new mission group:', {
@@ -189,12 +189,26 @@ const CaptureSubTabHauling = ({
                     return updated;
                 });
 
+                
                 // Update mission rewards
-                if (reward) {
-                    setOcrMissionRewards(prev => ({
-                        ...prev,
-                        [nextMissionIndex]: reward
-                    }));
+                const parsedReward = parseAndFormatReward(reward);
+                if (parsedReward) {
+                    console.log('OCR Reward Debug:', {
+                        original: reward,
+                        processed: parsedReward,
+                        nextMissionIndex,
+                        typeOfNumericValue: typeof parsedReward,
+                        parsedNumericValue: parseInt(parsedReward, 10),
+                        typeOfParsedNumericValue: typeof parseInt(parsedReward, 10),
+                        isNaN: isNaN(parseInt(parsedReward, 10))
+                    });
+
+                    setOcrMissionRewards(prev => {
+                        const newRewards = { ...prev };
+                        newRewards[nextMissionIndex] = parsedReward;
+                        console.log('Updated rewards state:', newRewards);
+                        return newRewards;
+                    });
                 }
 
                 // Also update OCR results for tracking
@@ -580,57 +594,38 @@ const CaptureSubTabHauling = ({
     const extractReward = (text) => {
         if (!text) return null;
         
-        console.log('Attempting to extract reward from:', text);
+        // Try to find reward in various formats
+        const rewardPatterns = [
+            /reward\s*:\s*([\d,]+)/i,        // "Reward: 123,456"
+            /([\d,]+)\s*auec/i,              // "123,456 aUEC"
+            /([\d,]+)\s*uec/i,               // "123,456 UEC"
+            /([\d,]+)\s*currency/i,          // "123,456 currency"
+            /([\d,]+)\s*cr/i,                // "123,456 CR"
+            /([\d,]+)\s*\$?/i                // "123,456" or "123,456$"
+        ];
         
-        // Split text into lines
-        const lines = text.split('\n');
-        
-        // Find the line containing "Reward"
-        let rewardLineIndex = -1;
-        for (let i = 0; i < lines.length; i++) {
-            const line = lines[i].toLowerCase();
-            if (line.includes('reward')) {
-                rewardLineIndex = i;
-                break;
-            }
-        }
-        
-        if (rewardLineIndex === -1) {
-            console.log('No reward line found');
-            return null;
-        }
-        
-        // Search in the reward line and next few lines
-        for (let i = rewardLineIndex; i < Math.min(rewardLineIndex + 3, lines.length); i++) {
-            const line = lines[i].toLowerCase();
-            console.log('Checking line:', line);
-                
-            // First try to find numbers in the standard format
-            const standardMatch = line.match(/(\d{1,3}(?:,\d{3})*(?:\.\d+)?|\d+)\s*(?:auec|uec)?/i);
-            if (standardMatch && standardMatch[1]) {
-                const value = parseInt(standardMatch[1].replace(/[,\.]/g, ''), 10);
-                if (value >= 1000) {
-                    console.log('Found reward using standard match:', value);
-                    return value.toString();
-                }
-            }
-                
-            // Then try to find any numbers
-            const numbers = line.match(/\d+/g);
-            if (numbers) {
-                const cleanNumbers = numbers
-                    .map(num => parseInt(num.replace(/[,\.]/g, ''), 10))
-                    .filter(num => !isNaN(num) && num >= 1000);
-                
-                if (cleanNumbers.length > 0) {
-                    const maxReward = Math.max(...cleanNumbers);
-                    console.log('Found reward using number search:', maxReward);
-                    return maxReward.toString();
+        for (const pattern of rewardPatterns) {
+            const match = text.match(pattern);
+            if (match && match[1]) {
+                const parsedValue = parseAndFormatReward(match[1]);
+                if (parsedValue) {
+                    return parsedValue;
                 }
             }
         }
         
-        console.log('No valid reward found');
+        // If no pattern matched, try to find any large number
+        const numbers = text.match(/\d+/g);
+        if (numbers) {
+            const cleanNumbers = numbers
+                .map(num => parseInt(num.replace(/[^\d]/g, ''), 10))
+                .filter(num => !isNaN(num) && num >= 1000);
+            
+            if (cleanNumbers.length > 0) {
+                return Math.max(...cleanNumbers).toString();
+            }
+        }
+        
         return null;
     };
 
@@ -715,7 +710,12 @@ const CaptureSubTabHauling = ({
             }
     
             try {
-                const missionReward = ocrMissionRewards[groupIndex];
+                console.log('Mission Group Processing:', {
+                    groupIndex,
+                    missionId,
+                    reward: ocrMissionRewards[groupIndex],
+                    allRewards: ocrMissionRewards
+                });
                 
                 // Check if slot is actually available
                 if (nextSlotIndex >= 15) {
@@ -725,21 +725,49 @@ const CaptureSubTabHauling = ({
                 }
     
                 // Validate entries before allocation
+                const reward = ocrMissionRewards[groupIndex] || '';
+                console.log('Manifest Reward Debug:', {
+                    groupIndex,
+                    reward,
+                    typeOfReward: typeof reward,
+                    parsedReward: parseInt(reward, 10),
+                    typeOfParsedReward: typeof parseInt(reward, 10),
+                    isNaN: isNaN(parseInt(reward, 10)),
+                    missionIndex: nextSlotIndex
+                });
+                
                 const validatedEntries = missionGroup.map(entry => {
+                    console.log('Entry validation with reward:', { groupIndex, reward, allRewards: ocrMissionRewards });
+                    console.log('Raw OCR reward:', reward);
                     const validation = validateOCRData(entry, data);
                     return {
                         ...validation.matchedValues,
                         quantity: entry.quantity.split('/')[1] || entry.quantity,
-                        reward: entry.reward || missionReward || '0',
-                        missionId: missionId
+                        missionId,
+                        missionReward: reward
                     };
+                });
+
+                console.log('Adding to manifest:', {
+                    slot: nextSlotIndex,
+                    reward,
+                    entries: validatedEntries
                 });
     
                 // Add to manifest and wait for completion
+                const missionKey = `mission_${nextSlotIndex}`;
                 await addOCRToManifest(validatedEntries, { 
                     missionIndex: nextSlotIndex,
-                    reward: missionReward,
-                    missionId: missionId
+                    missionId,
+                    missionSlot: missionKey,
+                    missionReward: {
+                        index: nextSlotIndex,
+                        id: `mission_${nextSlotIndex}`,
+                        value: ocrMissionRewards[groupIndex],
+                        timestamp: Date.now(),
+                        groupIndex
+                    },
+                    reward: ocrMissionRewards[groupIndex]
                 });
     
                 processedCount++;
@@ -945,10 +973,38 @@ const CaptureSubTabHauling = ({
                             const parsedResults = parseOCRResults(cleanedText);
                             
                             if (parsedResults && parsedResults.length > 0) {
+                                const nextMissionIndex = ocrMissionGroups.length;
+                                const reward = extractReward(rawOcrText);
+                                const parsedReward = parseAndFormatReward(reward);
+                                
+                                setOcrMissionGroups(prevGroups => {
+                                    const newGroups = [...prevGroups, parsedResults];
+                                    const nextMissionIndex = newGroups.length - 1;
+
+                                    if (parsedReward) {
+                                        setOcrMissionRewards(prevRewards => {
+                                            const newRewards = { ...prevRewards };
+                                            newRewards[nextMissionIndex] = parsedReward;
+                                            console.log('Updated rewards state (key press):', {
+                                                nextMissionIndex,
+                                                newRewards
+                                            });
+                                            return newRewards;
+                                        });
+                                    }
+
+                                    console.log('Key press capture - adding mission at index:', nextMissionIndex, {
+                                        currentGroups: prevGroups.length,
+                                        newGroupsCount: newGroups.length,
+                                        parsedResultsCount: parsedResults.length
+                                    });
+
+                                    return newGroups;
+                                });
+
                                 setCurrentParsedResults(parsedResults);
                                 setOcrResults(prev => [...prev, ...parsedResults]);
                                 setOcrCaptureHistory(prev => [...prev, parsedResults]);
-                                setOcrMissionGroups(prev => [...prev, parsedResults]);
                                 setHasEntries(true);
                             }
                         }
@@ -961,6 +1017,8 @@ const CaptureSubTabHauling = ({
         };
 
         window.addEventListener('keydown', handleKeyPress);
+        
+        // Cleanup function - just remove the event listener
         return () => {
             window.removeEventListener('keydown', handleKeyPress);
         };
@@ -1032,6 +1090,96 @@ const CaptureSubTabHauling = ({
         ctx.putImageData(imgData, 0, 0);
         return canvas.toDataURL();
     }
+
+    const handleRewardChange = (e, missionIndex) => {
+        let value = e.target.value;
+        // Store numeric value only
+        const numericValue = value.replace(/[^\d]/g, '');
+        
+        console.log('Reward Input Debug:', {
+            rawInput: value,
+            typeOfRawInput: typeof value,
+            numericValue: numericValue,
+            typeOfNumericValue: typeof numericValue,
+            parsedNumericValue: parseInt(numericValue, 10),
+            typeOfParsedNumericValue: typeof parseInt(numericValue, 10),
+            isNaN: isNaN(parseInt(numericValue, 10)),
+            missionIndex: missionIndex,
+            currentStateValue: ocrMissionRewards[missionIndex],
+            typeOfStateValue: typeof ocrMissionRewards[missionIndex]
+        });
+        
+        if (numericValue) {
+            // Format display value with commas
+            const formattedValue = numericValue.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+            
+            // Update the input field with formatted value
+            e.target.value = formattedValue;
+
+            // Store only numeric value in state
+            setOcrMissionRewards(prev => ({
+                ...prev,
+                [missionIndex]: numericValue
+            }));
+        } else {
+            // Clear the value if empty
+            setOcrMissionRewards(prev => ({
+                ...prev,
+                [missionIndex]: ''
+            }));
+        }
+    };
+
+    // Add this function near the top of the file
+    const parseAndFormatReward = (rewardText) => {
+        if (!rewardText) return null;
+        
+        // Remove all non-numeric characters except decimal points
+        let numericValue = rewardText.replace(/[^0-9.]/g, '');
+        
+        // If there's a decimal point, remove it and everything after it
+        if (numericValue.includes('.')) {
+            numericValue = numericValue.split('.')[0];
+        }
+        
+        // Convert to number and validate
+        const parsedValue = parseInt(numericValue, 10);
+        if (isNaN(parsedValue) || parsedValue < 1000) return null;
+        
+        // Return the numeric value as a string
+        return parsedValue.toString();
+    };
+
+    // Add this useEffect
+    useEffect(() => {
+        if (Object.keys(ocrMissionRewards).length > 0) {
+            localStorage.setItem('ocrMissionRewards', JSON.stringify(ocrMissionRewards));
+        }
+    }, [ocrMissionRewards]);
+
+    // Add this useEffect
+    useEffect(() => {
+        console.log('Current mission rewards:', ocrMissionRewards);
+    }, [ocrMissionRewards]);
+
+    // Add this useEffect
+    useEffect(() => {
+        console.log('Mission groups updated:', {
+            count: ocrMissionGroups.length,
+            groups: ocrMissionGroups.map((group, index) => ({
+                index,
+                entries: group.length,
+                reward: ocrMissionRewards[index] || 'No reward'
+            }))
+        });
+    }, [ocrMissionGroups]);
+
+    // Add this useEffect
+    useEffect(() => {
+        return () => {
+            localStorage.removeItem('ocrMissionRewards');
+        };
+    }, []);
 
     // Render component
     return (
@@ -1328,7 +1476,10 @@ const CaptureSubTabHauling = ({
                             </div>
                             <div className="ocr-counter">
                                 <strong>Expected Earnings:</strong> {Object.values(ocrMissionRewards)
-                                    .reduce((total, reward) => total + (parseInt(reward) || 0), 0)
+                                    .reduce((total, reward) => {
+                                        const numericValue = reward ? parseInt(reward, 10) : 0;
+                                        return total + (isNaN(numericValue) ? 0 : numericValue);
+                                    }, 0)
                                     .toLocaleString()} aUEC
                             </div>
                         </div>
@@ -1346,39 +1497,33 @@ const CaptureSubTabHauling = ({
                                                 type="text"
                                                 className="ocr-mission-payout-capture"
                                                 placeholder="Enter reward"
-                                                value={ocrMissionRewards[missionIndex] || missionGroup[0]?.reward || ''}
+                                                value={
+                                                    ocrMissionRewards[missionIndex] ? 
+                                                    parseInt(ocrMissionRewards[missionIndex], 10).toLocaleString() :
+                                                    ''
+                                                }
                                                 onChange={(e) => {
-                                                    let value = e.target.value;
-                                                    // Remove non-numeric characters
-                                                    value = value.replace(/[^\d,]/g, '');
-                                                    // Remove multiple commas
-                                                    value = value.replace(/,+/g, ',');
-                                                    // Remove commas at start/end
-                                                    value = value.replace(/^,|,$/g, '');
-                                                    
-                                                    if (value) {
-                                                        // Convert to number (removing commas)
-                                                        const numericValue = value.replace(/,/g, '');
-                                                        if (!isNaN(numericValue)) {
-                                                            setOcrMissionRewards(prev => {
-                                                                const updated = {
-                                                                    ...prev,
-                                                                    [missionIndex]: numericValue
-                                                                };
-                                                                console.log('Manual reward update:', {
-                                                                    missionIndex,
-                                                                    value: numericValue,
-                                                                    updatedState: updated
-                                                                });
-                                                                return updated;
-                                                            });
-                                                        }
-                                                    }
+                                                    const numericValue = e.target.value.replace(/[^\d]/g, '');
+                                                    setOcrMissionRewards(prev => {
+                                                        const newRewards = { ...prev };
+                                                        newRewards[missionIndex] = numericValue;
+                                                        console.log('Updated rewards state (input change):', {
+                                                            missionIndex,
+                                                            newValue: numericValue,
+                                                            allRewards: newRewards
+                                                        });
+                                                        return newRewards;
+                                                    });
                                                 }}
                                                 style={{
+                                                    minWidth: '80px',
                                                     width: '120px',
-                                                    textAlign: 'right'
+                                                    textAlign: 'right',
+                                                    display: 'block',
+                                                    opacity: 1,
+                                                    pointerEvents: 'auto'
                                                 }}
+                                                onFocus={(e) => e.target.select()}
                                             />
                                             <span className="currency-label">aUEC</span>
                                         </div>
@@ -1482,6 +1627,23 @@ const CaptureSubTabHauling = ({
                     </>
                 )}
             </div>
+            <button 
+                onClick={() => handleRewardChange({ target: { value: '123,456' } }, 0)}
+                style={{
+                    position: 'fixed',
+                    bottom: '20px',
+                    right: '20px',
+                    zIndex: 1000,
+                    padding: '10px 20px',
+                    backgroundColor: '#ffcc00',
+                    color: '#000',
+                    border: 'none',
+                    borderRadius: '5px',
+                    cursor: 'pointer'
+                }}
+            >
+                Test Reward Log
+            </button>
         </div>
     );
 };

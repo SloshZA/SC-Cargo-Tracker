@@ -57,7 +57,6 @@ export const MissionSubTabHauling = ({
     removeCargo,
     moveDropOffPoint,
     markAsDelivered,
-    toggleStatus,
     debugFlags,
     setPayoutEntries,
     calculateTotalSCU,
@@ -953,12 +952,33 @@ export const MissionSubTabHauling = ({
                                                         <td className="status">
                                                             <span 
                                                                 onClick={() => {
-                                                                    const newStatus = entry.status === 'Pending' ? 'Delivered' : entry.status;
-                                                                    toggleStatus(index, entry.dropOffPoint, newStatus);
+                                                                    const newStatus = entry.status === 'Pending' ? 'Delivered' : 'Pending';
+                                                                    setEntries(prevEntries => {
+                                                                        const updatedEntries = [...prevEntries];
+                                                                        const entryIndex = updatedEntries.findIndex(e => e.id === entry.id);
+                                                                        if (entryIndex !== -1) {
+                                                                            updatedEntries[entryIndex].status = newStatus;
+                                                                        }
+                                                                        return updatedEntries;
+                                                                    });
+
+                                                                    setMissionEntries(prevMissionEntries => {
+                                                                        const updatedMissionEntries = [...prevMissionEntries];
+                                                                        updatedMissionEntries.forEach((mission, missionIndex) => {
+                                                                            if (mission) {
+                                                                                const missionEntryIndex = mission.findIndex(e => e.id === entry.id);
+                                                                                if (missionEntryIndex !== -1) {
+                                                                                    updatedMissionEntries[missionIndex][missionEntryIndex].status = newStatus;
+                                                                                }
+                                                                            }
+                                                                        });
+                                                                        return updatedMissionEntries;
+                                                                    });
                                                                 }}
                                                                 style={{ 
                                                                     cursor: 'pointer',
-                                                                    color: entry.status === 'Delivered' ? 'green' : 'inherit'
+                                                                    color: entry.status === 'Delivered' ? 'green' : 'inherit',
+                                                                    textDecoration: entry.status === 'Delivered' ? 'underline' : 'none'
                                                                 }}
                                                             >
                                                                 {entry.status}
@@ -1060,12 +1080,33 @@ export const MissionSubTabHauling = ({
                                                 <td className="status">
                                                     <span 
                                                         onClick={() => {
-                                                            const newStatus = entry.status === 'Pending' ? 'Delivered' : entry.status;
-                                                            toggleStatus(absoluteIndex, entry.dropOffPoint, newStatus);
+                                                            const newStatus = entry.status === 'Pending' ? 'Delivered' : 'Pending';
+                                                            setEntries(prevEntries => {
+                                                                const updatedEntries = [...prevEntries];
+                                                                const entryIndex = updatedEntries.findIndex(e => e.id === entry.id);
+                                                                if (entryIndex !== -1) {
+                                                                    updatedEntries[entryIndex].status = newStatus;
+                                                                }
+                                                                return updatedEntries;
+                                                            });
+
+                                                            setMissionEntries(prevMissionEntries => {
+                                                                const updatedMissionEntries = [...prevMissionEntries];
+                                                                updatedMissionEntries.forEach((mission, missionIndex) => {
+                                                                    if (mission) {
+                                                                        const missionEntryIndex = mission.findIndex(e => e.id === entry.id);
+                                                                        if (missionEntryIndex !== -1) {
+                                                                            updatedMissionEntries[missionIndex][missionEntryIndex].status = newStatus;
+                                                                        }
+                                                                    }
+                                                                });
+                                                                return updatedMissionEntries;
+                                                            });
                                                         }}
                                                         style={{ 
                                                             cursor: 'pointer',
-                                                            color: entry.status === 'Delivered' ? 'green' : 'inherit'
+                                                            color: entry.status === 'Delivered' ? 'green' : 'inherit',
+                                                            textDecoration: entry.status === 'Delivered' ? 'underline' : 'none'
                                                         }}
                                                     >
                                                         {entry.status}

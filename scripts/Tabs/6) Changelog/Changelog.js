@@ -4,6 +4,31 @@ export const ChangelogTab = () => {
     return (
         <div className="changelog">
             <div className="changelog-container">
+                <div className="changelog-entry">
+                <h3>FIXED</h3>
+                    <ul>
+                        <li><b>Capture Tab</b></li>
+                        <ul>
+                            <li>Fixed Reward from capture not populating the mission group reward</li>
+                            <li>OCR Rewards not transferring correctly when using add to manifest</li>
+                        </ul>
+                        <li><b>Hauling Manifest</b></li>
+                        <ul>
+                            <li>Fixed remove Cargo button also clearing reward value of missions when there is no more entries</li>
+                            <li>Toggle Status is now working between drop off points and mission table</li>
+                        </ul>
+                    </ul>
+
+                    <h3>Known Issues</h3>
+                    <ul>
+                        <li>Toggle Status for half of 1 mission and then adding them to the mission table will process them as 2 different missions</li>
+                        <li>Mission # on payouts table is not taking into account the previous mission # to update accordingly</li>
+                        <li>Max Mission 15 (stabilizing everything first)</li>
+                        <li>UI issues for different font sizes</li>
+                    </ul>
+                </div>
+
+
                  <div className="changelog-entry">
                  <h3>Fixed OCR Selection Box</h3>
                  <li>OCR Capture Selection box now loads previously saved size wrong math involved was scaling infinitely instead of refrencing the video resolution size</li>
