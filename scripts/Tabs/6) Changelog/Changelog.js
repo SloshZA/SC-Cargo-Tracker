@@ -11,6 +11,7 @@ export const ChangelogTab = () => {
                         <ul>
                             <li>Fixed Reward from capture not populating the mission group reward</li>
                             <li>OCR Rewards not transferring correctly when using add to manifest</li>
+                            <li>Mission Index Correctly now with Mission #</li>
                         </ul>
                         <li><b>Hauling Manifest</b></li>
                         <ul>
@@ -21,10 +22,9 @@ export const ChangelogTab = () => {
 
                     <h3>Known Issues</h3>
                     <ul>
-                        <li>Toggle Status for half of 1 mission and then adding them to the mission table will process them as 2 different missions</li>
-                        <li>Mission # on payouts table is not taking into account the previous mission # to update accordingly</li>
                         <li>Max Mission 15 (stabilizing everything first)</li>
                         <li>UI issues for different font sizes</li>
+                        <li>Misc UI Changes</li>
                     </ul>
                 </div>
 

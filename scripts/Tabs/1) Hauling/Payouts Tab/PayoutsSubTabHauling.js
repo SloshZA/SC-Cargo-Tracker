@@ -23,6 +23,18 @@ export const HaulingSubTabPayouts = ({ entries, setEntries }) => {
         return acc;
     }, {});
 
+    // Create a map of mission indices per date
+    const missionIndices = {};
+    Object.entries(entriesByDateAndMission).forEach(([date, missionGroups]) => {
+        missionIndices[date] = 0;
+        Object.values(missionGroups).forEach(missionEntries => {
+            missionEntries.forEach(entry => {
+                entry.missionIndex = missionIndices[date];
+            });
+            missionIndices[date]++;
+        });
+    });
+
     // Calculate total reward for a group of entries
     const calculateTotalReward = (entries) => {
         // Get unique missions by taking only the first entry of each mission group
