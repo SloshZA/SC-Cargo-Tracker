@@ -5,6 +5,38 @@ export const ChangelogTab = () => {
         <div className="changelog">
             <div className="changelog-container">
                 <div className="changelog-entry">
+                    <h3>CHANGES</h3>
+                    <ul>
+                        <li><b>Hauling Mission Tab</b></li>
+                        <ul>
+                            <li>Changed the Mission Allocation box to a set font of Arial</li>
+                            <ul>
+                                <li>All other fonts will change unless they cannot be fixed to keep the layout smooth</li>
+                                <li>Was having issues keeping the block a good size and still making it look nice</li>
+                                <li>Will look into a fix later on</li>
+                            </ul>
+                        </ul>
+                        <li><b>Payouts Tab</b></li>
+                        <ul>
+                            <li>Mission Reward Editing - NEW</li>
+                            <ul>
+                                <li>For users that need to edit the value after all processes have been completed</li>
+                                <li>Sometimes you only notice the mistake at the end, this will make it a better experience for users who would like to keep track</li>
+                            </ul>
+                        </ul>
+                        <li><b>UI Adjusting</b></li>
+                        <ul>
+                            <li>Adjusting column sizes to fit larger amounts and longer names to keep the table small and prevent wrapping of text to the next line</li>
+                            <li>Tested with:</li>
+                            <ul>
+                                <li>Complex-A as drop-off and pickup</li>
+                                <li>Agri supplies as commodity</li>
+                                <li>QTY as 99,999/99,999</li>
+                                <li>% as 100%</li>
+                            </ul>
+                        </ul>
+                    </ul>
+                </div>                <div className="changelog-entry">
                 <h3>ADDED FEATURES</h3>
                 <ul>
                     <li><b>Capture Tab - NEW</b></li>

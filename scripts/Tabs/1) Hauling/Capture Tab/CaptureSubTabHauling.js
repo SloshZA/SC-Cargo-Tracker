@@ -1627,23 +1627,25 @@ const CaptureSubTabHauling = ({
                     </>
                 )}
             </div>
-            <button 
-                onClick={() => handleRewardChange({ target: { value: '123,456' } }, 0)}
-                style={{
-                    position: 'fixed',
-                    bottom: '20px',
-                    right: '20px',
-                    zIndex: 1000,
-                    padding: '10px 20px',
-                    backgroundColor: '#ffcc00',
-                    color: '#000',
-                    border: 'none',
-                    borderRadius: '5px',
-                    cursor: 'pointer'
-                }}
-            >
-                Test Reward Log
-            </button>
+            {captureDebugMode && (
+                <button 
+                    onClick={() => handleRewardChange({ target: { value: '123,456' } }, 0)}
+                    style={{
+                        position: 'fixed',
+                        bottom: '20px',
+                        right: '20px',
+                        zIndex: 1000,
+                        padding: '10px 20px',
+                        backgroundColor: '#ffcc00',
+                        color: '#000',
+                        border: 'none',
+                        borderRadius: '5px',
+                        cursor: 'pointer'
+                    }}
+                >
+                    Test Reward Log
+                </button>
+            )}
         </div>
     );
 };

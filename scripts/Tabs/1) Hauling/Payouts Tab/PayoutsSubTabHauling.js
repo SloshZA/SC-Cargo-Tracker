@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 export const HaulingSubTabPayouts = ({ entries, setEntries }) => {
     const [collapsedMissions, setCollapsedMissions] = useState({});
     const [collapsedDates, setCollapsedDates] = useState({});
+    const [editingReward, setEditingReward] = useState({ missionId: null, value: '' });
 
     const toggleMissionCollapse = (missionId) => {
         setCollapsedMissions(prev => ({
@@ -81,6 +82,16 @@ export const HaulingSubTabPayouts = ({ entries, setEntries }) => {
         return `${currentNum}/${originalNum}`;
     };
 
+    const handleRewardChange = (missionId, newValue) => {
+        // Remove commas before saving
+        const numericValue = newValue.replace(/,/g, '');
+        setEntries(prevEntries => 
+            prevEntries.map(entry => 
+                entry.missionId === missionId ? { ...entry, reward: numericValue } : entry
+            )
+        );
+    };
+
     return (
         <div className="payouts-container">
             {/* Table Label */}
@@ -134,11 +145,78 @@ export const HaulingSubTabPayouts = ({ entries, setEntries }) => {
                                     <div key={missionId} className="mission-entry">
                                         <div 
                                             className="mission-header"
-                                            onClick={() => toggleMissionCollapse(missionId)}
+                                            onClick={(e) => {
+                                                if (!e.target.closest('.mission-summary span')) {
+                                                    toggleMissionCollapse(missionId);
+                                                }
+                                            }}
                                         >
                                             <h4>Mission {missionEntries[0].missionIndex + 1}</h4>
                                             <div className="mission-summary">
-                                                <span>Reward: {(missionEntries[0]?.reward ? parseInt(missionEntries[0].reward.replace(/,/g, '')) : 0).toLocaleString()} aUEC</span>
+                                                <span>
+                                                    Reward: 
+                                                    {editingReward.missionId === missionId ? (
+                                                        <span style={{ display: 'inline-flex', alignItems: 'center' }}>
+                                                            <input
+                                                                type="text"
+                                                                value={editingReward.value}
+                                                                onChange={(e) => {
+                                                                    // Remove all non-digit characters
+                                                                    const rawValue = e.target.value.replace(/\D/g, '');
+                                                                    // Format with commas
+                                                                    const formattedValue = rawValue.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+                                                                    setEditingReward({ missionId, value: formattedValue });
+                                                                }}
+                                                                onBlur={() => {
+                                                                    handleRewardChange(missionId, editingReward.value);
+                                                                    setEditingReward({ missionId: null, value: '' });
+                                                                }}
+                                                                onKeyPress={(e) => {
+                                                                    if (e.key === 'Enter') {
+                                                                        handleRewardChange(missionId, editingReward.value);
+                                                                        setEditingReward({ missionId: null, value: '' });
+                                                                    }
+                                                                }}
+                                                                onFocus={(e) => e.target.select()}
+                                                                style={{ 
+                                                                    width: '120px',
+                                                                    marginLeft: '5px',
+                                                                    padding: '0',
+                                                                    border: 'none',
+                                                                    backgroundColor: 'transparent',
+                                                                    color: 'inherit',
+                                                                    font: 'inherit',
+                                                                    outline: 'none',
+                                                                    textAlign: 'right',
+                                                                    boxSizing: 'content-box'
+                                                                }}
+                                                                autoFocus
+                                                            />
+                                                            <span style={{ marginLeft: '5px' }}>aUEC</span>
+                                                        </span>
+                                                    ) : (
+                                                        <span 
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                setEditingReward({ 
+                                                                    missionId, 
+                                                                    value: (missionEntries[0]?.reward ? parseInt(missionEntries[0].reward.replace(/,/g, '')) : 0).toString() 
+                                                                });
+                                                            }}
+                                                            style={{ 
+                                                                cursor: 'pointer',
+                                                                padding: '2px 5px',
+                                                                borderRadius: '3px',
+                                                                transition: 'all 0.2s ease',
+                                                                ':hover': {
+                                                                    backgroundColor: 'var(--hover-background)'
+                                                                }
+                                                            }}
+                                                        >
+                                                            {(missionEntries[0]?.reward ? parseInt(missionEntries[0].reward.replace(/,/g, '')) : 0).toLocaleString()} aUEC
+                                                        </span>
+                                                    )}
+                                                </span>
                                                 <span style={{ marginLeft: '10px', color: percentageColor }}>({totalPercentage}%)</span>
                                                 <span>{statusText}</span>
                                             </div>
@@ -148,10 +226,10 @@ export const HaulingSubTabPayouts = ({ entries, setEntries }) => {
                                                 <table style={{ backgroundColor: 'var(--background-color)' }}>
                                                     <thead>
                                                         <tr>
-                                                            <th style={{ width: '27%' }}>Pickup</th>
-                                                            <th style={{ width: '27%' }}>Drop Off</th>
+                                                            <th style={{ width: '30%' }}>Pickup</th>
+                                                            <th style={{ width: '30%' }}>Drop Off</th>
                                                             <th style={{ width: '16%' }}>Commodity</th>
-                                                            <th style={{ width: '10%' }}>QTY</th>
+                                                            <th style={{ width: '5%' }}>QTY</th>
                                                             <th style={{ width: '5%' }}>%</th>
                                                             <th style={{ display: 'none' }}>Current Amount</th>
                                                             <th style={{ display: 'none' }}>Original Amount</th>

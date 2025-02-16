@@ -724,8 +724,17 @@
 
 /* Style for the mission checkbox */
 .mission-checkbox {
-    margin-right: 10px;
-}
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-left: 730px;
+    margin-top: -160px;
+    margin-bottom: -20px;
+    border: 1px solid var(--button-color);
+    padding: 10px;
+    border-radius: 5px;
+    width: 310px;
+} 
 
 /* Style for the mission reward input */
 .mission-reward-input {
@@ -798,4 +807,10 @@
     font-weight: bold;
     display: block;
     text-align: left;
+}
+
+:root {
+    --border-color: #555;
+    --input-background: rgba(255, 255, 255, 0.1);
+    --hover-background: rgba(255, 255, 255, 0.05);
 } 

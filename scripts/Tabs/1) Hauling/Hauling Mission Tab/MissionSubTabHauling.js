@@ -618,14 +618,17 @@ export const MissionSubTabHauling = ({
             </div>
 
             {/* Mission Selection Area */}
-            <div className="mission-checkbox" style={{ minHeight: '140px' }}>
+            <div className="mission-checkbox" style={{ 
+                minHeight: '140px',
+                fontFamily: 'Arial, sans-serif !important'
+            }}>
                 <div style={{
                     marginBottom: '10px',
                     textAlign: 'center',
                     display: 'flex',
                     justifyContent: 'center',
                     alignItems: 'center',
-                    width: '100%'
+                    fontFamily: 'Arial, sans-serif'
                 }}>
                     <label
                         className="automatic-mission-label"
@@ -635,7 +638,8 @@ export const MissionSubTabHauling = ({
                             userSelect: 'none',
                             textDecoration: 'underline',
                             fontSize: '1.2em',
-                            fontWeight: 'bold'
+                            fontWeight: 'bold',
+                            fontFamily: 'Arial, sans-serif'
                         }}
                         onClick={() => setAutoMissionAllocation(!autoMissionAllocation)}
                     >
@@ -646,8 +650,16 @@ export const MissionSubTabHauling = ({
                 {/* Conditionally render based on autoMissionAllocation */}
                 {autoMissionAllocation ? (
                     // Auto Mode: Only first 5 checkboxes + Unlock Button
-                    <div style={{ display: 'flex', justifyContent: 'space-between', minHeight: '130px' }}>
-                        <div className="column" style={{ flex: 1 }}>
+                    <div style={{ 
+                        display: 'flex', 
+                        justifyContent: 'space-between', 
+                        minHeight: '130px',
+                        fontFamily: 'Arial, sans-serif'
+                    }}>
+                        <div className="column" style={{ 
+                            flex: 1,
+                            fontFamily: 'Arial, sans-serif'
+                        }}>
                             {/* Display only one mission checkbox in auto mode */}
                             {Array.from({ length: 1 }, (_, index) => {
                                 // Correct Mission Number Calculation:
@@ -664,8 +676,18 @@ export const MissionSubTabHauling = ({
                                 const isLockedMission = lockedMissionIndex.current !== null && (lockedMissionIndex.current % 5) === index;
 
                                 return (
-                                    <label key={index} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                                        <span style={{ textDecoration: 'underline', marginBottom: '5px', textAlign: 'center' }}>Current Mission</span>
+                                    <label key={index} style={{ 
+                                        display: 'flex', 
+                                        flexDirection: 'column', 
+                                        alignItems: 'center',
+                                        fontFamily: 'Arial, sans-serif'
+                                    }}>
+                                        <span style={{ 
+                                            textDecoration: 'underline', 
+                                            marginBottom: '5px', 
+                                            textAlign: 'center',
+                                            fontFamily: 'Arial, sans-serif'
+                                        }}>Current Mission</span>
                                         <input
                                             type="checkbox"
                                             checked={isLockedMission}
@@ -682,8 +704,19 @@ export const MissionSubTabHauling = ({
                                 );
                             })}
                         </div>
-                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', flex: 0, minWidth: '120px' }}>
-                            <button onClick={unlockMission} className="unlock-mission-button" style={{marginBottom: '10px', whiteSpace: 'nowrap'}}>
+                        <div style={{ 
+                            display: 'flex', 
+                            flexDirection: 'column', 
+                            alignItems: 'flex-end', 
+                            flex: 0, 
+                            minWidth: '120px',
+                            fontFamily: 'Arial, sans-serif'
+                        }}>
+                            <button onClick={unlockMission} className="unlock-mission-button" style={{
+                                marginBottom: '10px', 
+                                whiteSpace: 'nowrap',
+                                fontFamily: 'Arial, sans-serif'
+                            }}>
                                 Next Mission
                             </button>
                             <button 
@@ -694,7 +727,8 @@ export const MissionSubTabHauling = ({
                                     whiteSpace: 'nowrap',
                                     marginLeft: 'auto',
                                     marginRight: 'auto',
-                                    display: 'block'
+                                    display: 'block',
+                                    fontFamily: 'Arial, sans-serif'
                                 }}
                                 disabled={isSettingKey}
                             >
@@ -705,7 +739,14 @@ export const MissionSubTabHauling = ({
                 ) : (
                     // Manual Mode: All checkboxes
                     <>
-                        <div className="column" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', marginRight: '10px', minHeight: '130px' }}>
+                        <div className="column" style={{ 
+                            display: 'flex', 
+                            flexDirection: 'column', 
+                            alignItems: 'flex-end', 
+                            marginRight: '10px', 
+                            minHeight: '130px',
+                            fontFamily: 'Arial, sans-serif'
+                        }}>
                             {Array.from({ length: 5 }, (_, index) => {
                                 const missionNumber = index + 1;
                                 return (
@@ -720,7 +761,8 @@ export const MissionSubTabHauling = ({
                                             display: 'flex',
                                             flexDirection: 'row',
                                             alignItems: 'center',
-                                            justifyContent: 'flex-end'
+                                            justifyContent: 'flex-end',
+                                            fontFamily: 'Arial, sans-serif'
                                         }}
                                     >
                                         <input
@@ -732,7 +774,10 @@ export const MissionSubTabHauling = ({
                                             }}
                                             onChange={() => handleCheckboxChange(index)}
                                         />
-                                        <span style={{ color: autoMissionAllocation ? 'grey' : 'var(--mission-text-color)' }}>
+                                        <span style={{ 
+                                            color: autoMissionAllocation ? 'grey' : 'var(--mission-text-color)',
+                                            fontFamily: 'Arial, sans-serif'
+                                        }}>
                                             Mission {index + 1}
                                         </span>
                                         {getMissionPreview(index)}
@@ -740,7 +785,14 @@ export const MissionSubTabHauling = ({
                                 );
                             })}
                         </div>
-                        <div className="column" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', marginRight: '10px', minHeight: '130px' }}>
+                        <div className="column" style={{ 
+                            display: 'flex', 
+                            flexDirection: 'column', 
+                            alignItems: 'flex-end', 
+                            marginRight: '10px', 
+                            minHeight: '130px',
+                            fontFamily: 'Arial, sans-serif'
+                        }}>
                             {Array.from({ length: 5 }, (_, index) => {
                                 const missionNumber = index + 6;
                                 return (
@@ -755,7 +807,8 @@ export const MissionSubTabHauling = ({
                                             display: 'flex',
                                             flexDirection: 'row',
                                             alignItems: 'center',
-                                            justifyContent: 'flex-end'
+                                            justifyContent: 'flex-end',
+                                            fontFamily: 'Arial, sans-serif'
                                         }}
                                     >
                                         <input
@@ -767,7 +820,10 @@ export const MissionSubTabHauling = ({
                                             }}
                                             onChange={() => handleCheckboxChange(index + 5)}
                                         />
-                                        <span style={{ color: autoMissionAllocation ? 'grey' : 'var(--mission-text-color)' }}>
+                                        <span style={{ 
+                                            color: autoMissionAllocation ? 'grey' : 'var(--mission-text-color)',
+                                            fontFamily: 'Arial, sans-serif'
+                                        }}>
                                             Mission {index + 6}
                                         </span>
                                         {getMissionPreview(index + 5)}
@@ -775,7 +831,14 @@ export const MissionSubTabHauling = ({
                                 );
                             })}
                         </div>
-                        <div className="column" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', marginRight: '10px', minHeight: '130px' }}>
+                        <div className="column" style={{ 
+                            display: 'flex', 
+                            flexDirection: 'column', 
+                            alignItems: 'flex-end', 
+                            marginRight: '10px', 
+                            minHeight: '130px',
+                            fontFamily: 'Arial, sans-serif'
+                        }}>
                             {Array.from({ length: 5 }, (_, index) => {
                                 const missionNumber = index + 11;
                                 return (
@@ -790,7 +853,8 @@ export const MissionSubTabHauling = ({
                                             display: 'flex',
                                             flexDirection: 'row',
                                             alignItems: 'center',
-                                            justifyContent: 'flex-end'
+                                            justifyContent: 'flex-end',
+                                            fontFamily: 'Arial, sans-serif'
                                         }}
                                     >
                                         <input
@@ -802,7 +866,10 @@ export const MissionSubTabHauling = ({
                                             }}
                                             onChange={() => handleCheckboxChange(index + 10)}
                                         />
-                                        <span style={{ color: autoMissionAllocation ? 'grey' : 'var(--mission-text-color)' }}>
+                                        <span style={{ 
+                                            color: autoMissionAllocation ? 'grey' : 'var(--mission-text-color)',
+                                            fontFamily: 'Arial, sans-serif'
+                                        }}>
                                             Mission {index + 11}
                                         </span>
                                         {getMissionPreview(index + 10)}

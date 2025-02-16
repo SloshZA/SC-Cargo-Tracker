@@ -60,18 +60,7 @@ body {
 }
 
 /* Mission Checkbox Layout */
-.mission-checkbox {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 5px;
-    margin-left: 750px;
-    margin-top: -150px;
-    margin-bottom: -20px;
-    border: 1px solid #00ffcc;
-    padding: 10px;
-    border-radius: 5px;
-    width: 380px;
-}
+
 
 .mission-checkbox .column {
     display: flex;
@@ -192,15 +181,3 @@ body {
 
 
 /* Mission Checkbox */
-.mission-checkbox {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 5px;
-    margin-left: 750px;
-    margin-top: -170px;
-    margin-bottom: -20px;
-    border: 1px solid var(--button-color);
-    padding: 10px;
-    border-radius: 5px;
-    width: auto;
-} 
