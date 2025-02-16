@@ -5,6 +5,25 @@ export const ChangelogTab = () => {
         <div className="changelog">
             <div className="changelog-container">
                 <div className="changelog-entry">
+                <h3>ADDED FEATURES</h3>
+                <ul>
+                    <li><b>Capture Tab - NEW</b></li>
+                    <ul>
+                        <li>Move Total Rewards $$$ to the right of the header for better readability</li>
+                        <li>Added % next to reward for each mission group that tracks your % of the entries</li>
+                        <ul>
+                            <li>0-50% marks mission as Failed and red text on %</li>
+                            <li>51-55% marks mission as Completed and red text on %</li>
+                            <ul>
+                                <li>The reason this is marked as such is because when you're turning in a mission below 50%, it will be marked as a failure in-game and deduct 10x rank-based mission from your rep.</li>
+                                <li>e.g., if you fail a senior mission once, it will take the value of the rep (let's say 1000 rep) and multiply it by 10 to 10,000, then deduct that from your current rep (ruining your rank).</li>
+                            </ul>
+                            <li>56%-100% marked as Completed with no color change</li>
+                        </ul>
+                    </ul>
+                </ul>
+                </div>
+                <div className="changelog-entry">
                 <h3>FIXED</h3>
                     <ul>
                         <li><b>Capture Tab</b></li>
