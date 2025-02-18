@@ -1034,9 +1034,13 @@ const CaptureSubTabHauling = ({
 
     // Add button to clear saved selection
     const clearSavedSelection = () => {
-        setSavedSelectionBox(null);
-        localStorage.removeItem('captureSelectionBox');
-        setSelectionBox(null);
+        const confirmed = window.confirm('Are you sure you want to clear the saved selection box? This action cannot be undone.');
+        if (confirmed) {
+            setSavedSelectionBox(null);
+            localStorage.removeItem('captureSelectionBox');
+            setSelectionBox(null);
+            showBannerMessage('Saved selection cleared.', true);
+        }
     };
 
     const preprocessImage = (image) => {
@@ -1044,7 +1048,6 @@ const CaptureSubTabHauling = ({
         const ctx = canvas.getContext('2d');
         const img = new Image();
         img.src = image;
-
         return new Promise((resolve) => {
             img.onload = () => {
                 canvas.width = img.width;
@@ -1651,3 +1654,4 @@ const CaptureSubTabHauling = ({
 };
 
 export default CaptureSubTabHauling;
+

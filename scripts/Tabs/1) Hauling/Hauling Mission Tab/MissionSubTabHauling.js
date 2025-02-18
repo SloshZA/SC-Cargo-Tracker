@@ -2,6 +2,32 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import Select from 'react-select';
 import { logAddEntry, logProcessOrders, logMissionGrouping, logStatusChange } from '../../7) Debug Options/HaulingDebugLogs';
 import crypto from 'crypto';
+import { generateLocationLists } from '../../../../Location data/Stanton System/Location Data/Const Data Stanton.js';
+import StantonSystemData from '../../../../Location data/Stanton System/Location Data/Const Data Stanton.js';
+
+// Update the pickup point options generation
+const pickupPointOptions = StantonSystemData.FullList
+    .filter(location => !location.startsWith('--') && !location.endsWith('--'))
+    .map(location => ({
+        value: location,
+        label: location
+    }));
+
+// Ensure Riker Memorial Spaceport is included
+if (!pickupPointOptions.some(option => option.value === 'Riker Memorial Spaceport')) {
+    pickupPointOptions.push({
+        value: 'Riker Memorial Spaceport',
+        label: 'Riker Memorial Spaceport'
+    });
+}
+
+// Update the quick lookup options generation near the top of the file
+const quickLookupOptions = StantonSystemData.FullList
+    .filter(location => !location.startsWith('--') && !location.endsWith('--'))
+    .map(location => ({
+        value: location,
+        label: location
+    }));
 
 export const MissionSubTabHauling = ({
     data,
@@ -80,6 +106,53 @@ export const MissionSubTabHauling = ({
         return savedHotkey || 'N'; // Default to 'n'
     });
 
+    // Add state for popup visibility
+    const [showRoutePlanner, setShowRoutePlanner] = useState(false);
+
+    // Add new state for route planner
+    const [routePresets, setRoutePresets] = useState(() => {
+        const savedPresets = localStorage.getItem('routePresets');
+        return savedPresets ? JSON.parse(savedPresets) : [];
+    });
+    const [selectedPreset, setSelectedPreset] = useState(() => {
+        const savedPreset = localStorage.getItem('selectedPreset');
+        return savedPreset ? JSON.parse(savedPreset) : null;
+    });
+    const [showSavePresetPopup, setShowSavePresetPopup] = useState(false);
+    const [presetName, setPresetName] = useState('');
+    const [showLoadConfirmation, setShowLoadConfirmation] = useState(false);
+
+    // Add new state for active route
+    const [activeRoute, setActiveRoute] = useState(() => {
+        const savedActiveRoute = localStorage.getItem('activeRoute');
+        return savedActiveRoute ? JSON.parse(savedActiveRoute) : null;
+    });
+
+    // Add new state for delete confirmation
+    const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
+
+    // Add new state for advanced view
+    const [showAdvancedView, setShowAdvancedView] = useState(false);
+
+    // Add new state for search term
+    const [searchTerm, setSearchTerm] = useState('');
+
+    // Add new state to track the active route checkbox state
+    const [savedActiveRouteState, setSavedActiveRouteState] = useState(null);
+
+    // Add new state for advanced view entries
+    const [advancedViewEntries, setAdvancedViewEntries] = useState([]);
+
+    // Add new state for advanced view save popup
+    const [showAdvancedSavePopup, setShowAdvancedSavePopup] = useState(false);
+
+    // Add new state variables
+    const [basicSelectedPreset, setBasicSelectedPreset] = useState(null);
+    const [advancedSelectedPreset, setAdvancedSelectedPreset] = useState(null);
+
+    // Add this state near the other state declarations
+    const [showClearConfirmation, setShowClearConfirmation] = useState(false);
+
     // Add effect to save state changes
     useEffect(() => {
         localStorage.setItem('autoMissionAllocation', JSON.stringify(autoMissionAllocation));
@@ -88,6 +161,86 @@ export const MissionSubTabHauling = ({
     useEffect(() => {
         localStorage.setItem('nextMissionHotkey', nextMissionHotkey);
     }, [nextMissionHotkey]);
+
+    // Add effect to save route presets to localStorage whenever they change
+    useEffect(() => {
+        localStorage.setItem('routePresets', JSON.stringify(routePresets));
+    }, [routePresets]);
+
+    // Add effects to save selected preset and active route to localStorage
+    useEffect(() => {
+        if (selectedPreset) {
+            localStorage.setItem('selectedPreset', JSON.stringify(selectedPreset));
+        } else {
+            localStorage.removeItem('selectedPreset');
+        }
+    }, [selectedPreset]);
+
+    useEffect(() => {
+        if (activeRoute) {
+            localStorage.setItem('activeRoute', JSON.stringify(activeRoute));
+        } else {
+            localStorage.removeItem('activeRoute');
+        }
+    }, [activeRoute]);
+
+    // Update the useEffect hook that handles active route ordering
+    useEffect(() => {
+        if (activeRoute) {
+            // Create a map of existing entries by drop-off point
+            const entriesByDropOff = entries.reduce((acc, entry) => {
+                if (!acc[entry.dropOffPoint]) {
+                    acc[entry.dropOffPoint] = [];
+                }
+                acc[entry.dropOffPoint].push(entry);
+                return acc;
+            }, {});
+
+            // Reorder entries based on the saved order, preserving existing entries
+            const orderedEntries = activeRoute.dropOffOrder.flatMap(dropOffPoint => {
+                if (entriesByDropOff[dropOffPoint]) {
+                    return entriesByDropOff[dropOffPoint];
+                }
+                return [];
+            });
+
+            // Add any remaining drop-off points that weren't in the preset
+            const remainingDropOffs = Object.keys(entriesByDropOff).filter(
+                dropOffPoint => !activeRoute.dropOffOrder.includes(dropOffPoint)
+            );
+
+            const remainingEntries = remainingDropOffs.flatMap(dropOffPoint => 
+                entriesByDropOff[dropOffPoint]
+            );
+
+            // Combine the ordered entries with the remaining entries
+            const finalEntries = [...orderedEntries, ...remainingEntries];
+
+            // Only update if the order has actually changed
+            if (JSON.stringify(finalEntries) !== JSON.stringify(entries)) {
+                setEntries(finalEntries);
+                localStorage.setItem('entries', JSON.stringify(finalEntries));
+            }
+        }
+    }, [entries, activeRoute]);
+
+    // Add this useEffect hook near the other useEffect hooks
+    useEffect(() => {
+        // Check basic selected preset
+        if (basicSelectedPreset && !routePresets.some(preset => preset.value === basicSelectedPreset.value)) {
+            setBasicSelectedPreset(null);
+        }
+        
+        // Check advanced selected preset
+        if (advancedSelectedPreset && !routePresets.some(preset => preset.value === advancedSelectedPreset.value)) {
+            setAdvancedSelectedPreset(null);
+        }
+        
+        // Check active route
+        if (activeRoute && !routePresets.some(preset => preset.value === activeRoute.value)) {
+            setActiveRoute(null);
+        }
+    }, [routePresets, basicSelectedPreset, advancedSelectedPreset, activeRoute]);
 
     const handleCheckboxChange = (index) => {
         setSelectedMissions(prev => {
@@ -164,11 +317,54 @@ export const MissionSubTabHauling = ({
             timestamp: Date.now()
         };
 
-        setEntries(prevEntries => {
-            const updatedEntries = [...prevEntries, newEntry];
-            localStorage.setItem('entries', JSON.stringify(updatedEntries));
-            return updatedEntries;
-        });
+        // If active route is checked, reorder the entries first
+        if (activeRoute) {
+            // Create a map of existing entries by drop-off point
+            const entriesByDropOff = entries.reduce((acc, entry) => {
+                if (!acc[entry.dropOffPoint]) {
+                    acc[entry.dropOffPoint] = [];
+                }
+                acc[entry.dropOffPoint].push(entry);
+                return acc;
+            }, {});
+
+            // Add the new entry to its drop-off point group
+            if (!entriesByDropOff[selectedDropOffPoint]) {
+                entriesByDropOff[selectedDropOffPoint] = [];
+            }
+            entriesByDropOff[selectedDropOffPoint].push(newEntry);
+
+            // Reorder entries based on the saved order, preserving existing entries
+            const orderedEntries = activeRoute.dropOffOrder.flatMap(dropOffPoint => {
+                if (entriesByDropOff[dropOffPoint]) {
+                    return entriesByDropOff[dropOffPoint];
+                }
+                return [];
+            });
+
+            // Add any remaining drop-off points that weren't in the preset
+            const remainingDropOffs = Object.keys(entriesByDropOff).filter(
+                dropOffPoint => !activeRoute.dropOffOrder.includes(dropOffPoint)
+            );
+
+            const remainingEntries = remainingDropOffs.flatMap(dropOffPoint => 
+                entriesByDropOff[dropOffPoint]
+            );
+
+            // Combine the ordered entries with the remaining entries
+            const finalEntries = [...orderedEntries, ...remainingEntries];
+
+            // Update the entries with the new order
+            setEntries(finalEntries);
+            localStorage.setItem('entries', JSON.stringify(finalEntries));
+        } else {
+            // If no active route, just add the new entry
+            setEntries(prevEntries => {
+                const updatedEntries = [...prevEntries, newEntry];
+                localStorage.setItem('entries', JSON.stringify(updatedEntries));
+                return updatedEntries;
+            });
+        }
 
         if (isMissionEntry) {
             setMissionEntries(prev => {
@@ -305,27 +501,9 @@ export const MissionSubTabHauling = ({
         window.addEventListener('keydown', handleKeyDown, { once: true });
     };
 
+    // Modify the handleClearLog function
     const handleClearLog = () => {
-        if (needsClearConfirmation) {
-            logProcessOrders(debugFlags, 'Clearing log');
-            setEntries([]);
-            setMissionEntries(Array(15).fill(null));
-            setMissionRewards({});
-            localStorage.removeItem('entries');
-            localStorage.removeItem('missionEntries');
-            localStorage.removeItem('missionRewards');
-            setNeedsClearConfirmation(false);
-
-            // Reset lockedMissionIndex to null when clearing the log
-            lockedMissionIndex.current = null;
-
-            // Force a re-render to update the mission checkbox
-            forceUpdate();
-        } else {
-            showBannerMessage('Are you sure? Click again to clear the log.');
-            setNeedsClearConfirmation(true);
-            setTimeout(() => setNeedsClearConfirmation(false), 3000);
-        }
+        setShowClearConfirmation(true);
     };
 
     // Function to force a re-render of the component
@@ -500,25 +678,1700 @@ export const MissionSubTabHauling = ({
         showBannerMessage('Mission entries processed to payouts successfully');
     };
 
+    // Update the useEffect hook that handles active route ordering
+    useEffect(() => {
+        if (activeRoute) {
+            // Create a map of existing entries by drop-off point
+            const entriesByDropOff = entries.reduce((acc, entry) => {
+                if (!acc[entry.dropOffPoint]) {
+                    acc[entry.dropOffPoint] = [];
+                }
+                acc[entry.dropOffPoint].push(entry);
+                return acc;
+            }, {});
+
+            // Reorder entries based on the saved order, preserving existing entries
+            const orderedEntries = activeRoute.dropOffOrder.flatMap(dropOffPoint => {
+                if (entriesByDropOff[dropOffPoint]) {
+                    return entriesByDropOff[dropOffPoint];
+                }
+                return [];
+            });
+
+            // Add any remaining drop-off points that weren't in the preset
+            const remainingDropOffs = Object.keys(entriesByDropOff).filter(
+                dropOffPoint => !activeRoute.dropOffOrder.includes(dropOffPoint)
+            );
+
+            const remainingEntries = remainingDropOffs.flatMap(dropOffPoint => 
+                entriesByDropOff[dropOffPoint]
+            );
+
+            // Combine the ordered entries with the remaining entries
+            const finalEntries = [...orderedEntries, ...remainingEntries];
+
+            // Only update if the order has actually changed
+            if (JSON.stringify(finalEntries) !== JSON.stringify(entries)) {
+                setEntries(finalEntries);
+                localStorage.setItem('entries', JSON.stringify(finalEntries));
+            }
+        }
+    }, [entries, activeRoute]);
+
+    // Update the loadPreset function
+    const loadPreset = () => {
+        const preset = routePresets.find(p => p.value === selectedPreset.value);
+        if (!preset) return;
+        
+        // Create a map of existing entries by drop-off point
+        const entriesByDropOff = entries.reduce((acc, entry) => {
+            if (!acc[entry.dropOffPoint]) {
+                acc[entry.dropOffPoint] = [];
+            }
+            acc[entry.dropOffPoint].push(entry);
+            return acc;
+        }, {});
+        
+        // Reorder entries based on the saved order, preserving existing entries
+        const orderedEntries = preset.dropOffOrder.flatMap(dropOffPoint => {
+            if (entriesByDropOff[dropOffPoint]) {
+                return entriesByDropOff[dropOffPoint];
+            }
+            return []; // Skip if drop-off point doesn't exist
+        });
+        
+        // Add any remaining drop-off points that weren't in the preset
+        const remainingDropOffs = Object.keys(entriesByDropOff).filter(
+            dropOffPoint => !preset.dropOffOrder.includes(dropOffPoint)
+        );
+        
+        const remainingEntries = remainingDropOffs.flatMap(dropOffPoint => 
+            entriesByDropOff[dropOffPoint]
+        );
+        
+        // Combine the ordered entries with the remaining entries
+        const finalEntries = [...orderedEntries, ...remainingEntries];
+        
+        // Update the entries with the new order
+        setEntries(finalEntries);
+        localStorage.setItem('entries', JSON.stringify(finalEntries));
+        
+        setShowLoadConfirmation(false);
+    };
+
+    // Add this function back in, right before the handleSavePreset function
+    const handleLoadPreset = () => {
+        if (!selectedPreset) {
+            showBannerMessage('Please select a preset to load');
+            return;
+        }
+        setShowLoadConfirmation(true);
+    };
+
+    // Keep the existing handleSavePreset function
+    const handleSavePreset = () => {
+        if (presetName.trim() === '') {
+            showBannerMessage('Please enter a name for the preset');
+            return;
+        }
+
+        // Check if we're overwriting an existing preset
+        const existingPreset = routePresets.find(preset => preset.label.toLowerCase() === presetName.toLowerCase());
+        if (existingPreset) {
+            if (!window.confirm(`A preset with this name already exists. Do you want to overwrite it?`)) {
+                return;
+            }
+        }
+
+        // Get current order of drop-off points
+        const dropOffOrder = entries.reduce((acc, entry) => {
+            if (!acc.includes(entry.dropOffPoint)) {
+                acc.push(entry.dropOffPoint);
+            }
+            return acc;
+        }, []);
+        
+        const newPreset = {
+            value: presetName.toLowerCase().replace(/\s+/g, '-'),
+            label: presetName,
+            dropOffOrder: dropOffOrder,
+            timestamp: Date.now()
+        };
+        
+        setRoutePresets(prev => {
+            // If overwriting, remove the old preset first
+            const updated = prev.filter(preset => preset.label.toLowerCase() !== presetName.toLowerCase());
+            return [...updated, newPreset];
+        });
+        
+        // Set the newly saved preset as active
+        setBasicSelectedPreset(newPreset);
+        setSelectedPreset(newPreset);
+        if (activeRoute) {
+            setActiveRoute(newPreset);
+        }
+        
+        setShowSavePresetPopup(false);
+        setPresetName('');
+    };
+
+    // Update the preset selection handler
+    const handlePresetSelect = (selected, isAdvancedView) => {
+        // Verify the selected preset still exists
+        const presetExists = routePresets.some(preset => preset.value === selected?.value);
+        
+        if (isAdvancedView) {
+            setAdvancedSelectedPreset(presetExists ? selected : null);
+            
+            // Update advanced view entries based on the selected preset
+            if (presetExists && selected) {
+                const newEntries = selected.dropOffOrder.map(dropOffPoint => ({
+                    id: `entry_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+                    dropOffPoint,
+                    commodity: selectedCommodity,
+                    originalAmount: 1,
+                    currentAmount: 1,
+                    status: STATUS_OPTIONS[0],
+                    isMissionEntry: false,
+                    timestamp: Date.now()
+                }));
+                setAdvancedViewEntries(newEntries);
+            }
+        } else {
+            // Store the current active route state
+            const wasActiveRoute = !!activeRoute;
+            
+            // Temporarily disable active route
+            if (wasActiveRoute) {
+                setActiveRoute(null);
+            }
+            
+            // Update the selected preset
+            setBasicSelectedPreset(presetExists ? selected : null);
+            setSelectedPreset(presetExists ? selected : null);
+            
+            // If active route was previously enabled, re-enable it after a short delay
+            if (wasActiveRoute && selected) {
+                setTimeout(() => {
+                    setActiveRoute(selected);
+                    
+                    // Reorder entries based on the new preset
+        const entriesByDropOff = entries.reduce((acc, entry) => {
+            if (!acc[entry.dropOffPoint]) {
+                acc[entry.dropOffPoint] = [];
+            }
+            acc[entry.dropOffPoint].push(entry);
+            return acc;
+        }, {});
+        
+                    const orderedEntries = selected.dropOffOrder.flatMap(dropOffPoint => {
+            if (entriesByDropOff[dropOffPoint]) {
+                return entriesByDropOff[dropOffPoint];
+            }
+                        return [];
+        });
+        
+        const remainingDropOffs = Object.keys(entriesByDropOff).filter(
+                        dropOffPoint => !selected.dropOffOrder.includes(dropOffPoint)
+        );
+        
+        const remainingEntries = remainingDropOffs.flatMap(dropOffPoint => 
+            entriesByDropOff[dropOffPoint]
+        );
+        
+        const finalEntries = [...orderedEntries, ...remainingEntries];
+        
+        setEntries(finalEntries);
+        localStorage.setItem('entries', JSON.stringify(finalEntries));
+                }, 100); // Short delay to ensure state updates properly
+            }
+        }
+    };
+
+    // Update the active route checkbox handler
+    const handleActiveRouteChange = (e) => {
+        if (e.target.checked) {
+            setActiveRoute(selectedPreset);
+        } else {
+            setActiveRoute(null);
+        }
+    };
+
+    // Modify the handleDeletePreset function
+    const handleDeletePreset = () => {
+        const presetToDelete = showAdvancedView ? advancedSelectedPreset : basicSelectedPreset;
+        if (!presetToDelete) {
+            showBannerMessage('Please select a preset to delete');
+            return;
+        }
+        setShowDeleteConfirmation(true);
+    };
+
+    const confirmDeletePreset = () => {
+        const presetToDelete = showAdvancedView ? advancedSelectedPreset : basicSelectedPreset;
+        if (!presetToDelete) return;
+
+        setRoutePresets(prev => prev.filter(preset => preset.value !== presetToDelete.value));
+        
+        if (activeRoute?.value === presetToDelete.value) {
+            setActiveRoute(null);
+        }
+
+        if (showAdvancedView) {
+            setAdvancedSelectedPreset(null);
+            setAdvancedViewEntries([]);
+        } else {
+            setBasicSelectedPreset(null);
+        }
+        
+        setShowDeleteConfirmation(false);
+    };
+
+    // Modify the handleAddDropOffPoint function to handle deletion of advanced view entries
+    const handleAddDropOffPoint = (dropOffPoint, planet, moon) => {
+        if (showAdvancedView) {
+            const existingEntryIndex = advancedViewEntries.findIndex(entry => entry.dropOffPoint === dropOffPoint);
+            
+            if (existingEntryIndex !== -1) {
+                // Remove the entry if it already exists
+                setAdvancedViewEntries(prevEntries => 
+                    prevEntries.filter((_, index) => index !== existingEntryIndex)
+                );
+            } else {
+                // Add new entry if it doesn't exist
+                const newEntry = {
+                    id: `entry_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+                    missionIndex: null,
+                    dropOffPoint: dropOffPoint,
+                    commodity: selectedCommodity,
+                    originalAmount: 1,
+                    currentAmount: 1,
+                    status: STATUS_OPTIONS[0],
+                    pickupPoint: firstDropdownValue,
+                    pickup: firstDropdownValue,
+                    planet: planet,
+                    moon: moon,
+                    isMissionEntry: false,
+                    timestamp: Date.now()
+                };
+
+                setAdvancedViewEntries(prevEntries => [...prevEntries, newEntry]);
+            }
+        } else {
+            // Existing code for main manifest entries
+            const existingEntryIndex = entries.findIndex(entry => entry.dropOffPoint === dropOffPoint);
+            
+            if (existingEntryIndex !== -1) {
+                setEntries(prevEntries => {
+                    const updatedEntries = prevEntries.filter((_, index) => index !== existingEntryIndex);
+                    localStorage.setItem('entries', JSON.stringify(updatedEntries));
+                    return updatedEntries;
+                });
+            } else {
+                const newEntry = {
+                    id: `entry_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+                    missionIndex: null,
+                    dropOffPoint: dropOffPoint,
+                    commodity: selectedCommodity,
+                    originalAmount: 1,
+                    currentAmount: 1,
+                    status: STATUS_OPTIONS[0],
+                    pickupPoint: firstDropdownValue,
+                    pickup: firstDropdownValue,
+                    planet: planet,
+                    moon: moon,
+                    isMissionEntry: false,
+                    timestamp: Date.now()
+                };
+
+                setEntries(prevEntries => {
+                    const updatedEntries = [...prevEntries, newEntry];
+                    localStorage.setItem('entries', JSON.stringify(updatedEntries));
+                    return updatedEntries;
+                });
+            }
+        }
+    };
+
+    // Add this near the other button handlers
+    const handleAdvancedSave = () => {
+        if (presetName.trim() === '') {
+            showBannerMessage('Please enter a name for the preset');
+            return;
+        }
+
+        // Get current order of drop-off points from advanced view
+        const dropOffOrder = advancedViewEntries.reduce((acc, entry) => {
+            if (!acc.includes(entry.dropOffPoint)) {
+                acc.push(entry.dropOffPoint);
+            }
+            return acc;
+        }, []);
+
+        const newPreset = {
+            value: presetName.toLowerCase().replace(/\s+/g, '-'),
+            label: presetName,
+            dropOffOrder: dropOffOrder,
+            timestamp: Date.now()
+        };
+
+        setRoutePresets(prev => {
+            // If overwriting, remove the old preset first
+            const updated = prev.filter(preset => preset.label.toLowerCase() !== presetName.toLowerCase());
+            return [...updated, newPreset];
+        });
+
+        // Set the newly saved preset as active
+        setAdvancedSelectedPreset(newPreset);
+        setSelectedPreset(newPreset);
+        if (activeRoute) {
+            setActiveRoute(newPreset);
+        }
+
+        setShowAdvancedSavePopup(false);
+        setPresetName('');
+    };
+
+    // Update the search logic in the left panel component:
+
+    // First, add a function to determine location type
+    const getLocationType = (location, planet, moon) => {
+        // Hardcoded outposts
+        const hardcodedOutposts = [
+            'Humboldt Mine',
+            'Loveridge Mineral Reserve',
+            'Shubin Mining Facility SAL-2',
+            'Shubin Mining Facility SAL-5',
+            // Add new outposts
+            'ArcCorp Mining Area 045',
+            'ArcCorp Mining Area 048',
+            'ArcCorp Mining Area 056',
+            'ArcCorp Mining Area 061',
+            'Gallee Family Farms',
+            'Hickes Research Outpost',
+            'Terra Mills Hydrofarm',
+            'Tram & Myers Mining',
+            'ArcCorp Mining Area 141',
+            'Bountiful Harvest Hydroponics',
+            'Kudre Ore',
+            'Shubin Mining Facility SCD-1',
+            'Brios Breaker Yard',
+            'ArcCorp Mining Area 157',
+            'Benson Mining Outpost',
+            'Deakins Research Outpost',
+            'HDMS-Bezdek',
+            'HDMS-Lathan',
+            'HDMS-Anderson',
+            'HDMS-Norgaard',
+            'HDMS-Ryder',
+            'HDMS-Woodruff',
+            'HDMS-Hahn',
+            'HDMS-Perlman',
+            'Rayari Anvik Research Outpost',
+            'Rayari Kaltag Research Outpost',
+            'Shubin Mining Facility SMCa-6',
+            'Shubin Mining Facility SMCa-8',
+            'Rayari Cantwell Research Outpost',
+            'Rayari McGrath Research Outpost',
+            'Devlin Scrap & Salvage'
+        ];
+        
+        // First check if it's a hardcoded outpost
+        if (hardcodedOutposts.includes(location)) {
+            return 'Outpost';
+        }
+        
+        // Rest of the existing logic...
+        const majorCities = [
+            'Lorville', 'Riker Memorial Spaceport', 
+            'NB Int Spaceport', 'Area 18', 'Orison'
+        ];
+        
+        if (majorCities.includes(location)) {
+            return 'City';
+        }
+        
+        // Then check if it's a known station
+        if (data.stations?.includes(location)) {
+            // Special handling for locations that should be Distribution Centers
+            const distributionKeywords = [
+                'Distribution', 'Logistics', 'Depot', 'Storage', 
+                'Workcenter', 'Production Complex'
+            ];
+            
+            // If it's a station but contains distribution keywords, classify as Distribution
+            const isDistribution = distributionKeywords.some(keyword => 
+                location.toLowerCase().includes(keyword.toLowerCase())
+            );
+            
+            return isDistribution ? 'Distribution' : 'Station';
+        }
+        
+        // Then check planet dropoff points
+        if (data.Dropoffpoints[planet]?.includes(location)) {
+            if (location.startsWith('--') && location.endsWith('--')) return 'Separator';
+            if (location.includes('City')) return 'City';
+            
+            // Enhanced distribution center detection
+            const distributionKeywords = [
+                'Distribution', 'Logistics', 'Depot', 'Storage', 
+                'Workcenter', 'Production Complex'
+            ];
+            
+            // Check if location contains any distribution keywords
+            const isDistribution = distributionKeywords.some(keyword => 
+                location.toLowerCase().includes(keyword.toLowerCase())
+            );
+            
+            if (isDistribution) return 'Distribution';
+            
+            return 'Other';
+        }
+        
+        // Finally check moon locations
+        if (data.moons[planet]?.[moon]?.includes(location)) {
+            // Enhanced outpost detection
+            const outpostKeywords = [
+                'Outpost', 'Research', 'Facility', 'Mine', 
+                'Mining', 'Scrap', 'Salvage', 'Yard', 'Hydrofarm',
+                'Hydroponics', 'Breaker', 'Family Farms', 'Mills',
+                'Harvest', 'Cantwell', 'McGrath', 'Anvik', 'Kaltag',
+                'Devlin', 'Brios', 'Gallee', 'Terra', 'Tram & Myers',
+                'Benson', 'Deakins', 'Rayari', 'Humboldt', 'Loveridge',
+                'Shubin', 'Mineral Reserve'
+            ];
+            
+            const isOutpost = outpostKeywords.some(keyword => 
+                location.toLowerCase().includes(keyword.toLowerCase())
+            );
+            
+            if (isOutpost) return 'Outpost';
+        }
+        return 'Other';
+    };
+
+    // Then update the search filter logic
+    <div style={{ marginTop: '10px' }}>
+        {StantonSystemData.FullList
+            .filter(location => {
+                // Skip separators when searching
+                if (location.startsWith('--') && location.endsWith('--')) {
+                    return true;
+                }
+
+                // Get location type
+                const locationType = getLocationType(location);
+                const typeString = locationType === 'Station' ? 'Space Station' : 
+                                  locationType === 'Distribution' ? 'Distribution Center' : 
+                                  locationType === 'Outpost' ? 'Mining Outpost' : 
+                                  locationType;
+
+                // Check if search term matches location name or type
+                return location.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                       typeString.toLowerCase().includes(searchTerm.toLowerCase());
+            })
+            .map((location, index) => {
+                if (location.startsWith('--') && location.endsWith('--')) {
+                    // Only show separator if there are visible items after it
+                    const nextItem = StantonSystemData.FullList[index + 1];
+                    if (!nextItem || !nextItem.toLowerCase().includes(searchTerm.toLowerCase())) {
+                        return null;
+                    }
+
+                    // Render separator
+                    return (
+                        <div key={index} style={{
+                            padding: '5px',
+                            margin: '10px 0',
+                            backgroundColor: 'var(--background-secondary-color)',
+                            color: 'var(--text-secondary-color)',
+                            fontWeight: 'bold',
+                            textAlign: 'center'
+                        }}>
+                            {location.replace(/--/g, '')}
+                        </div>
+                    );
+                }
+
+                // Get location details
+                const locationType = getLocationType(location);
+                const planet = Object.keys(StantonSystemData.Dropoffpoints).find(planet => 
+                    StantonSystemData.Dropoffpoints[planet].includes(location)
+                ) || Object.keys(StantonSystemData.moons).find(planet => 
+                    Object.values(StantonSystemData.moons[planet]).flat().includes(location)
+                );
+
+                const moon = planet ? Object.keys(StantonSystemData.moons[planet]).find(moon => 
+                    StantonSystemData.moons[planet][moon].includes(location)
+                ) : null;
+
+                const isInAdvancedView = advancedViewEntries.some(entry => entry.dropOffPoint === location);
+                const isInManifest = entries.some(entry => entry.dropOffPoint === location);
+
+                return (
+                    <div 
+                        key={location} 
+                        style={{
+                            padding: '10px',
+                            marginBottom: '10px',
+                            backgroundColor: isInAdvancedView ? 'var(--table-row-color)' : 'var(--background-secondary-color)',
+                            borderRadius: '4px',
+                            cursor: 'pointer',
+                            border: `1px solid ${isInAdvancedView ? 'var(--border-color)' : '#ccc'}`,
+                            opacity: isInAdvancedView ? 1 : 0.7,
+                            ':hover': {
+                                backgroundColor: 'var(--button-color)'
+                            }
+                        }}
+                        onClick={() => {
+                            if (showAdvancedView) {
+                                handleAddDropOffPoint(location, planet, moon);
+                            } else if (!isInManifest) {
+                                handleAddDropOffPoint(location, planet, moon);
+                            }
+                        }}
+                    >
+                        <div>
+                            <div style={{ fontWeight: 'bold' }}>{location}</div>
+                            <div style={{ fontSize: '0.8em', color: 'var(--text-secondary-color)' }}>
+                                {locationType === 'Station' ? 'Space Station' : 
+                                 locationType === 'Distribution' ? 'Distribution Center' : 
+                                 locationType === 'Outpost' ? `${planet} ${moon ? `- ${moon}` : ''} (Outpost)` : 
+                                 `${planet} ${moon ? `- ${moon}` : ''} (${locationType})`}
+                            </div>
+                            {isInManifest && (
+                                <div style={{ fontSize: '0.8em', color: '#ff4444', marginTop: '5px' }}>
+                                    (In Hauling Manifest)
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                );
+            })}
+    </div>
+
     return (
         <div className="hauling-missions">
-            
+            {/* Route Planner Button and Controls */}
+            <div style={{ 
+                display: 'flex', 
+                justifyContent: 'center', 
+                marginBottom: '20px',
+                gap: '10px'
+            }}>
+                <button 
+                    className="route-planner-button with-icon" // Add the class here
+                    onClick={() => setShowRoutePlanner(true)}
+                >
+                    Route Planner
+                </button>
+            </div>
+
+            {/* Basic View Popup */}
+            {showRoutePlanner && !showAdvancedView && (
+                <div style={{
+                    position: 'fixed',
+                    top: '50%',
+                    left: '50%',
+                    transform: 'translate(-50%, -50%)',
+                    width: '90%',
+                    maxWidth: '1200px',
+                    height: '90%',
+                    maxHeight: '800px',
+                        backgroundColor: 'var(--background-color)',
+                        padding: '20px',
+                        borderRadius: '8px',
+                    zIndex: 1000,
+                        overflowY: 'auto',
+                    fontFamily: 'var(--font-family)',
+                    fontSize: 'var(--font-size)',
+                    color: 'var(--text-color)',
+                    boxShadow: '0 0 20px rgba(0,0,0,0.3)',
+                    border: '3px solid var(--table-outline-color)' // Changed to match border color
+                    }}>
+                        <div style={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            marginBottom: '20px'
+                        }}>
+                            <h2>Route Planner</h2>
+                            <div style={{ display: 'flex', gap: '10px' }}>
+                            <button 
+                                onClick={() => {
+                                    // Save the current active route state
+                                    setSavedActiveRouteState(!!activeRoute);
+                                    setShowAdvancedView(true);
+                                    setActiveRoute(null); // Disable active route in advanced view
+                                }}
+                                style={{
+                                    padding: '8px 16px',
+                                    backgroundColor: 'var(--button-color)',
+                                    color: 'black',
+                                    border: 'none',
+                                    borderRadius: '4px',
+                                    cursor: 'pointer'
+                                }}
+                            >
+                                Advanced Route Planning
+                            </button>
+                                <button 
+                                    onClick={() => {
+                                        const tooltip = document.getElementById('route-planner-tooltip');
+                                        tooltip.style.display = tooltip.style.display === 'block' ? 'none' : 'block';
+                                    }}
+                                    style={{
+                                        padding: '8px 16px',
+                                        backgroundColor: 'var(--button-color)',
+                                        color: 'black',
+                                        border: 'none',
+                                        borderRadius: '4px',
+                                        cursor: 'pointer'
+                                    }}
+                                >
+                                    Help
+                                </button>
+                                <button 
+                                    onClick={() => setShowRoutePlanner(false)}
+                                    style={{
+                                        padding: '8px 16px',
+                                        backgroundColor: 'var(--button-color)',
+                                        border: 'none',
+                                        borderRadius: '4px',
+                                        cursor: 'pointer'
+                                    }}
+                                >
+                                    Close
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Help Tooltip */}
+                        <div id="route-planner-tooltip" style={{
+                            display: 'none',
+                            position: 'absolute',
+                            right: '20px',
+                            top: '70px',
+                            backgroundColor: 'var(--background-color)',
+                        border: '3px solid var(--table-outline-color)',
+                            padding: '20px',
+                            borderRadius: '8px',
+                            width: '400px',
+                            zIndex: 1002,
+                            boxShadow: '0 0 10px rgba(0,0,0,0.1)'
+                        }}>
+                            <h3>Route Planner Guide</h3>
+                            <h4>First Time Use</h4>
+                            <ol style={{ marginLeft: '20px', marginBottom: '15px' }}>
+                                <li>Load entries into manifest table</li>
+                                <li>Open route planner</li>
+                                <li>Order your drop off points in the normal view or in this table</li>
+                                <li>Click save and give it a unique name</li>
+                                <li>Click load to auto sort the list based on your list</li>
+                                <li>Use Active Route checkbox to dynamically update the list when entries are added</li>
+                            </ol>
+                            <h4>Notes:</h4>
+                            <ul style={{ marginLeft: '20px' }}>
+                                <li>If you have a route set and then you load and there is a route that is not part of the preset it will automatically be moved to the bottom of the list.</li>
+                                <li>With active route enabled, moving entries around and then clicking add entry will update the list to your preset.</li>
+                            </ul>
+                            <button 
+                                onClick={() => {
+                                    document.getElementById('route-planner-tooltip').style.display = 'none';
+                                }}
+                                style={{
+                                    marginTop: '10px',
+                                    padding: '8px 16px',
+                                    backgroundColor: 'var(--button-color)',
+                                    border: 'none',
+                                    borderRadius: '4px',
+                                    cursor: 'pointer',
+                                    width: '100%'
+                                }}
+                            >
+                                Close Help
+                            </button>
+                        </div>
+
+                        {/* Add Route Preset Controls */}
+                        <div style={{ marginBottom: '20px', display: 'flex', gap: '10px', alignItems: 'center' }}>
+                            <div style={{ flex: 1 }}>
+                                <Select
+                                    options={routePresets}
+                                value={basicSelectedPreset}
+                                onChange={(selected) => handlePresetSelect(selected, false)}
+                                    placeholder="Select a route preset"
+                                    styles={customStyles}
+                                    components={{ 
+                                        DropdownIndicator: null, 
+                                        IndicatorSeparator: null 
+                                    }}
+                                    className="first-dropdown-select"
+                                    classNamePrefix="react-select"
+                                />
+                            </div>
+                        {!showAdvancedView && (
+                            <label style={{ display: 'flex', alignItems: 'center', gap: '5px', color: 'var(--dropdown-label-color)' }}>
+                                <input
+                                    type="checkbox"
+                                    checked={!!activeRoute}
+                                    onChange={handleActiveRouteChange}
+                                    disabled={!selectedPreset}
+                                />
+                                Active Route
+                            </label>
+                        )}
+                            <button 
+                                onClick={() => setShowSavePresetPopup(true)}
+                                style={{
+                                    padding: '8px 16px',
+                                    backgroundColor: 'var(--button-color)',
+                                    color: 'black',
+                                    border: 'none',
+                                    borderRadius: '4px',
+                                    cursor: 'pointer'
+                                }}
+                            >
+                                Save
+                            </button>
+                            <button 
+                                onClick={handleLoadPreset}
+                                style={{
+                                    padding: '8px 16px',
+                                    backgroundColor: 'var(--button-color)',
+                                
+                                    color: 'black',
+                                    border: 'none',
+                                    borderRadius: '4px',
+                                    cursor: 'pointer'
+                                }}
+                            >
+                                Load
+                            </button>
+                        <button 
+                            onClick={handleDeletePreset}
+                            style={{
+                                padding: '8px 16px',
+                                backgroundColor: '#ff4444',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '4px',
+                                cursor: 'pointer'
+                            }}
+                        >
+                            Delete
+                        </button>
+                        {showAdvancedView && (
+                            <button 
+                                onClick={() => {
+                                    setAdvancedViewEntries([]);
+                                    setAdvancedSelectedPreset(null);
+                                }}
+                                style={{
+                                    padding: '8px 16px',
+                                    backgroundColor: '#ff4444',
+                                    color: 'white',
+                                    border: 'none',
+                                    borderRadius: '4px',
+                                    cursor: 'pointer',
+                                    whiteSpace: 'nowrap' // Add this line
+                                }}
+                            >
+                                Clear View
+                            </button>
+                        )}
+                        </div>
+
+                        {/* Save Preset Popup */}
+                        {showSavePresetPopup && (
+                            <div style={{
+                                position: 'fixed',
+                                top: '0',
+                                left: '0',
+                                width: '100%',
+                                height: '100%',
+                                backgroundColor: 'rgba(0,0,0,0.5)',
+                            border: '3px solid var(--table-outline-color)',
+                                display: 'flex',
+                                justifyContent: 'center',
+                                alignItems: 'center',
+                                zIndex: 1001
+                            }}>
+                                <div style={{
+                                    backgroundColor: 'var(--background-color)',
+                                    padding: '20px',
+                                    borderRadius: '8px',
+                                    width: '400px'
+                                }}>
+                                    <h3>Save Route Preset</h3>
+                                    <input
+                                        type="text"
+                                        value={presetName}
+                                        onChange={(e) => setPresetName(e.target.value)}
+                                        placeholder="Enter preset name"
+                                        style={{
+                                            width: '100%',
+                                            padding: '8px',
+                                            marginBottom: '10px',
+                                            borderRadius: '4px',
+                                            border: '1px solid #ccc',
+                                            color: 'var(--dropdown-label-color)'
+                                        }}
+                                    />
+                                    <div style={{ display: 'flex', gap: '10px' }}>
+                                        <button 
+                                            onClick={handleSavePreset}
+                                            style={{
+                                                padding: '8px 16px',
+                                                backgroundColor: 'var(--button-color)',
+                                                color: 'black',
+                                                border: 'none',
+                                                borderRadius: '4px',
+                                                cursor: 'pointer',
+                                                flex: 1
+                                            }}
+                                        >
+                                            {routePresets.some(p => p.label.toLowerCase() === presetName.toLowerCase()) 
+                                                ? 'Overwrite' 
+                                                : 'Save'}
+                                        </button>
+                                        <button 
+                                            onClick={() => setShowSavePresetPopup(false)}
+                                            style={{
+                                                padding: '8px 16px',
+                                                backgroundColor: '#ccc',
+                                                color: 'black',
+                                                border: 'none',
+                                                borderRadius: '4px',
+                                                cursor: 'pointer',
+                                                flex: 1
+                                            }}
+                                        >
+                                            Cancel
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Load Confirmation Popup */}
+                        {showLoadConfirmation && (
+                            <div style={{
+                                position: 'fixed',
+                                top: '0',
+                                left: '0',
+                                width: '100%',
+                                height: '100%',
+                                backgroundColor: 'rgba(0,0,0,0.5)',
+                            border: '3px solid var(--table-outline-color)',
+                                display: 'flex',
+                                justifyContent: 'center',
+                                alignItems: 'center',
+                                zIndex: 1001
+                            }}>
+                                <div style={{
+                                    backgroundColor: 'var(--background-color)',
+                                    padding: '20px',
+                                    borderRadius: '8px',
+                                    width: '400px'
+                                }}>
+                                    <h3>Load Route Preset</h3>
+                                    <p>Are you sure you want to load this preset?</p>
+                                    <div style={{ display: 'flex', gap: '10px' }}>
+                                        <button 
+                                            onClick={loadPreset}
+                                            style={{
+                                                padding: '8px 16px',
+                                                backgroundColor: 'var(--button-color)',
+                                                color: 'black',
+                                                border: 'none',
+                                                borderRadius: '4px',
+                                                cursor: 'pointer',
+                                                flex: 1
+                                            }}
+                                        >
+                                            Yes
+                                        </button>
+                                        <button 
+                                            onClick={() => setShowLoadConfirmation(false)}
+                                            style={{
+                                                padding: '8px 16px',
+                                                backgroundColor: '#ccc',
+                                                color: 'black',
+                                                border: 'none',
+                                                borderRadius: '4px',
+                                                cursor: 'pointer',
+                                                flex: 1
+                                            }}
+                                        >
+                                            No
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                    {/* Delete Confirmation Popup */}
+                    {showDeleteConfirmation && (
+                        <div style={{
+                            position: 'fixed',
+                            top: '0',
+                            left: '0',
+                            width: '100%',
+                            height: '100%',
+                            backgroundColor: 'rgba(0,0,0,0.5)',
+                            border: '3px solid var(--table-outline-color)',
+                            display: 'flex',
+                            justifyContent: 'center',
+                            alignItems: 'center',
+                            zIndex: 1001
+                        }}>
+                            <div style={{
+                                backgroundColor: 'var(--background-color)',
+                                padding: '20px',
+                                borderRadius: '8px',
+                                width: '400px'
+                            }}>
+                                <h3>Delete Route Preset</h3>
+                                <p>Are you sure you want to delete the preset "{
+                                    showAdvancedView ? 
+                                        (advancedSelectedPreset ? advancedSelectedPreset.label : '') : 
+                                        (basicSelectedPreset ? basicSelectedPreset.label : '')
+                                }"?</p>
+                                <div style={{ display: 'flex', gap: '10px' }}>
+                                    <button 
+                                        onClick={() => {
+                                            const presetToDelete = showAdvancedView ? advancedSelectedPreset : basicSelectedPreset;
+                                            if (presetToDelete) {
+                                                setRoutePresets(prev => prev.filter(preset => preset.value !== presetToDelete.value));
+                                                
+                                                if (showAdvancedView) {
+                                                    setAdvancedSelectedPreset(null);
+                                                    setAdvancedViewEntries([]);
+                                                } else {
+                                                    setBasicSelectedPreset(null);
+                                                }
+                                                
+                                                if (activeRoute?.value === presetToDelete.value) {
+                                                    setActiveRoute(null);
+                                                }
+                                            }
+                                            setShowDeleteConfirmation(false);
+                                        }}
+                                        style={{
+                                            padding: '8px 16px',
+                                            backgroundColor: '#ff4444',
+                                            color: 'white',
+                                            border: 'none',
+                                            borderRadius: '4px',
+                                            cursor: 'pointer',
+                                            flex: 1
+                                        }}
+                                    >
+                                        Delete
+                                    </button>
+                                    <button 
+                                        onClick={() => setShowDeleteConfirmation(false)}
+                                        style={{
+                                            padding: '8px 16px',
+                                            backgroundColor: '#ccc',
+                                            color: 'black',
+                                            border: 'none',
+                                            borderRadius: '4px',
+                                            cursor: 'pointer',
+                                            flex: 1
+                                        }}
+                                    >
+                                        Cancel
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Display drop-off headers */}
+                    {(showAdvancedView ? 
+                        advancedViewEntries.reduce((acc, entry) => {
+                            if (entry && entry.dropOffPoint) {
+                            acc[entry.dropOffPoint] = true;
+                            }
+                            return acc;
+                        }, {}) 
+                        : 
+                        entries.reduce((acc, entry) => {
+                            if (entry && entry.dropOffPoint) {
+                                acc[entry.dropOffPoint] = true;
+                            }
+                            return acc;
+                        }, {})
+                    ) ? Object.keys(showAdvancedView ? 
+                        advancedViewEntries.reduce((acc, entry) => {
+                            if (entry && entry.dropOffPoint) {
+                                acc[entry.dropOffPoint] = true;
+                            }
+                            return acc;
+                        }, {}) 
+                        : 
+                        entries.reduce((acc, entry) => {
+                            if (entry && entry.dropOffPoint) {
+                                acc[entry.dropOffPoint] = true;
+                            }
+                            return acc;
+                        }, {})
+                    ).map(dropOffPoint => (
+                            <div key={dropOffPoint} style={{
+                                padding: '10px',
+                                marginBottom: '10px',
+                                backgroundColor: 'var(--table-row-color)',
+                                borderRadius: '4px'
+                            }}>
+                            <div className="drop-off-header" style={{ 
+                                display: 'flex', 
+                                justifyContent: 'space-between', 
+                                alignItems: 'center',
+                                padding: '5px', // Reduce padding
+                                margin: '2px 0' // Reduce margin
+                            }}>
+                                    <div className="left-box">
+                                        <span>{dropOffPoint}</span>
+                                        <span style={{ fontSize: 'small', marginLeft: '10px' }}>
+                                        {advancedViewEntries.find(entry => entry.dropOffPoint === dropOffPoint)?.planet} - 
+                                        {advancedViewEntries.find(entry => entry.dropOffPoint === dropOffPoint)?.moon}
+                                        </span>
+                                    </div>
+                                <div style={{ display: 'flex', gap: '2px' }}> {/* Reduce gap between buttons */}
+                                        <button 
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                            // Move entry up in advancedViewEntries
+                                            setAdvancedViewEntries(prev => {
+                                                const index = prev.findIndex(entry => entry.dropOffPoint === dropOffPoint);
+                                                if (index > 0) {
+                                                    const newEntries = [...prev];
+                                                    [newEntries[index - 1], newEntries[index]] = [newEntries[index], newEntries[index - 1]];
+                                                    return newEntries;
+                                                }
+                                                return prev;
+                                            });
+                                        }}
+                                        style={{
+                                            padding: '4px 8px', // Reduce padding
+                                            backgroundColor: 'var(--button-color)',
+                                            color: 'black',
+                                            border: 'none',
+                                            borderRadius: '4px',
+                                            cursor: 'pointer'
+                                        }}
+                                    >
+                                        ▲
+                                    </button>
+                                    <button 
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            // Move entry down in advancedViewEntries
+                                            setAdvancedViewEntries(prev => {
+                                                const index = prev.findIndex(entry => entry.dropOffPoint === dropOffPoint);
+                                                if (index < prev.length - 1) {
+                                                    const newEntries = [...prev];
+                                                    [newEntries[index], newEntries[index + 1]] = [newEntries[index + 1], newEntries[index]];
+                                                    return newEntries;
+                                                }
+                                                return prev;
+                                            });
+                                        }}
+                                        style={{
+                                            padding: '4px 8px', // Reduce padding
+                                            backgroundColor: 'var(--button-color)',
+                                            color: 'black',
+                                            border: 'none',
+                                            borderRadius: '4px',
+                                            cursor: 'pointer'
+                                        }}
+                                    >
+                                        ▼
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )) : null}
+                </div>
+            )}
+
+            {/* Advanced Route Planning Popup */}
+            {showAdvancedView && (
+                <div style={{
+                    position: 'fixed',
+                    top: '50%',
+                    left: '50%',
+                    transform: 'translate(-50%, -50%)',
+                    width: '90%',
+                    maxWidth: '1300px',
+                    height: '90%',
+                    minHeight: '600px', // Add minimum height to prevent it from getting too small
+                    backgroundColor: 'var(--background-color)',
+                    display: 'flex',
+                    zIndex: 1000,
+                    fontFamily: 'var(--font-family)',
+                    fontSize: 'var(--font-size)',
+                    color: 'var(--text-color)',
+                    borderRadius: '8px',
+                    boxShadow: '0 0 20px rgba(0,0,0,0.3)',
+                    overflow: 'hidden',
+                    border: '3px solid var(--table-outline-color)' // Changed to match border color
+                }}>
+                    {/* Left Panel (20%) */}
+                    <div style={{ 
+                        width: '30%', 
+                        padding: '20px', 
+                        borderRight: '2px solid var(--border-color)', 
+                        overflowY: 'auto', 
+                        backgroundColor: 'var(--background-secondary-color)'
+                    }}>
+                        <h3>Route Tools</h3>
+                        
+                        {/* Search Bar */}
+                        <input
+                            type="text"
+                            placeholder="Search drop-off points..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            style={{
+                                width: '100%',
+                                padding: '8px',
+                                marginBottom: '20px',
+                                borderRadius: '4px',
+                                border: '1px solid var(--border-color)',
+                                backgroundColor: 'var(--background-color)',
+                                color: 'var(--text-color)'
+                            }}
+                        />
+                        
+                        {/* Drop-off Points List */}
+                        <div style={{ marginTop: '10px' }}>
+                            {StantonSystemData.FullList
+                                .filter(location => {
+                                    // Skip separators when searching
+                                    if (location.startsWith('--') && location.endsWith('--')) {
+                                        return true;
+                                    }
+
+                                    // Get location type
+                                    const locationType = getLocationType(location);
+                                    const typeString = locationType === 'Station' ? 'Space Station' : 
+                                                      locationType === 'Distribution' ? 'Distribution Center' : 
+                                                      locationType === 'Outpost' ? 'Mining Outpost' : 
+                                                      locationType;
+
+                                    // Check if search term matches location name or type
+                                    return location.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                                           typeString.toLowerCase().includes(searchTerm.toLowerCase());
+                                })
+                                .map((location, index) => {
+                                    if (location.startsWith('--') && location.endsWith('--')) {
+                                        // Only show separator if there are visible items after it
+                                        const nextItem = StantonSystemData.FullList[index + 1];
+                                        if (!nextItem || !nextItem.toLowerCase().includes(searchTerm.toLowerCase())) {
+                                            return null;
+                                        }
+
+                                        // Render separator
+                                        return (
+                                            <div key={index} style={{
+                                                padding: '5px',
+                                                margin: '10px 0',
+                                                backgroundColor: 'var(--background-secondary-color)',
+                                                color: 'var(--text-secondary-color)',
+                                                fontWeight: 'bold',
+                                                textAlign: 'center'
+                                            }}>
+                                                {location.replace(/--/g, '')}
+                                            </div>
+                                        );
+                                    }
+
+                                    // Get location details
+                                    const locationType = getLocationType(location);
+                                    const planet = Object.keys(StantonSystemData.Dropoffpoints).find(planet => 
+                                        StantonSystemData.Dropoffpoints[planet].includes(location)
+                                    ) || Object.keys(StantonSystemData.moons).find(planet => 
+                                        Object.values(StantonSystemData.moons[planet]).flat().includes(location)
+                                    );
+
+                                    const moon = planet ? Object.keys(StantonSystemData.moons[planet]).find(moon => 
+                                        StantonSystemData.moons[planet][moon].includes(location)
+                                    ) : null;
+
+                                    const isInAdvancedView = advancedViewEntries.some(entry => entry.dropOffPoint === location);
+                                    const isInManifest = entries.some(entry => entry.dropOffPoint === location);
+
+                                    return (
+                                        <div 
+                                            key={location} 
+                                            style={{
+                                                padding: '10px',
+                                                marginBottom: '10px',
+                                                backgroundColor: isInAdvancedView ? 'var(--table-row-color)' : 'var(--background-secondary-color)',
+                                                borderRadius: '4px',
+                                                cursor: 'pointer',
+                                                border: `1px solid ${isInAdvancedView ? 'var(--border-color)' : '#ccc'}`,
+                                                opacity: isInAdvancedView ? 1 : 0.7,
+                                                ':hover': {
+                                                    backgroundColor: 'var(--button-color)'
+                                                }
+                                            }}
+                                            onClick={() => {
+                                                if (showAdvancedView) {
+                                                    handleAddDropOffPoint(location, planet, moon);
+                                                } else if (!isInManifest) {
+                                                    handleAddDropOffPoint(location, planet, moon);
+                                                }
+                                            }}
+                                        >
+                                            <div>
+                                                <div style={{ fontWeight: 'bold' }}>{location}</div>
+                                                <div style={{ fontSize: '0.8em', color: 'var(--text-secondary-color)' }}>
+                                                    {locationType === 'Station' ? 'Space Station' : 
+                                                     locationType === 'Distribution' ? 'Distribution Center' : 
+                                                     locationType === 'Outpost' ? `${planet} ${moon ? `- ${moon}` : ''} (Outpost)` : 
+                                                     `${planet} ${moon ? `- ${moon}` : ''} (${locationType})`}
+                                                </div>
+                                                {isInManifest && (
+                                                    <div style={{ fontSize: '0.8em', color: '#ff4444', marginTop: '5px' }}>
+                                                        (In Hauling Manifest)
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                        </div>
+                    </div>
+
+                    {/* Right Panel (80%) */}
+                    <div style={{
+                        width: '70%',
+                        padding: '20px',
+                        overflowY: 'auto',
+                        backgroundColor: 'var(--background-color)'
+                    }}>
+                        {/* Copy the existing route planner content here */}
+                        <div style={{ 
+                            display: 'flex', 
+                            justifyContent: 'space-between', 
+                            alignItems: 'center', 
+                            marginBottom: '20px'
+                        }}>
+                            <h2>Advanced Route Planning</h2>
+                            <div style={{ display: 'flex', gap: '10px' }}>
+                                <button 
+                                    onClick={() => {
+                                        setShowAdvancedView(false);
+                                        // Restore the saved active route state
+                                        setActiveRoute(savedActiveRouteState ? selectedPreset : null);
+                                    }}
+                                    style={{
+                                        padding: '8px 16px',
+                                        backgroundColor: 'var(--button-color)',
+                                        color: 'black',
+                                        border: '2px solid var(--border-color)',
+                                        borderRadius: '4px',
+                                        cursor: 'pointer'
+                                    }}
+                                >
+                                    Basic View
+                                </button>
+                                <button 
+                                    onClick={() => {
+                                        const tooltip = document.getElementById('advanced-route-planner-tooltip');
+                                        tooltip.style.display = tooltip.style.display === 'block' ? 'none' : 'block';
+                                    }}
+                                    style={{
+                                        padding: '8px 16px',
+                                        backgroundColor: 'var(--button-color)',
+                                        color: 'black',
+                                        border: 'none',
+                                        borderRadius: '4px',
+                                        cursor: 'pointer'
+                                    }}
+                                >
+                                    Help
+                                </button>
+                                <button 
+                                    onClick={() => {
+                                        setShowRoutePlanner(false);
+                                        setShowAdvancedView(false);
+                                        // Restore the saved active route state
+                                        setActiveRoute(savedActiveRouteState ? selectedPreset : null);
+                                    }}
+                                    style={{
+                                        padding: '8px 16px',
+                                        backgroundColor: 'var(--button-color)',
+                                        border: 'none',
+                                        borderRadius: '4px',
+                                        cursor: 'pointer'
+                                    }}
+                                >
+                                    Close
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Rest of the route planner content */}
+                        <div style={{ marginBottom: '20px', display: 'flex', gap: '10px', alignItems: 'center' }}>
+                            <div style={{ flex: 1 }}>
+                                <Select
+                                    options={routePresets}
+                                    value={advancedSelectedPreset}
+                                    onChange={(selected) => handlePresetSelect(selected, true)}
+                                    placeholder="Select a route preset"
+                                    styles={customStyles}
+                                    components={{ 
+                                        DropdownIndicator: null, 
+                                        IndicatorSeparator: null 
+                                    }}
+                                    className="first-dropdown-select"
+                                    classNamePrefix="react-select"
+                                />
+                            </div>
+                            <button 
+                                onClick={() => setShowAdvancedSavePopup(true)}
+                                style={{
+                                    padding: '8px 16px',
+                                    backgroundColor: 'var(--button-color)',
+                                    color: 'black',
+                                    border: 'none',
+                                    borderRadius: '4px',
+                                    cursor: 'pointer'
+                                }}
+                            >
+                                Save
+                            </button>
+                            <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                                <button 
+                                    onClick={() => {
+                                        setAdvancedViewEntries([]);
+                                        setAdvancedSelectedPreset(null);
+                                    }}
+                                    style={{
+                                        padding: '8px 16px',
+                                        backgroundColor: '#ff4444',
+                                        color: 'white',
+                                        border: 'none',
+                                        borderRadius: '4px',
+                                        cursor: 'pointer',
+                                        whiteSpace: 'nowrap' // Add this line
+                                    }}
+                                >
+                                    Clear View
+                                </button>
+                                <button 
+                                    onClick={() => {
+                                        if (!advancedSelectedPreset) {
+                                            showBannerMessage('Please select a preset to delete');
+                                            return;
+                                        }
+                                        setShowDeleteConfirmation(true);
+                                    }}
+                                    style={{
+                                        padding: '8px 16px',
+                                        backgroundColor: '#ff4444',
+                                        color: 'white',
+                                        border: 'none',
+                                        borderRadius: '4px',
+                                        cursor: 'pointer',
+                                        whiteSpace: 'nowrap' // Add this line
+                                    }}
+                                >
+                                    Delete Preset
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Display drop-off headers */}
+                        {advancedViewEntries.reduce((acc, entry) => {
+                            if (entry && entry.dropOffPoint) {
+                                acc[entry.dropOffPoint] = true;
+                            }
+                            return acc;
+                        }, {}) ? Object.keys(advancedViewEntries.reduce((acc, entry) => {
+                            if (entry && entry.dropOffPoint) {
+                                acc[entry.dropOffPoint] = true;
+                            }
+                            return acc;
+                        }, {})).map((dropOffPoint, index) => {
+                            const handleOrderChange = (e) => {
+                                const newPosition = parseInt(e.target.value) - 1;
+                                if (isNaN(newPosition) || newPosition < 0 || newPosition >= advancedViewEntries.length) {
+                                    return;
+                                }
+
+                                setAdvancedViewEntries(prev => {
+                                    const currentIndex = prev.findIndex(entry => entry.dropOffPoint === dropOffPoint);
+                                    if (currentIndex === -1) return prev;
+
+                                    const newEntries = [...prev];
+                                    const [movedEntry] = newEntries.splice(currentIndex, 1);
+                                    newEntries.splice(newPosition, 0, movedEntry);
+                                    return newEntries;
+                                });
+                            };
+
+                            return (
+                                <div key={dropOffPoint} style={{
+                                    padding: '10px',
+                                    marginBottom: '10px',
+                                    backgroundColor: 'var(--table-row-color)',
+                                    borderRadius: '4px'
+                                }}>
+                                    <div className="drop-off-header" style={{ 
+                                        display: 'flex', 
+                                        justifyContent: 'space-between', 
+                                        alignItems: 'center',
+                                        padding: '5px',
+                                        margin: '-8px 0'
+                                    }}>
+                                        <div className="left-box">
+                                            <span>{dropOffPoint}</span>
+                                            <span style={{ fontSize: 'small', marginLeft: '10px' }}>
+                                                {advancedViewEntries.find(entry => entry.dropOffPoint === dropOffPoint)?.planet} - 
+                                                {advancedViewEntries.find(entry => entry.dropOffPoint === dropOffPoint)?.moon}
+                                            </span>
+                                        </div>
+                                        <div style={{ display: 'flex', gap: '2px', alignItems: 'center' }}>
+                                            <input
+                                                type="number"
+                                                value={index + 1}
+                                                onChange={handleOrderChange}
+                                                min={1}
+                                                max={advancedViewEntries.length}
+                                                style={{
+                                                    width: '40px',
+                                                    marginRight: '5px',
+                                                    fontWeight: 'bold',
+                                                    color: 'var(--button-color)',
+                                                    backgroundColor: 'transparent',
+                                                    border: 'none',
+                                                    fontSize: '14px',
+                                                    WebkitAppearance: 'none',
+                                                    MozAppearance: 'textfield',
+                                                    textAlign: 'center'
+                                                }}
+                                                onFocus={(e) => e.target.select()}
+                                            />
+                                            <button 
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setAdvancedViewEntries(prev => {
+                                                        const index = prev.findIndex(entry => entry.dropOffPoint === dropOffPoint);
+                                                        if (index > 0) {
+                                                            const newEntries = [...prev];
+                                                            [newEntries[index - 1], newEntries[index]] = [newEntries[index], newEntries[index - 1]];
+                                                            return newEntries;
+                                                        }
+                                                        return prev;
+                                                    });
+                                            }}
+                                            style={{
+                                                padding: '4px 8px',
+                                                backgroundColor: 'var(--button-color)',
+                                                color: 'black',
+                                                border: 'none',
+                                                borderRadius: '4px',
+                                                cursor: 'pointer'
+                                            }}
+                                        >
+                                            ▲
+                                        </button>
+                                        <button 
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                    setAdvancedViewEntries(prev => {
+                                                        const index = prev.findIndex(entry => entry.dropOffPoint === dropOffPoint);
+                                                        if (index < prev.length - 1) {
+                                                            const newEntries = [...prev];
+                                                            [newEntries[index], newEntries[index + 1]] = [newEntries[index + 1], newEntries[index]];
+                                                            return newEntries;
+                                                        }
+                                                        return prev;
+                                                    });
+                                            }}
+                                            style={{
+                                                padding: '4px 8px',
+                                                backgroundColor: 'var(--button-color)',
+                                                color: 'black',
+                                                border: 'none',
+                                                borderRadius: '4px',
+                                                cursor: 'pointer'
+                                            }}
+                                        >
+                                            ▼
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            );
+                        }) : null}
+
+                        {/* Move the delete confirmation popup here */}
+                        {showDeleteConfirmation && (
+                            <div style={{
+                                position: 'fixed',
+                                top: '0',
+                                left: '0',
+                                width: '100%',
+                                height: '100%',
+                                backgroundColor: 'rgba(0,0,0,0.5)',
+                                border: '3px solid var(--table-outline-color)',
+                                display: 'flex',
+                                justifyContent: 'center',
+                                alignItems: 'center',
+                                zIndex: 1001
+                            }}>
+                                <div style={{
+                                    backgroundColor: 'var(--background-color)',
+                                    padding: '20px',
+                                    borderRadius: '8px',
+                                    width: '400px'
+                                }}>
+                                    <h3>Delete Route Preset</h3>
+                                    <p>Are you sure you want to delete the preset "{advancedSelectedPreset ? advancedSelectedPreset.label : ''}"?</p>
+                                    <div style={{ display: 'flex', gap: '10px' }}>
+                                        <button 
+                                            onClick={() => {
+                                                if (advancedSelectedPreset) {
+                                                    setRoutePresets(prev => prev.filter(preset => preset.value !== advancedSelectedPreset.value));
+                                                    setAdvancedSelectedPreset(null);
+                                                    setAdvancedViewEntries([]);
+                                                }
+                                                setShowDeleteConfirmation(false);
+                                            }}
+                                            style={{
+                                                padding: '8px 16px',
+                                                backgroundColor: '#ff4444',
+                                                color: 'white',
+                                                border: 'none',
+                                                borderRadius: '4px',
+                                                cursor: 'pointer',
+                                                flex: 1
+                                            }}
+                                        >
+                                            Delete
+                                        </button>
+                                        <button 
+                                            onClick={() => setShowDeleteConfirmation(false)}
+                                            style={{
+                                                padding: '8px 16px',
+                                                backgroundColor: '#ccc',
+                                                color: 'black',
+                                                border: 'none',
+                                                borderRadius: '4px',
+                                                cursor: 'pointer',
+                                                flex: 1
+                                            }}
+                                        >
+                                            Cancel
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
+
+            {/* Advanced Route Planner Help Tooltip */}
+            <div id="advanced-route-planner-tooltip" style={{
+                display: 'none',
+                position: 'absolute',
+                right: '20px',
+                top: '70px',
+                backgroundColor: 'var(--background-color)',
+                border: '3px solid var(--table-outline-color)',
+                padding: '20px',
+                borderRadius: '8px',
+                width: '400px',
+                zIndex: 1002,
+                boxShadow: '0 0 10px rgba(0,0,0,0.1)'
+            }}>
+                <h3>Advanced Route Planner Guide</h3>
+                <p>This works a bit different as you won't see the hauling manifest list in this window. You need to manually add locations from the list on the left - clicking the name will add or remove it from the right side list.</p>
+                <ol style={{ marginLeft: '20px', marginBottom: '15px' }}>
+                    <li>Add locations for your preferred route</li>
+                    <li>A number is visible that tells you which order it is in - clicking it allows you to quickly send it to that point in the order</li>
+                    <li>Clicking save works the same as basic - set a new name or type the same name to overwrite</li>
+                </ol>
+                <h4>Note:</h4>
+                <ul style={{ marginLeft: '20px' }}>
+                    <li>This order will not affect your current order until you select it in the basic view/Route Planner</li>
+                    <li>Clear view will take away all entries and unselect currently selected preset</li>
+                    <li>!!This will not delete the preset!!</li>
+                </ul>
+                <button 
+                    onClick={() => {
+                        document.getElementById('advanced-route-planner-tooltip').style.display = 'none';
+                    }}
+                    style={{
+                        marginTop: '10px',
+                        padding: '8px 16px',
+                        backgroundColor: 'var(--button-color)',
+                        border: 'none',
+                        borderRadius: '4px',
+                        cursor: 'pointer',
+                        width: '100%'
+                    }}
+                >
+                    Close Help
+                </button>
+            </div>
+
             <div className="form-row">
                 <div className="form-group">
                     <label>Pickup Point</label>
                     <Select
                         components={{ DropdownIndicator: null, IndicatorSeparator: null }}
-                        options={pickupPointOptions}
+                        options={StantonSystemData.FullList.map(location => {
+                            if (location.startsWith('--') && location.endsWith('--')) {
+                                return {
+                                    value: location,
+                                    label: `-- ${location.replace(/--/g, '')} --`, // Keep -- on both sides
+                                    isDisabled: true,
+                                    className: 'dropdown-separator'
+                                };
+                            }
+                            return {
+                                value: location,
+                                label: location
+                            };
+                        })}
                         value={pickupPointOptions.find(option => option.value === firstDropdownValue)}
                         onChange={(option) => {
+                            if (!option.isDisabled) {
                             handlePickupPointChange(option);
                             if (amountInputRef.current) {
                                 amountInputRef.current.focus();
+                                }
                             }
                         }}
                         className="first-dropdown-select"
                         classNamePrefix="react-select"
-                        styles={customStyles}
+                        styles={{
+                            ...customStyles,
+                            option: (provided, state) => ({
+                                ...provided,
+                                backgroundColor: state.isDisabled ? 'var(--background-secondary-color)' : 
+                                              state.isSelected ? 'var(--button-color)' : 
+                                              state.isFocused ? 'var(--background-color)' : 'transparent',
+                                color: state.isDisabled ? '#ffffff' : 'var(--text-color)',
+                                fontWeight: state.isDisabled ? 'normal' : 'normal', // Remove bold
+                                fontStyle: state.isDisabled ? 'italic' : 'normal', // Add italic
+                                cursor: state.isDisabled ? 'default' : 'pointer',
+                                paddingLeft: '8px', // Remove extra padding
+                                paddingRight: '8px', // Remove extra padding
+                                ':active': {
+                                    backgroundColor: state.isDisabled ? 'var(--background-secondary-color)' : 'var(--button-color)'
+                                }
+                            })
+                        }}
                         placeholder="Search Pickup Point"
                     />
                 </div>
@@ -526,17 +2379,49 @@ export const MissionSubTabHauling = ({
                     <label>Quick Lookup</label>
                     <Select
                         components={{ DropdownIndicator: null, IndicatorSeparator: null }}
-                        options={quickLookupOptions}
+                        options={StantonSystemData.FullList.map(location => {
+                            if (location.startsWith('--') && location.endsWith('--')) {
+                                return {
+                                    value: location,
+                                    label: `-- ${location.replace(/--/g, '')} --`, // Keep -- on both sides
+                                    isDisabled: true,
+                                    className: 'dropdown-separator'
+                                };
+                            }
+                            return {
+                                value: location,
+                                label: location
+                            };
+                        })}
                         value={quickLookupOptions.find(option => option.value === secondDropdownValue)}
                         onChange={(option) => {
+                            if (!option.isDisabled) {
                             handleQuickLookupChange(option);
                             if (amountInputRef.current) {
                                 amountInputRef.current.focus();
+                                }
                             }
                         }}
                         className="second-dropdown-select"
                         classNamePrefix="react-select"
-                        styles={customStyles}
+                        styles={{
+                            ...customStyles,
+                            option: (provided, state) => ({
+                                ...provided,
+                                backgroundColor: state.isDisabled ? 'var(--background-secondary-color)' : 
+                                              state.isSelected ? 'var(--button-color)' : 
+                                              state.isFocused ? 'var(--background-color)' : 'transparent',
+                                color: state.isDisabled ? '#ffffff' : 'var(--text-color)',
+                                fontWeight: state.isDisabled ? 'normal' : 'normal', // Remove bold
+                                fontStyle: state.isDisabled ? 'italic' : 'normal', // Add italic
+                                cursor: state.isDisabled ? 'default' : 'pointer',
+                                paddingLeft: '8px', // Remove extra padding
+                                paddingRight: '8px', // Remove extra padding
+                                ':active': {
+                                    backgroundColor: state.isDisabled ? 'var(--background-secondary-color)' : 'var(--button-color)'
+                                }
+                            })
+                        }}
                         placeholder="Search Quick Lookup"
                     />
                 </div>
@@ -1074,7 +2959,15 @@ export const MissionSubTabHauling = ({
                                             className="sort-button" 
                                             onClick={(e) => {
                                                 e.stopPropagation();
-                                                moveDropOffPoint(dropOffPoint, -1);
+                                                moveDropOffPoint(dropOffPoint, -1); // Move up
+                                            }}
+                                            style={{
+                                                padding: '4px 8px',
+                                                backgroundColor: 'var(--button-color)',
+                                                color: 'black',
+                                                border: 'none',
+                                                borderRadius: '4px',
+                                                cursor: 'pointer'
                                             }}
                                         >
                                             ▲
@@ -1083,7 +2976,15 @@ export const MissionSubTabHauling = ({
                                             className="sort-button" 
                                             onClick={(e) => {
                                                 e.stopPropagation();
-                                                moveDropOffPoint(dropOffPoint, 1);
+                                                moveDropOffPoint(dropOffPoint, 1); // Move down
+                                            }}
+                                            style={{
+                                                padding: '4px 8px',
+                                                backgroundColor: 'var(--button-color)',
+                                                color: 'black',
+                                                border: 'none',
+                                                borderRadius: '4px',
+                                                cursor: 'pointer'
                                             }}
                                         >
                                             ▼
@@ -1189,6 +3090,136 @@ export const MissionSubTabHauling = ({
                 )}
             </div>
 
+            {/* Advanced View Save Popup */}
+            {showAdvancedSavePopup && (
+                <div style={{
+                    position: 'fixed',
+                    top: '0',
+                    left: '0',
+                    width: '100%',
+                    height: '100%',
+                    backgroundColor: 'rgba(0,0,0,0.5)',
+                    display: 'flex',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    zIndex: 1001
+                }}>
+                    <div style={{
+                        backgroundColor: 'var(--background-color)',
+                        padding: '20px',
+                        borderRadius: '8px',
+                        width: '400px'
+                    }}>
+                        <h3>Save Route Preset</h3>
+                        <input
+                            type="text"
+                            value={presetName}
+                            onChange={(e) => setPresetName(e.target.value)}
+                            placeholder="Enter preset name"
+                            style={{
+                                width: '100%',
+                                padding: '8px',
+                                marginBottom: '10px',
+                                borderRadius: '4px',
+                                border: '1px solid #ccc',
+                                color: 'var(--dropdown-label-color)'
+                            }}
+                        />
+                        <div style={{ display: 'flex', gap: '10px' }}>
+                            <button 
+                                onClick={handleAdvancedSave}
+                                style={{
+                                    padding: '8px 16px',
+                                    backgroundColor: 'var(--button-color)',
+                                    color: 'black',
+                                    border: 'none',
+                                    borderRadius: '4px',
+                                    cursor: 'pointer',
+                                    flex: 1
+                                }}
+                            >
+                                {routePresets.some(p => p.label.toLowerCase() === presetName.toLowerCase()) 
+                                    ? 'Overwrite' 
+                                    : 'Save'}
+                            </button>
+                            <button 
+                                onClick={() => setShowAdvancedSavePopup(false)}
+                                style={{
+                                    padding: '8px 16px',
+                                    backgroundColor: '#ccc',
+                                    color: 'black',
+                                    border: 'none',
+                                    borderRadius: '4px',
+                                    cursor: 'pointer',
+                                    flex: 1
+                                }}
+                            >
+                                Cancel
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {showClearConfirmation && (
+                <div style={{
+                    position: 'fixed',
+                    top: '50%',
+                    left: '50%',
+                    transform: 'translate(-50%, -50%)',
+                    backgroundColor: 'var(--background-color)',
+                    padding: '20px',
+                    borderRadius: '8px',
+                    width: '400px',
+                    zIndex: 1001,
+                    boxShadow: '0 0 20px rgba(0,0,0,0.3)',
+                    border: '3px solid var(--table-outline-color)'
+                }}>
+                    <h3>Clear Log Confirmation</h3>
+                    <p>Are you sure you want to clear the log? This action cannot be undone.</p>
+                    <div style={{ display: 'flex', gap: '10px' }}>
+                        <button 
+                            onClick={() => {
+                                logProcessOrders(debugFlags, 'Clearing log');
+                                setEntries([]);
+                                setMissionEntries(Array(15).fill(null));
+                                setMissionRewards({});
+                                localStorage.removeItem('entries');
+                                localStorage.removeItem('missionEntries');
+                                localStorage.removeItem('missionRewards');
+                                lockedMissionIndex.current = null;
+                                forceUpdate();
+                                setShowClearConfirmation(false);
+                            }}
+                            style={{
+                                padding: '8px 16px',
+                                backgroundColor: '#ff4444',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '4px',
+                                cursor: 'pointer',
+                                flex: 1
+                            }}
+                        >
+                            Yes, Clear Log
+                        </button>
+                        <button 
+                            onClick={() => setShowClearConfirmation(false)}
+                            style={{
+                                padding: '8px 16px',
+                                backgroundColor: '#ccc',
+                                color: 'black',
+                                border: 'none',
+                                borderRadius: '4px',
+                                cursor: 'pointer',
+                                flex: 1
+                            }}
+                        >
+                            Cancel
+                        </button>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

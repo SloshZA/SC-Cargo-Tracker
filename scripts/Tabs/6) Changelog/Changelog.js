@@ -5,6 +5,75 @@ export const ChangelogTab = () => {
         <div className="changelog">
             <div className="changelog-container">
                 <div className="changelog-entry">
+                    <h3>Version 1.7</h3>
+                    <h4>New Feature</h4>
+                    <ul>
+                        <li><b>Route Planner</b></li>
+                        <ul>
+                            <li>A new button is now visible at the top of your hauling manifest (Design will change - placeholder for now)</li>
+                            <li>Allows the user to set an order for your drop-off points to appear in, when adding manually or from the capture tab</li>
+                            <li>2 Modes:</li>
+                            <ul>
+                                <li>Basic View - using the entries present in your table</li>
+                                <li>Advanced View - manually add and remove entries to a preset to setup larger routes or preferred routes</li>
+                            </ul>
+                            <li>Comes with an Active Route checkbox to automatically re-order your drop-off points based on your saved preset</li>
+                            <li>Presets need to be done manually with entries in the table or through the advanced Route planner</li>
+                            <li>Advanced Route Planner will indicate which entry is currently in the table (shown in red text below the location name)</li>
+                            <li>See Help in the window for more info and how to use</li>
+                        </ul>
+                    </ul>
+                    <h4>Changes</h4>
+                    <ul>
+                        <li><b>Hauling Missions Tab</b></li>
+                        <ul>
+                            <li>Added the full list of locations to the quick lookup and pickup point</li>
+                        </ul>
+                        <li><b>Mining Tab</b></li>
+                        <ul>
+                            <li>Hidden for the time being as cargo hold will allow you to add or remove cargo to your ship as a way of tracking for multiple professions</li>
+                            <li>Note: There are much better sites out there for tracking mining</li>
+                        </ul>
+                        <li><b>Preferences Tab</b></li>
+                        <ul>
+                            <li>Redo of Preferences Tab</li>
+                            <li>Added Sidebar for better future use</li>
+                            <li>Debug options moved to the Debug options on the left instead of at the bottom of the page</li>
+                            <li>Export and import Functions:</li>
+                            <ul>
+                                <li>All exports now let you choose between .json for basic text file or .xls for Excel sheet format</li>
+                                <li>Clear History Log/Delete Local Storage/Clear Route Presets now have a popup - no more double clicking</li>
+                            </ul>
+                            <li>User Settings:</li>
+                            <ul>
+                                <li>Exporting/Importing your color and font into a .json file</li>
+                            </ul>
+                        </ul>
+                    </ul>
+                    <h4>Fixes</h4>
+                    <ul>
+                        <li>'Riker Memorial Spaceport' is considered invalid when using manual entry in the following dropdowns:</li>
+                        <ul>
+                            <li>Pickup Point</li>
+                            <li>Quick Lookup</li>
+                            <li>Drop-off point - not showing</li>
+                        </ul>
+                        <li>Following locations for filter search appearing under Distribution Centers:</li>
+                        <ul>
+                            <li>Humboldt Mine</li>
+                            <li>Loveridge Mineral Reserve</li>
+                            <li>Shubin Mining Facility SAL-2</li>
+                            <li>Shubin Mining Facility SAL-5</li>
+                        </ul>
+                        <li>Searching keywords like City/Distribution/Outpost/Station/Lagrange does not filter relevant locations in Advanced Route Planning</li>
+                    </ul>
+                    <h4>Known Issues</h4>
+                    <ul>
+                        <li>Mission Limit set to 15 for now while testing stability</li>
+                        <li>Using Basic View up and down arrows aren't working - Workaround: Sort in the Hauling Manifest table instead</li>
+                    </ul>
+                </div>
+                <div className="changelog-entry">
                     <h3>CHANGES</h3>
                     <ul>
                         <li><b>Hauling Mission Tab</b></li>
@@ -91,7 +160,7 @@ export const ChangelogTab = () => {
                         <li>Finally squashing all the bugs from previous mistakes.</li>
                         <li>USE the button under the Preferences tab called "Delete Local Storage." There are a ton of old entries causing issues, like duplicate instances of payouts storage.</li>
                         <li>A clean wipe is best—export your tables if needed. Haven't tested them yet to ensure they repopulate correctly, but I tried keeping most tables the same, so hopefully, they work properly.</li>
-                        <li>So far, I’ve restored a lot of the app’s functionality. Tons of sections have been completely redone due to duplicated code being cut off halfway, which caused a mess of issues.</li>
+                        <li>So far, I've restored a lot of the app's functionality. Tons of sections have been completely redone due to duplicated code being cut off halfway, which caused a mess of issues.</li>
                     </ul>
 
                     <h3>Known Issues - Currently being rewritten</h3>

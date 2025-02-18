@@ -34,7 +34,7 @@ export const Tabs = ({
         <>
             {/* Main Tabs */}
             <div className="main-tabs">
-                {['Hauling', 'Cargo Hold', 'Mining', 'Trading', 'Preferences', 'Changelog'].map(tab => (
+                {['Hauling', 'Cargo Hold', 'Trading', 'Preferences', 'Changelog'].map(tab => (
                     <div 
                         key={tab} 
                         className={`main-tab ${mainTab === tab ? 'active-main-tab' : ''}`} 

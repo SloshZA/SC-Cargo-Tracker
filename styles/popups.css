@@ -186,4 +186,10 @@
     pointer-events: none;
 }
 
-/* ... rest of popup and tooltip styles ... */ 
+/* ... rest of popup and tooltip styles ... */
+
+/* Add this to ensure station entries are visible */
+.route-planner-left-panel div {
+    display: block !important;
+    opacity: 1 !important;
+} 

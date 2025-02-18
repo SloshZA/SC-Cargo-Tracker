@@ -651,6 +651,7 @@ input.second-dropdown {
     padding-bottom: 5px; /* Add some space between the text and the underline */
 }
 
+
 /* ...existing code... */
 
 .preferences-container {
@@ -762,5 +763,61 @@ input, select, textarea, button {
 .exclamation-mark {
     color: red;
     margin-left: 5px;
+}
+
+#root {
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.main-container {
+    flex: 1;
+    display: flex;
+    overflow: hidden;
+}
+
+/* Add this new CSS class for the Route Planner button */
+.route-planner-button {
+    background-color: var(--button-color);
+    color: var(--text-color);
+    border: 2px solid var(--border-color);
+    border-radius: 6px;
+    padding: 10px 20px;
+    font-size: 14px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.route-planner-button:hover {
+    background-color: var(--button-hover-color);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.route-planner-button:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.route-planner-button:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.3);
+}
+
+/* If you want to add an icon */
+.route-planner-button.with-icon {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.route-planner-button.with-icon::before {
+    content: '🗺️'; /* You can use any icon or emoji here */
+    font-size: 16px;
 }
 

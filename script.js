@@ -751,7 +751,7 @@ const App = () => {
     };
 
     const validLocations = new Set([
-        'Everus Harbor', 'Area 18', 'Orison', 'Lorville', 'NB Int Spaceport',
+        'Everus Harbor', 'Area 18', 'Orison', 'Lorville', 'Riker Memorial Spaceport', 'NB Int Spaceport',
         'Covalex Distribution Centre S1DC06', 'Greycat Stanton 1 Production Complex-B',
         'HDPC-Cassillo', 'HDPC-Farnesway', 'Sakura Sun Magnolia Workcenter',
         'Covalex Distribution Center S4DC05', 'Greycat Stanton IV Production Complex-A',
@@ -1481,14 +1481,85 @@ const App = () => {
         setHistoryEntries(updatedHistoryEntries);
     };
 
+    // Add this state declaration with other states
+    const [showBugPopup, setShowBugPopup] = useState(false);
+
+    // Add this function with other handlers
+    const handleBugPopup = () => {
+        setShowBugPopup(!showBugPopup);
+    };
+
     return (
         <div className={darkMode ? 'dark-mode' : ''}>
             <header>
-                <h1 style={{ color: 'var(--title-color)' }}>SC Cargo Tracker</h1>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '20px' }}>
+                    <h1 style={{ color: 'var(--title-color)' }}>SC Cargo Tracker</h1>
+                    <button 
+                        onClick={handleBugPopup}
+                        style={{
+                            padding: '8px 16px',
+                            backgroundColor: '#ff4444',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '4px',
+                            cursor: 'pointer'
+                        }}
+                    >
+                        Experiencing Bugs???
+                    </button>
+                </div>
                 <button onClick={toggleAutoScaling}>
                     {isAutoScaling ? 'Disable Auto Scaling' : 'Enable Auto Scaling'}
                 </button>
             </header>
+            {showBugPopup && (
+                <Portal>
+                    <div style={{
+                        position: 'fixed',
+                        top: '50%',
+                        left: '50%',
+                        transform: 'translate(-50%, -50%)',
+                        backgroundColor: '#333',
+                        padding: '20px',
+                        borderRadius: '8px',
+                        boxShadow: '0 2px 10px rgba(0,0,0,0.2)',
+                        zIndex: 1000,
+                        color: 'white',
+                        width: '400px',
+                        textAlign: 'left'
+                    }}>
+                        <h3>Bug Fix Instructions</h3>
+                        <p style={{ marginBottom: '15px', lineHeight: '1.5' }}>
+                            If you're experiencing issues with any of the features or your history and payouts tables are not working correctly:
+                        </p>
+                        <ol style={{ marginLeft: '20px', marginBottom: '15px', lineHeight: '1.5' }}>
+                            <li>Head over to Preferences {'>'} Data Management {'>'} User Settings</li>
+                            <li>Export your user settings (this will save your Set Colors and Fonts)</li>
+                            <li>Then proceed to Delete Local Storage</li>
+                        </ol>
+                        <p style={{ marginBottom: '15px', lineHeight: '1.5' }}>
+                            This will remove all local storage entries and hopefully clear most bugs or features not working correctly.
+                        </p>
+                        <p style={{ fontStyle: 'italic', lineHeight: '1.5' }}>
+                            Why? When I did a restructure of the files, some tables broke and forced me to rewrite tables since it was easier than fixing the problem of tables being duplicated across multiple files.
+                        </p>
+                        <button 
+                            onClick={handleBugPopup}
+                            style={{
+                                marginTop: '10px',
+                                padding: '8px 16px',
+                                backgroundColor: '#ff4444',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '4px',
+                                cursor: 'pointer'
+                            }}
+                        >
+                            Close
+                        </button>
+                    </div>
+                </Portal>
+            )}
             <Tabs
                 mainTab={mainTab}
                 haulingSubTab={haulingSubTab}
@@ -1705,14 +1776,6 @@ const App = () => {
                                 </>
                             )}
                         </div>
-                    </div>
-                </div>
-            )}
-            <TooltipPopup {...tooltip} />
-            {debugMode && (
-                <div className="debug-options-box">
-                    <div className="tab" onClick={() => handleMainTabChange('Debug Options')}>
-                        Debug Options
                     </div>
                 </div>
             )}

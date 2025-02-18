@@ -28,6 +28,111 @@ export const StantonSystemData = {
         'MIC-L3 Endless Odyssey Station',
         'MIC-L4 Red Crossroads Station',
         'MIC-L5 Modern Icarus Station',
+        '--Distribution Centers--',
+        'Covalex Distribution Centre S4DC05',
+        'Greycat Stanton IV Production Complex-A',
+        'Sakura Sun Goldenrod Workcenter',
+        'microTech Logistics Depot S4LD01',
+        'microTech Logistics Depot S4LD13',
+        'Shubin Mining Facility SM0-10',
+        'Shubin Mining Facility SM0-13',
+        'Shubin Mining Facility SM0-18',
+        'Shubin Mining Facility SM0-22',
+        'Covalex Distribution Centre S1DC06',
+        'Greycat Stanton 1 Production Complex-B',
+        'HDPC-Cassillo',
+        'HDPC-Farnesway',
+        'Sakura Sun Magnolia Workcenter',
+        '--Outposts--',
+        'Humboldt Mine',
+        'Loveridge Mineral Reserve',
+        'Shubin Mining Facility SAL-2',
+        'Shubin Mining Facility SAL-5'
+    ],
+
+    FullList: [
+        '--City--',
+        'Lorville',
+        'Riker Memorial Spaceport',
+        'NB Int Spaceport',
+        'Area 18',
+        'Orison',
+        '--Station--',
+        'Grimm Hex',
+        'Everus Harbor',
+        'Baijini Point',
+        'Seraphim Station',
+        'Port Tressler',
+        '--Lagrange Station--',
+        'ARC-L1 Wide Forest Station',
+        'ARC-L2 Lively Pathway Station',
+        'ARC-L3 Modern Express Station',
+        'ARC-L4 Faint Glen Station',
+        'ARC-L5 Yellow Core Station',
+        'CRU-L1 Ambitious Dream Station',
+        'CRU-L4 Shallow Fields Station',
+        'CRU-L5 Beautiful Glen Station',
+        'HUR-L1 Green Glade Station',
+        'HUR-L2 Faithful Dream Station',
+        'HUR-L3 Thundering Express Station',
+        'HUR-L4 Melodic Fields Station',
+        'HUR-L5 High Course Station',
+        'MIC-L1 Shallow Frontier Station',
+        'MIC-L2 Long Forest Station',
+        'MIC-L3 Endless Odyssey Station',
+        'MIC-L4 Red Crossroads Station',
+        'MIC-L5 Modern Icarus Station',
+        '--Distribution Center--',
+        'Covalex Distribution Centre S4DC05',
+        'Greycat Stanton IV Production Complex-A',
+        'Sakura Sun Goldenrod Workcenter',
+        'microTech Logistics Depot S4LD01',
+        'microTech Logistics Depot S4LD13',
+        'Shubin Mining Facility SM0-10',
+        'Shubin Mining Facility SM0-13',
+        'Shubin Mining Facility SM0-18',
+        'Shubin Mining Facility SM0-22',
+        'Covalex Distribution Centre S1DC06',
+        'Greycat Stanton 1 Production Complex-B',
+        'HDPC-Cassillo',
+        'HDPC-Farnesway',
+        'Sakura Sun Magnolia Workcenter',
+        '--Outpost--',
+        'Humboldt Mine',
+        'Loveridge Mineral Reserve',
+        'Shubin Mining Facility SAL-2',
+        'Shubin Mining Facility SAL-5',
+        'ArcCorp Mining Area 045',
+        'ArcCorp Mining Area 048',
+        'ArcCorp Mining Area 056',
+        'ArcCorp Mining Area 061',
+        'Gallee Family Farms',
+        'Hickes Research Outpost',
+        'Terra Mills Hydrofarm',
+        'Tram & Myers Mining',
+        'ArcCorp Mining Area 141',
+        'Bountiful Harvest Hydroponics',
+        'Kudre Ore',
+        'Shubin Mining Facility SCD-1',
+        'Brios Breaker Yard',
+        'ArcCorp Mining Area 157',
+        'Benson Mining Outpost',
+        'Deakins Research Outpost',
+        'HDMS-Bezdek',
+        'HDMS-Lathan',
+        'HDMS-Anderson',
+        'HDMS-Norgaard',
+        'HDMS-Ryder',
+        'HDMS-Woodruff',
+        'HDMS-Hahn',
+        'HDMS-Perlman',
+        'Rayari Anvik Research Outpost',
+        'Rayari Kaltag Research Outpost',
+        'Shubin Mining Facility SMCa-6',
+        'Shubin Mining Facility SMCa-8',
+        'Rayari Cantwell Research Outpost',
+        'Rayari McGrath Research Outpost',
+        'Devlin Scrap & Salvage',
     ],
 
     Dropoffpoints: {
@@ -36,6 +141,7 @@ export const StantonSystemData = {
         Hurston: [
             '--City--',
             'Lorville',
+            'Riker Memorial Spaceport',
             '--Distribution Center--',
             'Covalex Distribution Centre S1DC06',
             'Greycat Stanton 1 Production Complex-B',
@@ -252,6 +358,7 @@ export const StantonSystemData = {
 
     validLocations: new Set([
         'Everus Harbor', 'Area 18', 'Orison', 'Lorville', 'NB Int Spaceport',
+        'Riker Memorial Spaceport',
         'Covalex Distribution Centre S1DC06', 'Greycat Stanton 1 Production Complex-B',
         'HDPC-Cassillo', 'HDPC-Farnesway', 'Sakura Sun Magnolia Workcenter',
         'Covalex Distribution Center S4DC05', 'Greycat Stanton IV Production Complex-A',
@@ -259,7 +366,106 @@ export const StantonSystemData = {
         'microTech Logistics Depot S4LD13', 'Shubin Mining Facility SM0-10',
         'Shubin Mining Facility SM0-13', 'Shubin Mining Facility SM0-18',
         'Shubin Mining Facility SM0-22'
-    ])
+    ]),
+
+    Stations: {
+        'Arccorp': [
+            'Grimm Hex',
+            'ARC-L1 Wide Forest Station',
+            'ARC-L2 Lively Pathway Station',
+            'ARC-L3 Modern Express Station',
+            'ARC-L4 Faint Glen Station',
+            'ARC-L5 Yellow Core Station'
+        ],
+        'Crusader': [
+            'Everus Harbor',
+            'CRU-L1 Ambitious Dream Station',
+            'CRU-L4 Shallow Fields Station',
+            'CRU-L5 Beautiful Glen Station'
+        ],
+        'Hurston': [
+            'Baijini Point',
+            'HUR-L1 Green Glade Station',
+            'HUR-L2 Faithful Dream Station',
+            'HUR-L3 Thundering Express Station',
+            'HUR-L4 Melodic Fields Station',
+            'HUR-L5 High Course Station'
+        ],
+        'Microtech': [
+            'Port Tressler',
+            'Seraphim Station',
+            'MIC-L1 Shallow Frontier Station',
+            'MIC-L2 Long Forest Station',
+            'MIC-L3 Endless Odyssey Station',
+            'MIC-L4 Red Crossroads Station',
+            'MIC-L5 Modern Icarus Station'
+        ]
+    },
+
+    // Add new DistributionCenters object
+    DistributionCenters: {
+        'Arccorp': [
+            'Covalex Distribution Centre S1DC06',
+            'Greycat Stanton 1 Production Complex-B'
+        ],
+        'Crusader': [],
+        'Hurston': [
+            'HDPC-Cassillo',
+            'HDPC-Farnesway',
+            'Sakura Sun Magnolia Workcenter'
+        ],
+        'Microtech': [
+            'Covalex Distribution Center S4DC05',
+            'Greycat Stanton IV Production Complex-A',
+            'Sakura Sun Goldenrod Workcenter',
+            'microTech Logistics Depot S4LD01',
+            'microTech Logistics Depot S4LD13'
+        ]
+    },
+
+    // Add new Outposts object
+    Outposts: {
+        'Arccorp': [
+            'Humboldt Mine',
+            'Loveridge Mineral Reserve',
+            'Shubin Mining Facility SAL-2',
+            'Shubin Mining Facility SAL-5'
+        ],
+        'Crusader': [
+            'Gallee Family Farms',
+            'Hickes Research Outpost',
+            'Terra Mills Hydrofarm',
+            'Tram & Myers Mining',
+            'ArcCorp Mining Area 141',
+            'Bountiful Harvest Hydroponics',
+            'Kudre Ore',
+            'Shubin Mining Facility SCD-1',
+            'Brios Breaker Yard',
+            'ArcCorp Mining Area 157',
+            'Benson Mining Outpost',
+            'Deakins Research Outpost'
+        ],
+        'Hurston': [
+            'HDMS-Bezdek',
+            'HDMS-Lathan',
+            'HDMS-Anderson',
+            'HDMS-Norgaard',
+            'HDMS-Ryder',
+            'HDMS-Woodruff',
+            'HDMS-Hahn',
+            'HDMS-Perlman'
+        ],
+        'Microtech': [
+            'Rayari Deltana Research Outpost',
+            'Rayari Anvik Research Outpost',
+            'Rayari Kaltag Research Outpost',
+            'Shubin Mining Facility SMCa-6',
+            'Shubin Mining Facility SMCa-8',
+            'Rayari Cantwell Research Outpost',
+            'Rayari McGrath Research Outpost',
+            'Devlin Scrap & Salvage'
+        ]
+    }
 };
 
 // Generate pickupPoints and quickLookup arrays from existing data
@@ -267,13 +473,41 @@ export const generateLocationLists = () => {
     const pickupPoints = [];
     const quickLookup = [];
 
-    // Add cities and stations
-    pickupPoints.push('--City--', ...StantonSystemData.Dropoffpoints.Arccorp.filter(x => x !== '--City--'));
-    pickupPoints.push(...StantonSystemData.Dropoffpoints.Crusader.filter(x => x !== '--City--'));
-    pickupPoints.push(...StantonSystemData.Dropoffpoints.Hurston.filter(x => x !== '--City--'));
-    pickupPoints.push(...StantonSystemData.Dropoffpoints.Microtech.filter(x => x !== '--City--'));
-    
-    pickupPoints.push('--Station--', ...StantonSystemData.stations.filter(x => x !== '--Stations--' && x !== '--Lagrange Stations--'));
+    // Add cities
+    pickupPoints.push(
+        '--City--', 
+        ...StantonSystemData.Dropoffpoints.Arccorp.filter(x => x !== '--City--'),
+        ...StantonSystemData.Dropoffpoints.Crusader.filter(x => x !== '--City--'),
+        ...StantonSystemData.Dropoffpoints.Hurston.filter(x => x !== '--City--'),
+        ...StantonSystemData.Dropoffpoints.Microtech.filter(x => x !== '--City--')
+    );
+
+    // Add stations
+    pickupPoints.push(
+        '--Station--',
+        ...StantonSystemData.Stations.Arccorp,
+        ...StantonSystemData.Stations.Crusader,
+        ...StantonSystemData.Stations.Hurston,
+        ...StantonSystemData.Stations.Microtech
+    );
+
+    // Add distribution centers
+    pickupPoints.push(
+        '--Distribution Center--',
+        ...StantonSystemData.DistributionCenters.Arccorp,
+        ...StantonSystemData.DistributionCenters.Crusader,
+        ...StantonSystemData.DistributionCenters.Hurston,
+        ...StantonSystemData.DistributionCenters.Microtech
+    );
+
+    // Add outposts
+    pickupPoints.push(
+        '--Outpost--',
+        ...StantonSystemData.Outposts.Arccorp,
+        ...StantonSystemData.Outposts.Crusader,
+        ...StantonSystemData.Outposts.Hurston,
+        ...StantonSystemData.Outposts.Microtech
+    );
 
     // Add all locations to quickLookup
     quickLookup.push(...pickupPoints);
