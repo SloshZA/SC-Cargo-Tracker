@@ -100,6 +100,11 @@ const Storage = () => {
     };
 
     const handleRemoveCommodity = (id) => {
+        if (!quickDeleteEnabled) {
+            const confirmRemove = window.confirm('Are you sure you want to remove this commodity?');
+            if (!confirmRemove) return;
+        }
+
         if (isManifestView) {
             setSelectedCommodities(prev => prev.filter(item => item.id !== id));
         } else {
@@ -224,16 +229,16 @@ const Storage = () => {
 
     const currentCommodities = isManifestView ? selectedCommodities : cargoViewEntries;
 
-    const handleClearStorage = (e) => {
-        e.stopPropagation();
-        if (quickDeleteEnabled || window.confirm("Are you sure you want to clear all commodities?")) {
-            if (isManifestView) {
-                setSelectedCommodities([]);
-                localStorage.removeItem('selectedCommodities');
-            } else {
-                setCargoViewEntries([]);
-                localStorage.removeItem('cargoViewEntries');
-            }
+    const handleClearStorage = () => {
+        if (!quickDeleteEnabled) {
+            const confirmClear = window.confirm('Are you sure you want to clear all commodities?');
+            if (!confirmClear) return;
+        }
+
+        if (isManifestView) {
+            setSelectedCommodities([]);
+        } else {
+            setCargoViewEntries([]);
         }
     };
 
@@ -360,9 +365,12 @@ const Storage = () => {
                                                     <span className="total-value">{commodity.scu} SCU</span>
                                                 </div>
                                                 <button 
-                                                    className={`close-button ${isManifestView ? 'manifest-view-hidden' : ''}`}
+                                                    className="close-button"
                                                     onClick={(e) => {
                                                         e.stopPropagation();
+                                                        if (!quickDeleteEnabled && !window.confirm('Are you sure you want to remove this commodity?')) {
+                                                            return;
+                                                        }
                                                         handleRemoveCommodity(commodity.id);
                                                     }}
                                                 >
@@ -464,6 +472,9 @@ const Storage = () => {
                                                     className="close-button"
                                                     onClick={(e) => {
                                                         e.stopPropagation();
+                                                        if (!quickDeleteEnabled && !window.confirm('Are you sure you want to remove this commodity?')) {
+                                                            return;
+                                                        }
                                                         handleRemoveCommodity(commodity.id);
                                                     }}
                                                 >
