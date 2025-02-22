@@ -37,7 +37,7 @@ export const SubTabs = ({
                         ))
                     )}
                     {mainTab === 'Cargo Hold' && (
-                        ['Inventory', 'Ships', 'Storage'].map(tab => (
+                        ['Ships', 'Storage'].map(tab => (
                             <div key={tab} className="tab-container">
                                 <div 
                                     className={`tab ${cargoHoldSubTab === tab ? 'active-tab' : ''}`} 

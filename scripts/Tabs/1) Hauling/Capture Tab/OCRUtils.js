@@ -2,13 +2,15 @@
 export const findClosestMatch = (input, options) => {
     if (!input || !options || options.length === 0) return null;
 
-    const cleanInput = input.replace(/[[\]{}]/g, '').toLowerCase();
+    // Ensure input is a string
+    const cleanInput = String(input).replace(/[[\]{}]/g, '').toLowerCase();
     
     let bestMatch = null;
     let bestScore = -Infinity;
 
     options.forEach(option => {
-        const cleanOption = option.replace(/[[\]{}]/g, '').toLowerCase();
+        // Ensure option is a string
+        const cleanOption = String(option).replace(/[[\]{}]/g, '').toLowerCase();
         
         let score = 0;
         const inputWords = cleanInput.split(' ');
@@ -40,25 +42,33 @@ export const findClosestMatch = (input, options) => {
 };
 
 // Data validation for OCR results
-export const validateOCRData = (result, data) => {
-    const exactCommodityMatch = data.commodities.includes(result.commodity);
-    const exactPickupMatch = data.pickupPoints.includes(result.pickup) || 
-        Object.values(data.Dropoffpoints).flat().includes(result.pickup) ||
-        Object.values(data.moons).flatMap(moon => Object.values(moon)).flat().includes(result.pickup);
-    const exactDropoffMatch = data.pickupPoints.includes(result.dropoff) || 
-        Object.values(data.Dropoffpoints).flat().includes(result.dropoff) ||
-        Object.values(data.moons).flatMap(moon => Object.values(moon)).flat().includes(result.dropoff);
+export const validateOCRData = (result, data = {}) => {
+    // Add default values if data properties are missing
+    const safeData = {
+        commodities: data.commodities || [],
+        pickupPoints: data.pickupPoints || [],
+        Dropoffpoints: data.Dropoffpoints || {},
+        moons: data.moons || {}
+    };
 
-    const matchedCommodity = findClosestMatch(result.commodity, data.commodities) || result.commodity;
+    const exactCommodityMatch = safeData.commodities.includes(result.commodity);
+    const exactPickupMatch = safeData.pickupPoints.includes(result.pickup) || 
+        Object.values(safeData.Dropoffpoints).flat().includes(result.pickup) ||
+        Object.values(safeData.moons).flatMap(moon => Object.values(moon)).flat().includes(result.pickup);
+    const exactDropoffMatch = safeData.pickupPoints.includes(result.dropoff) || 
+        Object.values(safeData.Dropoffpoints).flat().includes(result.dropoff) ||
+        Object.values(safeData.moons).flatMap(moon => Object.values(moon)).flat().includes(result.dropoff);
+
+    const matchedCommodity = findClosestMatch(result.commodity, safeData.commodities) || result.commodity;
     const matchedPickup = findClosestMatch(result.pickup, [
-        ...data.pickupPoints,
-        ...Object.values(data.Dropoffpoints).flat(),
-        ...Object.values(data.moons).flatMap(moon => Object.values(moon)).flat()
+        ...safeData.pickupPoints,
+        ...Object.values(safeData.Dropoffpoints).flat(),
+        ...Object.values(safeData.moons).flatMap(moon => Object.values(moon)).flat()
     ]) || result.pickup;
     const matchedDropoff = findClosestMatch(result.dropoff, [
-        ...data.pickupPoints,
-        ...Object.values(data.Dropoffpoints).flat(),
-        ...Object.values(data.moons).flatMap(moon => Object.values(moon)).flat()
+        ...safeData.pickupPoints,
+        ...Object.values(safeData.Dropoffpoints).flat(),
+        ...Object.values(safeData.moons).flatMap(moon => Object.values(moon)).flat()
     ]) || result.dropoff;
 
     return {
@@ -79,6 +89,9 @@ export const validateOCRData = (result, data) => {
 // Process OCR text with corrections
 export const processOCRText = (text, locationCorrections) => {
     let processedText = text;
+
+    // Remove standalone 'i' characters
+    processedText = processedText.replace(/\bi\b/g, '');
 
     // Apply location code corrections
     Object.entries(locationCorrections.codes).forEach(([incorrect, correct]) => {

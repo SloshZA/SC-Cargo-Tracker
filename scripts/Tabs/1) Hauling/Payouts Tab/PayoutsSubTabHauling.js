@@ -223,7 +223,7 @@ export const HaulingSubTabPayouts = ({ entries, setEntries }) => {
                                         </div>
                                         {!collapsedMissions[missionId] && (
                                             <div className="mission-details">
-                                                <table style={{ backgroundColor: 'var(--background-color)' }}>
+                                                <table style={{ backgroundColor: 'var(--background-color)' }} className="mission-details-table">
                                                     <thead>
                                                         <tr>
                                                             <th style={{ width: '30%' }}>Pickup</th>
@@ -237,7 +237,7 @@ export const HaulingSubTabPayouts = ({ entries, setEntries }) => {
                                                     </thead>
                                                     <tbody>
                                                         {missionEntries.map(entry => (
-                                                            <tr key={entry.id}>
+                                                            <tr key={entry.id} className="mission-details-row">
                                                                 <td>{entry.pickup}</td>
                                                                 <td>{entry.dropOffPoint}</td>
                                                                 <td>{entry.commodity}</td>

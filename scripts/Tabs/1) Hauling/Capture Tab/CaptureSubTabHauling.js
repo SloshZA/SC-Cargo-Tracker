@@ -8,8 +8,24 @@ import { logStreamOperation, logStreamResolution, logSelectionBox, logSelectionB
 import '../../../../styles/Tabs/1) Hauling/Capture Tab/CaptureSubTabHauling.css';
 const crypto = require('crypto');
 
+// Add this near the top of the file, before the component definition
+const defaultData = {
+    commodities: [],
+    pickupPoints: [],
+    Dropoffpoints: {},
+    moons: {}
+};
+
+// Add this near the top of the file
+const debugFlags = JSON.parse(localStorage.getItem('ocrDebugFlags')) || {
+    ocrProcess: false,
+    ocrProgress: false,
+    ocrRewards: false,
+    ocrErrors: false
+};
+
 const CaptureSubTabHauling = ({
-    data,
+    data = defaultData,
     addOCRToManifest,
     showBannerMessage,
     hasEntries,
@@ -17,7 +33,7 @@ const CaptureSubTabHauling = ({
     captureDebugMode,
     debugFlags,
     missionEntries,
-    setMissionEntries  // Add these props
+    setMissionEntries
 }) => {
     // State variables
     const [useVideoStream, setUseVideoStream] = useState(false);
@@ -245,21 +261,26 @@ const CaptureSubTabHauling = ({
         try {
             setOcrProgress(0);
             if (!image || typeof image !== 'string' || !image.startsWith('data:image')) {
-                logOCRError(captureDebugMode, debugFlags, 'Invalid image data provided to OCR');
+                if (debugFlags.ocrErrors) {
+                    logOCRError(captureDebugMode, debugFlags, 'Invalid image data provided to OCR');
+                }
                 showBannerMessage('Invalid image data', false);
                 return '';
             }
 
-            logOCRProcess(captureDebugMode, debugFlags, 'Starting OCR processing...');
+            if (debugFlags.ocrProcess) {
+                logOCRProcess(captureDebugMode, debugFlags, 'Starting OCR processing...');
+            }
             
             const worker = await Tesseract.createWorker({
                 logger: m => {
                     if (m.status === 'recognizing text') {
-                        logOCRProgress(captureDebugMode, debugFlags, m.progress);
+                        if (debugFlags.ocrProgress) {
+                            logOCRProgress(captureDebugMode, debugFlags, m.progress);
+                        }
                         setOcrProgress(Math.round(m.progress * 100));
                         
-                        // Check for reward at every progress update
-                        if (m.text) {
+                        if (debugFlags.ocrRewards && m.text) {
                             const reward = extractReward(m.text);
                             if (reward) {
                                 logOCRProcess(captureDebugMode, debugFlags, 'Found reward during progress:', reward);
@@ -268,7 +289,9 @@ const CaptureSubTabHauling = ({
                     }
                 },
                 errorHandler: (err) => {
-                    logOCRError(captureDebugMode, debugFlags, 'Tesseract Error:', err);
+                    if (debugFlags.ocrErrors) {
+                        logOCRError(captureDebugMode, debugFlags, 'Tesseract Error:', err);
+                    }
                     showBannerMessage('OCR processing error', false);
                 }
             });
@@ -285,16 +308,20 @@ const CaptureSubTabHauling = ({
             await worker.terminate();
 
             if (!text || text.trim() === '') {
-                logOCRProcess(captureDebugMode, debugFlags, 'No text detected in image');
+                if (debugFlags.ocrProcess) {
+                    logOCRProcess(captureDebugMode, debugFlags, 'No text detected in image');
+                }
                 showBannerMessage('No text detected in image. Try adjusting the capture area.', false);
                 return '';
             }
 
-            logOCRProcess(captureDebugMode, debugFlags, 'Raw OCR text:', text);
+            if (debugFlags.ocrProcess) {
+                logOCRProcess(captureDebugMode, debugFlags, 'Raw OCR text:', text);
+            }
             
             // Extract reward first
             const reward = extractReward(text);
-            if (reward) {
+            if (reward && debugFlags.ocrRewards) {
                 logOCRProcess(captureDebugMode, debugFlags, 'Found reward:', reward);
             }
 
@@ -302,21 +329,30 @@ const CaptureSubTabHauling = ({
             
             // Don't validate here, just parse
             const parsedResults = parseOCRResults(cleanedText, false);
-            logOCRProcess(captureDebugMode, debugFlags, 'Parsed OCR results:', parsedResults);
+            
+            if (debugFlags.ocrProcess) {
+                logOCRProcess(captureDebugMode, debugFlags, 'Parsed OCR results:', parsedResults);
+            }
             
             // Check if we have any parsed results
             if (parsedResults && parsedResults.length > 0) {
-                logOCRProcess(captureDebugMode, debugFlags, 'Valid entries found:', parsedResults);
+                if (debugFlags.ocrProcess) {
+                    logOCRProcess(captureDebugMode, debugFlags, 'Valid entries found:', parsedResults);
+                }
                 showBannerMessage('OCR capture successful!', true);
                 return cleanedText;
             } else {
-                logOCRProcess(captureDebugMode, debugFlags, 'No valid mission data found in:', cleanedText);
+                if (debugFlags.ocrProcess) {
+                    logOCRProcess(captureDebugMode, debugFlags, 'No valid mission data found in:', cleanedText);
+                }
                 showBannerMessage('No valid mission data detected', false);
                 return '';
             }
 
         } catch (error) {
-            logOCRError(captureDebugMode, debugFlags, 'OCR Error:', error);
+            if (debugFlags.ocrErrors) {
+                logOCRError(captureDebugMode, debugFlags, 'OCR Error:', error);
+            }
             showBannerMessage('Error processing image. Please try again.', false);
             return '';
         } finally {
@@ -534,22 +570,35 @@ const CaptureSubTabHauling = ({
         showBannerMessage('OCR missions cleared.', true);
     };
 
-    const handleQuantityEdit = (index, newValue) => {
-        setEditedQuantities(prev => ({
-            ...prev,
-            [index]: newValue
-        }));
+    const handleQuantityEdit = (missionIndex, entryIndex, value) => {
+        setEditedQuantities(prev => {
+            const key = `${missionIndex}-${entryIndex}`;
+            return {
+                ...prev,
+                [key]: value
+            };
+        });
     };
 
-    const saveQuantityEdit = (index) => {
-        const updatedResults = [...ocrResults];
-        updatedResults[index].quantity = editedQuantities[index];
-        setOcrResults(updatedResults);
-        setEditedQuantities(prev => {
-            const newState = { ...prev };
-            delete newState[index];
-            return newState;
-        });
+    const saveQuantityEdit = (missionIndex, entryIndex) => {
+        const key = `${missionIndex}-${entryIndex}`;
+        const newValue = editedQuantities[key];
+        
+        if (newValue !== undefined) {
+            setOcrMissionGroups(prev => {
+                const updatedGroups = [...prev];
+                updatedGroups[missionIndex] = updatedGroups[missionIndex].map((entry, idx) => 
+                    idx === entryIndex ? { ...entry, quantity: newValue } : entry
+                );
+                return updatedGroups;
+            });
+            
+            setEditedQuantities(prev => {
+                const newQuantities = { ...prev };
+                delete newQuantities[key];
+                return newQuantities;
+            });
+        }
     };
 
     const sharpenImage = (imageData) => {
@@ -1544,6 +1593,7 @@ const CaptureSubTabHauling = ({
                                             {missionGroup.map((result, entryIndex) => {
                                                 const validation = validateOCRData(result, data);
                                                 const { exactMatches, matchedValues } = validation;
+                                                const quantityKey = `${missionIndex}-${entryIndex}`;
 
                                                 return (
                                                     <tr key={`mission-${missionIndex}-entry-${entryIndex}`}>
@@ -1564,21 +1614,24 @@ const CaptureSubTabHauling = ({
                                                             )}
                                                         </td>
                                                         <td className="qty">
-                                                            {editedQuantities[entryIndex] !== undefined ? (
+                                                            {editedQuantities[quantityKey] !== undefined ? (
                                                                 <input
                                                                     type="text"
-                                                                    value={editedQuantities[entryIndex]}
-                                                                    onChange={(e) => handleQuantityEdit(entryIndex, e.target.value)}
+                                                                    value={editedQuantities[quantityKey]}
+                                                                    onChange={(e) => handleQuantityEdit(missionIndex, entryIndex, e.target.value)}
                                                                     onKeyPress={(e) => {
                                                                         if (e.key === 'Enter') {
-                                                                            saveQuantityEdit(entryIndex);
+                                                                            saveQuantityEdit(missionIndex, entryIndex);
                                                                         }
                                                                     }}
                                                                     className="qty-input"
                                                                     autoFocus
                                                                 />
                                                             ) : (
-                                                                <span className="qty-span" onClick={() => handleQuantityEdit(entryIndex, result.quantity)}>
+                                                                <span 
+                                                                    className="qty-span" 
+                                                                    onClick={() => handleQuantityEdit(missionIndex, entryIndex, result.quantity)}
+                                                                >
                                                                     {result.quantity}
                                                                 </span>
                                                             )}

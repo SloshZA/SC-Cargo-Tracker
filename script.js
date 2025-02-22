@@ -12,7 +12,7 @@ import './styles/HaulingMissions.css';
 import './styles/Table.css';
 import './styles/Preferences.css';
 import './styles/History.css';
-import { Tabs } from './scripts/Tabs/Tabs';
+import Tabs from './scripts/Tabs/Tabs';
 import { HaulingSubTabPayouts } from './scripts/Tabs/1) Hauling/Payouts Tab/PayoutsSubTabHauling';
 import { HistorySubTabHauling } from './scripts/Tabs/1) Hauling/History Tab/HistorySubTabHauling';
 import { PreferencesTab } from './scripts/Tabs/5) Preferences/Preferences';
@@ -23,9 +23,11 @@ import { DebugOptions } from './scripts/Tabs/7) Debug Options/DebugOptions';
 import { DebugLogs, shouldLog } from './scripts/Tabs/7) Debug Options/DebugConsoleLogs';
 import { TooltipPopup } from './scripts/Tooltips/TooltipPopup';
 import { useTooltip } from './scripts/Tooltips/useTooltip';
-import StantonSystemData, { generateLocationLists } from './Location Data/Stanton System/Location Data/Const Data Stanton.js';
 import { locationCorrections } from './scripts/Tabs/1) Hauling/Capture Tab/LocationCorrections';
 import { contextMenu } from './scripts/utils/ContextMenu.js';
+import Storage from './scripts/Tabs/2) Cargo Hold/Storage/Storage.js';
+import StantonSystemData, { generateLocationLists } from './Location data/Stanton System/Location Data/Const Data Stanton.js';
+import { PyroSystemData } from './Location data/Pyro System/Location Data/Const Data Pyro.js';
 const crypto = require('crypto');
 const nonce = crypto.randomBytes(16).toString('base64');
 const { pickupPoints, quickLookup } = generateLocationLists();
@@ -148,8 +150,9 @@ const App = () => {
     // Group all refs together
     const amountInputRef = useRef(null);
     const dragRef = useRef(null);
-    const tooltipDragRef = useRef(null);
-    const resizeRef = useRef(null);
+
+    // Add this ref to track the locked mission index
+    const lockedMissionIndex = useRef(null);
 
     // Group all handlers together
     const handleMainTabChange = (tab) => {
@@ -216,12 +219,29 @@ const App = () => {
     const [secondDropdownValue, setSecondDropdownValue] = useState('');
     const [firstDropdownOptions, setFirstDropdownOptions] = useState([]);
     const [secondDropdownOptions, setSecondDropdownOptions] = useState([]);
-    const quickLookupOptions = data.quickLookup.map(option => ({ value: option, label: option }));
+    const [currentSystem, setCurrentSystem] = useState('Stanton'); // Default to Stanton
 
-    const pickupPointOptions = data.pickupPoints.map(point => ({ value: point, label: point }));
-    const planetOptions = StantonSystemData.planets.map(planet => ({ value: planet, label: planet }));
-    const stationOptions = data.stations.map(station => ({ value: station, label: station }));
-    const commodityOptions = data.commodities.map(commodity => ({ value: commodity, label: commodity }));
+    const systemDataMap = {
+        'Stanton': StantonSystemData,
+        'Pyro': PyroSystemData
+    };
+
+    const [systemData, setSystemData] = useState(systemDataMap[currentSystem]);
+
+    const planetOptions = systemData.planets.map(planet => ({ value: planet, label: planet }));
+    const stationOptions = systemData.stations.map(station => ({ value: station, label: station }));
+    const pickupPointOptions = systemData.pickupPoints ? systemData.pickupPoints.map(point => ({ value: point, label: point })) : [];
+    const quickLookupOptions = (selectedSystem) => {
+        const systemData = systemDataMap[selectedSystem] || StantonSystemData;
+        return systemData.FullList
+            .filter(location => !location.startsWith('--') && !location.endsWith('--'))
+            .map(location => ({
+                value: location,
+                label: location
+            }));
+    };
+
+    const commodityOptions = systemData.commodities.map(commodity => ({ value: commodity, label: commodity }));
     const [selectedCommodity, setSelectedCommodity] = useState(() => localStorage.getItem('selectedCommodity') || commodityOptions[0].value);
 
     const [missionRewards, setMissionRewards] = useState(() => {
@@ -433,7 +453,7 @@ const App = () => {
             console.log('Pickup point selected:', location);
             // Only validate if there's a location value
             if (location && location.trim() !== '') {
-                const validation = validatePickupPoint(location);
+                const validation = validatePickupPoint(location, currentSystem);
                 
                 if (!validation.isValid) {
                     showBannerMessage(`Warning: "${location}" is not a recognized location. Please check your spelling.`, false);
@@ -450,21 +470,21 @@ const App = () => {
             const value = selectedOption.value;
             setSecondDropdownValue(value);
 
-            if (data.planets.includes(value)) {
+            if (systemData.planets.includes(value)) {
                 setLocationType('planet');
                 setSelectedPlanet(value);
                 setSelectedMoon('');
                 setSelectedDropOffPoint('');
-            } else if (data.stations.includes(value)) {
+            } else if (systemData.stations.includes(value)) {
                 setLocationType('station');
                 setSelectedPlanet('');
                 setSelectedMoon('');
                 setSelectedDropOffPoint(value);
             } else {
                 let found = false;
-                for (const planet in data.moons) {
-                    for (const moon in data.moons[planet]) {
-                        if (data.moons[planet][moon].includes(value)) {
+                for (const planet in systemData.moons) {
+                    for (const moon in systemData.moons[planet]) {
+                        if (systemData.moons[planet][moon].includes(value)) {
                             setLocationType('planet');
                             setSelectedPlanet(planet);
                             setSelectedMoon(moon);
@@ -476,8 +496,8 @@ const App = () => {
                     if (found) break;
                 }
                 if (!found) {
-                    for (const planet in data.Dropoffpoints) {
-                        if (data.Dropoffpoints[planet].includes(value)) {
+                    for (const planet in systemData.Dropoffpoints) {
+                        if (systemData.Dropoffpoints[planet].includes(value)) {
                             setLocationType('planet');
                             setSelectedPlanet(planet);
                             setSelectedMoon('');
@@ -643,14 +663,62 @@ const App = () => {
 
     const removeCargo = (index) => {
         const entryToRemove = entries[index];
-        const updatedEntries = entries.filter((_, i) => i !== index);
-        setEntries(updatedEntries);
+        console.log('Removing cargo:', { index, entryToRemove });
 
-        const updatedMissionEntries = missionEntries.map(mission => 
-            mission ? mission.filter(entry => entry !== entryToRemove) : []
-        );
-        setMissionEntries(updatedMissionEntries);
-        localStorage.setItem('missionEntries', JSON.stringify(updatedMissionEntries));
+        // Remove from main entries
+        setEntries(prevEntries => {
+            const updatedEntries = prevEntries.filter((_, i) => i !== index);
+            console.log('Updated entries after removal:', updatedEntries);
+            localStorage.setItem('entries', JSON.stringify(updatedEntries));
+            return updatedEntries;
+        });
+
+        // Handle mission entries
+        if (entryToRemove?.missionIndex !== null && entryToRemove?.missionIndex !== undefined) {
+            console.log('Processing mission entry removal:', { 
+                missionIndex: entryToRemove.missionIndex,
+                isMissionEntry: entryToRemove.isMissionEntry 
+            });
+
+            setMissionEntries(prevMissionEntries => {
+                const updatedMissionEntries = [...prevMissionEntries];
+                
+                // Check if the mission index exists and has entries
+                if (updatedMissionEntries[entryToRemove.missionIndex]?.length > 0) {
+                    console.log('Mission entries before removal:', 
+                        updatedMissionEntries[entryToRemove.missionIndex]);
+
+                    // Remove the entry from its mission
+                    updatedMissionEntries[entryToRemove.missionIndex] = updatedMissionEntries[entryToRemove.missionIndex]
+                        .filter(missionEntry => {
+                            const shouldKeep = missionEntry.id !== entryToRemove.id;
+                            console.log('Filtering mission entry:', { 
+                                missionEntryId: missionEntry.id, 
+                                shouldKeep 
+                            });
+                            return shouldKeep;
+                        });
+
+                    console.log('Mission entries after removal:', 
+                        updatedMissionEntries[entryToRemove.missionIndex]);
+
+                    // If the mission is now empty, set it to null instead of an empty array
+                    if (updatedMissionEntries[entryToRemove.missionIndex].length === 0) {
+                        console.log('Mission is now empty, setting to null');
+                        updatedMissionEntries[entryToRemove.missionIndex] = null;
+
+                        // If this was the locked mission, unlock it
+                        if (lockedMissionIndex.current === entryToRemove.missionIndex) {
+                            console.log('Unlocking mission:', entryToRemove.missionIndex);
+                            lockedMissionIndex.current = null;
+                        }
+                    }
+                }
+                console.log('Updated mission entries:', updatedMissionEntries);
+                localStorage.setItem('missionEntries', JSON.stringify(updatedMissionEntries));
+                return updatedMissionEntries;
+            });
+        }
     };
 
     const calculateTotalSCU = () => {
@@ -663,26 +731,39 @@ const App = () => {
     };
 
     const moveDropOffPoint = (dropOffPoint, direction) => {
-        const dropOffPoints = Object.keys(entries.reduce((acc, entry) => {
-            acc[entry.dropOffPoint] = true;
-            return acc;
-        }, {}));
+        console.log('Moving drop-off point:', { dropOffPoint, direction }); // Log the move action
+
+        // Get all unique drop-off points from entries
+        const dropOffPoints = [...new Set(entries.map(entry => entry.dropOffPoint))];
         const index = dropOffPoints.indexOf(dropOffPoint);
-        if (index === -1) return;
 
+        console.log('Current drop-off points:', dropOffPoints); // Log the current drop-off points
+        console.log('Index of drop-off point:', index); // Log the index of the drop-off point
+
+        // Check if the drop-off point exists and the move is valid
+        if (index === -1 || index + direction < 0 || index + direction >= dropOffPoints.length) {
+            console.log('Invalid move - drop-off point not found or move out of bounds'); // Log invalid move
+            return;
+        }
+
+        // Reorder the drop-off points
         const newIndex = index + direction;
-        if (newIndex < 0 || newIndex >= dropOffPoints.length) return;
+        const updatedDropOffPoints = [...dropOffPoints];
+        [updatedDropOffPoints[index], updatedDropOffPoints[newIndex]] = 
+            [updatedDropOffPoints[newIndex], updatedDropOffPoints[index]];
 
-        const updatedEntries = [...entries];
-        const [movedDropOffPoint] = dropOffPoints.splice(index, 1);
-        dropOffPoints.splice(newIndex, 0, movedDropOffPoint);
+        console.log('Updated drop-off points:', updatedDropOffPoints); // Log the updated drop-off points
 
-        const reorderedEntries = [];
-        dropOffPoints.forEach(point => {
-            reorderedEntries.push(...updatedEntries.filter(entry => entry.dropOffPoint === point));
-        });
+        // Reorder the entries based on the new drop-off point order
+        const updatedEntries = updatedDropOffPoints.flatMap(point => 
+            entries.filter(entry => entry.dropOffPoint === point)
+        );
 
-        setEntries(reorderedEntries);
+        console.log('Updated entries:', updatedEntries); // Log the updated entries
+
+        // Update the entries state
+        setEntries(updatedEntries);
+        localStorage.setItem('entries', JSON.stringify(updatedEntries));
     };
 
     const markAsDelivered = (dropOffPoint) => {
@@ -739,14 +820,14 @@ const App = () => {
     const handleFirstDropdownChange = (selectedOption) => {
         setFirstDropdownValue(selectedOption ? selectedOption.value : '');
         const searchText = selectedOption ? selectedOption.value.toLowerCase() : '';
-        const filteredOptions = data.planets.filter(option => option.toLowerCase().includes(searchText));
+        const filteredOptions = systemData.planets.filter(option => option.toLowerCase().includes(searchText));
         setFirstDropdownOptions(filteredOptions);
     };
 
     const handleSecondDropdownChange = (selectedOption) => {
         setSecondDropdownValue(selectedOption ? selectedOption.value : '');
         const searchText = selectedOption ? selectedOption.value.toLowerCase() : '';
-        const filteredOptions = data.stations.filter(option => option.toLowerCase().includes(searchText));
+        const filteredOptions = systemData.stations.filter(option => option.toLowerCase().includes(searchText));
         setSecondDropdownOptions(filteredOptions);
     };
 
@@ -761,7 +842,7 @@ const App = () => {
         'Shubin Mining Facility SM0-22'
     ]);
 
-    const validatePickupPoint = (pickup) => {
+    const validatePickupPoint = (pickup, selectedSystem = 'Stanton') => {
         // Return early if pickup is empty or undefined
         if (!pickup || pickup.trim() === '') {
             return {
@@ -771,10 +852,14 @@ const App = () => {
             };
         }
 
+        // Get the system data based on selected system
+        const systemData = systemDataMap[selectedSystem] || StantonSystemData;
+
+        // Get all valid pickup points from the system data
         const validPickupPoints = [
-            ...data.pickupPoints,
-            ...Object.values(data.Dropoffpoints).flat(),
-            ...Object.values(data.moons).flatMap(moon => Object.values(moon)).flat()
+            ...(systemData.FullList || []),
+            ...(systemData.Dropoffpoints ? Object.values(systemData.Dropoffpoints).flat() : []),
+            ...(systemData.moons ? Object.values(systemData.moons).flatMap(moon => Object.values(moon)).flat() : [])
         ];
 
         const isValid = validPickupPoints.includes(pickup);
@@ -951,6 +1036,20 @@ const App = () => {
 
     // Add tooltip hook
     const tooltip = useTooltip();
+
+    // Keep only the destructured version from the tooltip hook
+    const {
+        showTooltipPopup,
+        setShowTooltipPopup,
+        tooltipPopupPosition,
+        activeTooltipContent,
+        tooltipPopupSize,
+        tooltipDragRef,
+        resizeRef,
+        handleTooltipDragStart,
+        handleResizeStart,
+        handleTooltipClick
+    } = tooltip;
 
     const toggleStatus = (index, dropOffPoint) => {
         const updatedEntries = [...entries];
@@ -1296,7 +1395,6 @@ const App = () => {
             newEntry.isMissionEntry = true;
             newEntry.missionIndex = selectedMissionIndex;
             
-            // Update mission entries
             const updatedMissionEntries = [...missionEntries];
             if (!updatedMissionEntries[selectedMissionIndex]) {
                 updatedMissionEntries[selectedMissionIndex] = [];
@@ -1304,6 +1402,11 @@ const App = () => {
             updatedMissionEntries[selectedMissionIndex].push({
                 ...newEntry,
                 originalAmount: newEntry.amount
+            });
+            console.log('Adding entry to mission:', {
+                missionIndex: selectedMissionIndex,
+                newEntry,
+                updatedMissionEntries
             });
             setMissionEntries(updatedMissionEntries);
             localStorage.setItem('missionEntries', JSON.stringify(updatedMissionEntries));
@@ -1489,6 +1592,27 @@ const App = () => {
         setShowBugPopup(!showBugPopup);
     };
 
+    const handleSystemChange = (system) => {
+        setCurrentSystem(system);
+        // Reset dropdown values when switching systems
+        setFirstDropdownValue('');
+        setSecondDropdownValue('');
+        setSelectedDropOffPoint('');
+        setSelectedPlanet('');
+        setSelectedMoon('');
+        
+        // Update the system data using the state setter
+        setSystemData(systemDataMap[system]);
+    };
+
+    // Add this in the component initialization
+    useEffect(() => {
+        const savedMissionEntries = localStorage.getItem('missionEntries');
+        const parsedMissionEntries = savedMissionEntries ? JSON.parse(savedMissionEntries) : Array(10).fill([]);
+        console.log('Initial mission entries:', parsedMissionEntries);
+        setMissionEntries(parsedMissionEntries);
+    }, []);
+
     return (
         <div className={darkMode ? 'dark-mode' : ''}>
             <header>
@@ -1581,7 +1705,7 @@ const App = () => {
                     <>
                         {haulingSubTab === 'Capture' && (
                             <CaptureSubTabHauling 
-                                data={data}
+                                data={systemData}
                                 addOCRToManifest={addOCRToManifest}
                                 showBannerMessage={showBannerMessage}
                                 hasEntries={hasEntries}
@@ -1595,7 +1719,7 @@ const App = () => {
                         )}
                         {haulingSubTab === 'Hauling Missions' && (
                             <MissionSubTabHauling
-                                data={data}
+                                data={systemData}
                                 entries={entries}
                                 setEntries={setEntries}
                                 selectedMissions={selectedMissions}
@@ -1637,7 +1761,7 @@ const App = () => {
                                 stationOptions={stationOptions}
                                 commodityOptions={commodityOptions}
                                 pickupPointOptions={pickupPointOptions}
-                                quickLookupOptions={quickLookupOptions}
+                                quickLookupOptions={quickLookupOptions(currentSystem)}
                                 handleLocationTypeChange={handleLocationTypeChange}
                                 handleMoonSelectChange={handleMoonSelectChange}
                                 handleStationSelectChange={handleStationSelectChange}
@@ -1655,6 +1779,9 @@ const App = () => {
                                 amountInputRef={amountInputRef}
                                 sendEntriesToHistory={sendEntriesToHistory}
                                 setHistoryEntries={setHistoryEntries}
+                                currentSystem={currentSystem}
+                                handleSystemChange={handleSystemChange}
+                                lockedMissionIndex={lockedMissionIndex}
                             />
                         )}
                         {haulingSubTab === 'History' && (
@@ -1672,7 +1799,7 @@ const App = () => {
                         )}
                         {haulingSubTab === 'Route Planner' && (
                             <RoutePlannerSubTabHauling
-                                data={data}
+                                data={systemData}
                                 showBannerMessage={showBannerMessage}
                             />
                         )}
@@ -1722,22 +1849,18 @@ const App = () => {
                         {cargoHoldSubTab === 'Inventory' && (
                             <div className="inventory-tab">
                                 <h3>Inventory</h3>
-                                {/* Add inventory content here */}
                                 <div>Inventory functionality coming soon...</div>
                             </div>
                         )}
                         {cargoHoldSubTab === 'Ships' && (
                             <div className="ships-tab">
                                 <h3>Ships</h3>
-                                {/* Add ships content here */}
                                 <div>Ships functionality coming soon...</div>
                             </div>
                         )}
                         {cargoHoldSubTab === 'Storage' && (
                             <div className="storage-tab">
-                                <h3>Storage</h3>
-                                {/* Add storage content here */}
-                                <div>Storage functionality coming soon...</div>
+                                <Storage />
                             </div>
                         )}
                     </>
@@ -1778,6 +1901,19 @@ const App = () => {
                         </div>
                     </div>
                 </div>
+            )}
+            {showTooltipPopup && (
+                <TooltipPopup
+                    showTooltipPopup={showTooltipPopup}
+                    tooltipPopupPosition={tooltipPopupPosition}
+                    tooltipPopupSize={tooltipPopupSize}
+                    activeTooltipContent={activeTooltipContent}
+                    handleTooltipDragStart={handleTooltipDragStart}
+                    handleResizeStart={handleResizeStart}
+                    tooltipDragRef={tooltipDragRef}
+                    resizeRef={resizeRef}
+                    setShowTooltipPopup={setShowTooltipPopup}
+                />
             )}
         </div>
     );

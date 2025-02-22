@@ -125,8 +125,13 @@
     width: 25%;
 }
 
+.capture-table th.qty,
 .capture-table td.qty {
-    width: 10px;
+    width: 5%;
+    min-width: 50px;
+    max-width: 50px;
+    text-align: center;
+    padding: 4px;
 }
 
 .capture-table th.pickup,
@@ -134,17 +139,19 @@
     width: 30%;
 }
 
-.qty-input {
-    width: 50px;
-    border: 1px solid #ccc;
+.capture-table .qty-input {
+    width: 40px;
+    text-align: center;
     padding: 2px;
-    border-radius: 3px;
+    font-size: 0.9em;
 }
 
-.qty-span {
-    cursor: pointer;
-    text-decoration: underline;
-    padding: 2px 5px;
+.capture-table .qty-span {
+    display: inline-block;
+    width: 40px;
+    text-align: center;
+    font-size: 0.9em;
+    padding: 2px;
 }
 
 .keybinding-button {

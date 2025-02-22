@@ -163,7 +163,7 @@ export const StantonSystemData = {
             'Shubin Mining Facility SM0-13',
             'Shubin Mining Facility SM0-18',
             'Shubin Mining Facility SM0-22'
-        ]
+        ],
     },
 
     moons: {
@@ -249,7 +249,7 @@ export const StantonSystemData = {
                 '--Outpost--',
                 'Devlin Scrap & Salvage'
             ]
-        }
+        },
     },
 
     commodities: [
@@ -323,8 +323,8 @@ export const StantonSystemData = {
         // Location names
         names: {
             'Covalex Distribution Center i S4DC05': 'Covalex Distribution Center S4DC05',
-            'Port Tressler I': 'Port Tressler',
             'Baljini Point': 'Baijini Point',
+            'Balini Point': 'Baijini Point',
             'Sakura Sun Goldenrod Workeenter': 'Sakura Sun Goldenrod Workcenter',
             'Covalex Distribution Center S4DCOS': 'Covalex Distribution Center S4DC05',
             'Greycat Stanton IV Production j Complex-A': 'Greycat Stanton IV Production Complex-A',
@@ -345,14 +345,32 @@ export const StantonSystemData = {
             'Covalex Distribution Center \'S4DC05': 'Covalex Distribution Center S4DC05',
             'MIC-L2 Long Forest Station i': 'MIC-L2 Long Forest Station',
             'Processed Foad': 'Processed Food',
-            'Port Tressler i': 'Port Tressler',
             'Greycat Stantan IV Production Complex-A': 'Greycat Stanton IV Production Complex-A',
             'Sakura Sun Goldenrod Workcenter_': 'Sakura Sun Goldenrod Workcenter',
             'Port Tressier- i': 'Port Tressler',
             'Port Tressier': 'Port Tressler',
             'Part Tessier i': 'Port Tressler',
+            'Poet Tresah': 'Port Tressler',
+            'Port Tressler i': 'Port Tressler',
             'Agricuitural Supplies': 'Agricultural Supplies',
-            'microTech Logistics Depot S4L001': 'microTech Logistics Depot S4LD01'
+            'microTech Logistics Depot S4L001': 'microTech Logistics Depot S4LD01',
+            'Baljinl Point': 'Baijini Point',
+            'Balfini Point': 'Baijini Point',
+            'Baljini Point': 'Baijini Point',
+            'Baljini Paint': 'Baijini Point',
+            'MICL2 Lang Forest Station /': 'MIC-L2 Long Forest Station',
+            'MICL2 Long Forest Station /': 'MIC-L2 Long Forest Station',
+            'MICL2 Long Forest Station J': 'MIC-L2 Long Forest Station',
+            'MICL2 Long Forest Station i': 'MIC-L2 Long Forest Station',
+            'MICL2 Long Forest Station i': 'MIC-L2 Long Forest Station',
+            'MICL2 Long Forest Station i': 'MIC-L2 Long Forest Station',
+            'MICL2 Long Forest Station i': 'MIC-L2 Long Forest Station',
+            'MICL2 Long Forest Station I': 'MIC-L2 Long Forest Station',
+            'Port Tressler l': 'Port Tressler',
+            'Port Tressler f': 'Port Tressler',
+
+           
+           
         }
     },
 
@@ -468,12 +486,13 @@ export const StantonSystemData = {
     }
 };
 
-// Generate pickupPoints and quickLookup arrays from existing data
+
+// Update generateLocationLists to remove Pyro references
 export const generateLocationLists = () => {
     const pickupPoints = [];
     const quickLookup = [];
 
-    // Add cities
+    // Add Stanton cities
     pickupPoints.push(
         '--City--', 
         ...StantonSystemData.Dropoffpoints.Arccorp.filter(x => x !== '--City--'),
@@ -516,6 +535,43 @@ export const generateLocationLists = () => {
         pickupPoints,
         quickLookup
     };
+};
+
+const cleanOCRText = (text) => {
+    // Remove single slashes with spaces around them
+    text = text.replace(/\s\/\s/g, ' ');
+    // Remove single slashes at the end of strings
+    text = text.replace(/\/$/, '');
+    // Remove single slashes at the start of strings
+    text = text.replace(/^\//, '');
+    return text.trim();
+};
+
+const correctLocation = (location) => {
+    // Clean the OCR text first
+    location = cleanOCRText(location);
+    
+    // Check for code corrections
+    if (StantonSystemData.locationCorrections.codes[location]) {
+        return StantonSystemData.locationCorrections.codes[location];
+    }
+    
+    // Check for name corrections
+    if (StantonSystemData.locationCorrections.names[location]) {
+        return StantonSystemData.locationCorrections.names[location];
+    }
+    
+    // If no correction found, return the cleaned location
+    return location;
+};
+
+const processLocation = (rawLocation) => {
+    // Clean and correct the location
+    const cleanedLocation = cleanOCRText(rawLocation);
+    const correctedLocation = correctLocation(cleanedLocation);
+    
+    // Additional processing if needed
+    return correctedLocation;
 };
 
 export default StantonSystemData; 

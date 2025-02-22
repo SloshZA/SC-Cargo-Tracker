@@ -814,3 +814,87 @@
     --input-background: rgba(255, 255, 255, 0.1);
     --hover-background: rgba(255, 255, 255, 0.05);
 } 
+
+
+
+.system-switcher-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding: 10px;
+    background-color: var(--background-secondary-color);
+    border-radius: 4px;
+    position: relative;
+    z-index: 1000;
+}
+
+.system-switch-group {
+    display: flex;
+    gap: 20px;
+}
+
+.route-planner-container {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.route-planner-button {
+    padding: 8px 16px;
+    background-color: var(--button-color);
+    color: black;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.route-planner-button:hover {
+    background-color: #00cc99;
+}
+
+.hauling-manifest-table .actions input {
+    width: 50px; /* Fixed width */
+    padding: 4px;
+    margin-right: 5px;
+    box-sizing: border-box;
+}
+
+.hauling-manifest-table .actions button {
+    margin: 2px;
+    padding: 4px 8px;
+    white-space: nowrap;
+}
+
+/* Add this new styling for the table */
+.hauling-manifest-table {
+    font-size: 0.9em; /* Reduced font size */
+}
+
+.hauling-manifest-table th,
+.hauling-manifest-table td {
+    padding: 4px 8px; /* Adjusted padding for smaller font */
+}
+
+.hauling-manifest-table .status {
+    width: 75px; /* Fixed width for status column */
+    min-width: 75px; /* Prevent shrinking */
+    max-width: 75px; /* Prevent expanding */
+    white-space: nowrap; /* Keep text on one line */
+}
+
+.hauling-manifest-table .status span {
+    display: inline-block;
+    width: 100%; /* Ensure span fills the cell */
+}
+
+.mission-details-table th {
+    font-size: 14px; /* Keep header size */
+    font-weight: bold;
+}
+
+.mission-details-row td {
+    font-size: 14px; /* Reduce row text size */
+    padding: 4px; /* Optional: adjust padding to match new text size */
+}

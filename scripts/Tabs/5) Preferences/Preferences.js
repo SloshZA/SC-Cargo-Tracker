@@ -125,6 +125,15 @@ export const PreferencesTab = ({
     const [showExportLocalStoragePopup, setShowExportLocalStoragePopup] = useState(false);
     const [showExportRoutesPopup, setShowExportRoutesPopup] = useState(false);
     const [showClearRoutesPopup, setShowClearRoutesPopup] = useState(false);
+    const [localDebugFlags, setLocalDebugFlags] = useState(() => {
+        const savedFlags = localStorage.getItem('ocrDebugFlags');
+        return savedFlags ? JSON.parse(savedFlags) : {
+            ocrProcess: false,
+            ocrProgress: false,
+            ocrRewards: false,
+            ocrErrors: false
+        };
+    });
 
     useEffect(() => {
         const hasShownPopup = localStorage.getItem('hasShownWelcomePopup');
@@ -134,6 +143,10 @@ export const PreferencesTab = ({
         }
         portalRef.current = document.body;
     }, []);
+
+    useEffect(() => {
+        localStorage.setItem('ocrDebugFlags', JSON.stringify(localDebugFlags));
+    }, [localDebugFlags]);
 
     const handleCloseWelcomePopup = () => {
         setShowWelcomePopup(false);
@@ -669,6 +682,16 @@ export const PreferencesTab = ({
         reader.readAsText(file);
     };
 
+    const handleDebugFlagChange = (flag) => {
+        setLocalDebugFlags(prev => {
+            const newFlags = {
+                ...prev,
+                [flag]: !prev[flag]
+            };
+            return newFlags;
+        });
+    };
+
     return (
         <div style={{ display: 'flex', height: '100vh' }}>
             <Sidebar 
@@ -1032,26 +1055,42 @@ export const PreferencesTab = ({
                                     <h4><u>OCR Processing</u></h4>
                                     <div className="form-group">
                                         <label>
-                                            <input type="checkbox" />
+                                            <input 
+                                                type="checkbox" 
+                                                checked={localDebugFlags.ocrProcess}
+                                                onChange={() => handleDebugFlagChange('ocrProcess')}
+                                            />
                                             OCR Logging
                                         </label>
                                     </div>
                                     <div className="form-group">
                                         <label>
-                                            <input type="checkbox" />
-                                            OCR Processing
+                                            <input 
+                                                type="checkbox" 
+                                                checked={localDebugFlags.ocrProgress}
+                                                onChange={() => handleDebugFlagChange('ocrProgress')}
+                                            />
+                                            OCR Progress
                                         </label>
                                     </div>
                                     <div className="form-group">
                                         <label>
-                                            <input type="checkbox" />
-                                            Data Validation
+                                            <input 
+                                                type="checkbox" 
+                                                checked={localDebugFlags.ocrRewards}
+                                                onChange={() => handleDebugFlagChange('ocrRewards')}
+                                            />
+                                            Reward Detection
                                         </label>
                                     </div>
                                     <div className="form-group">
                                         <label>
-                                            <input type="checkbox" />
-                                            Location Correction
+                                            <input 
+                                                type="checkbox" 
+                                                checked={localDebugFlags.ocrErrors}
+                                                onChange={() => handleDebugFlagChange('ocrErrors')}
+                                            />
+                                            Error Logging
                                         </label>
                                     </div>
                                 </div>

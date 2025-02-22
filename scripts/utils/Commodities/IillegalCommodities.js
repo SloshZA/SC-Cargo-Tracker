@@ -1,0 +1,43 @@
+const IllegalCommodities = [
+    "Altruciatoxin",
+    "DCSR2",
+    "E'tam",
+    "Gasping Weevil Eggs",
+    "Human Food Bars",
+    "Lifecure Medsticks",
+    "Maze",
+    "Neon",
+    "Osoian Hides",
+    "Redfin Energy Modulators",
+    "SLAM",
+    "WiDoW",
+    "Dopple",
+    "Freeze",
+    "Glow",
+    "Mala",
+    "Thrust",
+    "Zip",
+];
+
+const IllegalCommoditiesCodes = [
+    "AUTR",
+    "DCSR2",
+    "ETAM",
+    "GAWE",
+    "HFBA",
+    "LMED",
+    "MAZE",
+    "NEON",
+    "OSOH",
+    "REMO",
+    "SLAM",
+    "WIDO",
+    "DOPP",
+    "FREE",
+    "GLOW",
+    "MALA",
+    "THRU",
+    "ZIP",
+];
+
+export default IllegalCommodities;
