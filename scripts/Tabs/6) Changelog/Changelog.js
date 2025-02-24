@@ -5,7 +5,7 @@ export const ChangelogTab = () => {
         <div className="changelog">
             <div className="changelog-container">
             <div className="changelog-entry">
-                    <h3>Version 1.9</h3>
+                    <h3>Version 1.8</h3>
                     <h4>New Features</h4>
                     <ul>
                         <li><b>Cargo Hold → Storage</b></li>
@@ -83,66 +83,6 @@ export const ChangelogTab = () => {
                         <ul>
                             <li>SCU calculations for commodities consider the sum across all Drop off points in the Hauling Manifest table rather than per mission</li>
                             <li>Will add isMissionEntry check to adjust calculations</li>
-                        </ul>
-                    </ul>
-                </div>
-
-                <div className="changelog-entry">
-                    <h3>Version 1.8</h3>
-                    <h4>New Features</h4>
-                    <ul>
-                        <li><b>Cargo Hold → Storage</b></li>
-                        <ul>
-                                <li><b>Top Panel:</b> Ship Selection - Coming Soon</li>
-                                <li><b>Left Panel:</b> Cargo management - add/remove cargo items with collapsible categories (Commodities, Illegal Commodities)</li>
-                                <li><b>Right Panel:</b> SCU calculation - specify SCU size and automatically calculate total SCU</li>
-                        </ul>
-                        <li><b>Storage Interactions</b></li>
-                        <ul>
-                            <li>Quick Delete toggle - removes confirmation dialogs for clearing table or single entries</li>
-                            <li>Filter Search - filters items by name or code (e.g., "Alum" shows Aluminum and Aluminum (Raw))</li>
-                            <li>Collapsible categories - better organization of commodity types</li>   
-                        </ul>
-                        <li><b>Storage Notes</b></li>
-                        <li>Currently im displayed all commodities and illegal commodities, i will go through and remove entries that are irrelevant.</li>
-                    </ul>
-
-                    <h4>Changes</h4>
-                    <ul>
-                        <li><b>Removed Inventory</b></li>
-                        <ul>
-                            <li>Seems redundant to use an inventory to track items in your ships</li>
-                            <li>There is a site that lets you login and group with your Org buddies and share a list</li>
-                        </ul>
-                        <li><b>Added Pyro locations to Dropdown boxes on Hauling Missions tab</b></li>
-                        <ul>
-                            <li>Added 2 checkboxes to the top of the hauling missions for Stanton System and Pyro System</li>
-                            <li>Quick lookup and pickup point will still display the Stanton locations</li>
-                            <li>When Pyro system is ticked, the quicklookup and pickup are disabled for now</li>
-                        </ul>
-                        <li><b>OCR Capture</b></li>
-                        <ul>
-                            <li>Pyro Locations work without the data present but have misreads</li>
-                            <li>Added small name corrections for Pyro locations</li>
-                            <li>Expect misreads still - will have to add more corrections as I go</li>
-                        </ul>
-                    </ul>
-
-                    <h4>Known Issues</h4>
-                    <ul>
-                        <li><b>Tooltips</b></li>
-                        <ul>
-                            <li>Tooltips not opening</li>
-                        </ul>
-                        <li><b>Hauling Manifest</b></li>
-                        <ul>
-                            <li>Max mission entries updated from 15 → 20 for now</li>
-                            <li>Auto mission allocation text bug on mission 15 (not serious)</li>
-                            <li>Pyro System - quicklookup and pickup points not populated with Pyro locations (will fix on the weekend)</li>
-                        </ul>
-                        <li><b>Basic View</b></li>
-                        <ul>
-                            <li>Can't move entries up or down</li>
                         </ul>
                     </ul>
                 </div>
