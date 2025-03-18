@@ -4,6 +4,7 @@ import allCommoditiesCodes from '../../../utils/Commodities/AllCommoditiesCodes.
 import illegalCommodities from '../../../utils/Commodities/IillegalCommodities.js';
 import '../../../../styles/Storage.css'; // Corrected import path
 import Select from 'react-select';
+import { useShipContext } from '../../../utils/Ships/ShipContext';
 
 const Storage = () => {
     const [searchTerm, setSearchTerm] = useState('');
@@ -14,35 +15,62 @@ const Storage = () => {
     const [expandedPanels, setExpandedPanels] = useState({});
     const [showCommodities, setShowCommodities] = useState(true);
     const [showIllegalCommodities, setShowIllegalCommodities] = useState(true);
-    const [selectedOption, setSelectedOption] = useState(null);
+    const [selectedOption, setSelectedOption] = useState(() => {
+        const savedOption = localStorage.getItem('selectedStorageOption');
+        return savedOption ? JSON.parse(savedOption) : { 
+            value: 'general-storage', 
+            label: 'General Storage' 
+        };
+    });
     const [quickDeleteEnabled, setQuickDeleteEnabled] = useState(false);
     const [isManifestView, setIsManifestView] = useState(false);
-    const [cargoViewEntries, setCargoViewEntries] = useState(() => {
-        const savedCargo = localStorage.getItem('cargoViewEntries');
-        return savedCargo ? JSON.parse(savedCargo) : [];
-    });
+    const { ships, cargoData, updateCargo } = useShipContext();
 
     useEffect(() => {
         localStorage.setItem('cargoCommodities', JSON.stringify(selectedCommodities));
     }, [selectedCommodities]);
 
     useEffect(() => {
-        localStorage.setItem('cargoViewEntries', JSON.stringify(cargoViewEntries));
-    }, [cargoViewEntries]);
+        localStorage.setItem('selectedStorageOption', JSON.stringify(selectedOption));
+    }, [selectedOption]);
 
-    useEffect(() => {
-        // Reset to Cargo View when component mounts
-        setIsManifestView(false);
-    }, []);
-
-    const options = [
-        { value: 'option1', label: 'Option 1' },
-        { value: 'option2', label: 'Option 2' },
-        { value: 'option3', label: 'Option 3' }
+    const shipOptions = [
+        {
+            value: 'general-storage',
+            label: 'General Storage'
+        },
+        ...ships.reduce((acc, ship) => {
+            // Count how many times this ship name appears
+            const count = ships.filter(s => s.name === ship.name).length;
+            
+            // Only add numbering if there are duplicates
+            if (count > 1) {
+                // Find how many times this ship name has already been added
+                const existingCount = acc.filter(opt => opt.label.startsWith(ship.name)).length;
+                acc.push({
+                    value: ship.id,
+                    label: `${ship.name} (${existingCount + 1}) (${ship.cargoCapacity} SCU)`
+                });
+            } else {
+                acc.push({
+                    value: ship.id,
+                    label: `${ship.name} (${ship.cargoCapacity} SCU)`
+                });
+            }
+            return acc;
+        }, [])
     ];
 
+    const currentShipCargo = selectedOption?.value ? 
+        (selectedOption.value === 'general-storage' ? 
+            cargoData['general-storage'] || [] : 
+            cargoData[selectedOption.value] || []) : 
+        [];
+
     const handleCommodityClick = (commodity, index) => {
-        const targetState = isManifestView ? selectedCommodities : cargoViewEntries;
+        if (!selectedOption?.value) return; // Don't allow adding if no ship is selected
+        
+        const targetState = isManifestView ? selectedCommodities : currentShipCargo;
         const exists = targetState.some(item => item.name === commodity);
         if (!exists) {
             const initialSCU = {
@@ -64,12 +92,14 @@ const Storage = () => {
             if (isManifestView) {
                 setSelectedCommodities(prev => [...prev, newCommodity]);
             } else {
-                setCargoViewEntries(prev => [...prev, newCommodity]);
+                updateCargo(selectedOption.value, [...(cargoData[selectedOption.value] || []), newCommodity]);
             }
         }
     };
 
     const handleSCUChange = (id, scuValue, isRightClick = false) => {
+        if (!selectedOption?.value) return;
+        
         const updateFunction = (prevCommodities) => 
             prevCommodities.map(item => {
                 if (item.id === id) {
@@ -95,11 +125,13 @@ const Storage = () => {
         if (isManifestView) {
             setSelectedCommodities(updateFunction);
         } else {
-            setCargoViewEntries(updateFunction);
+            updateCargo(selectedOption.value, updateFunction(cargoData[selectedOption.value] || []));
         }
     };
 
     const handleRemoveCommodity = (id) => {
+        if (!selectedOption?.value) return;
+        
         if (!quickDeleteEnabled) {
             const confirmRemove = window.confirm('Are you sure you want to remove this commodity?');
             if (!confirmRemove) return;
@@ -108,7 +140,7 @@ const Storage = () => {
         if (isManifestView) {
             setSelectedCommodities(prev => prev.filter(item => item.id !== id));
         } else {
-            setCargoViewEntries(prev => prev.filter(item => item.id !== id));
+            updateCargo(selectedOption.value, (cargoData[selectedOption.value] || []).filter(item => item.id !== id));
         }
     };
 
@@ -116,7 +148,7 @@ const Storage = () => {
         if (isManifestView) {
             setExpandedPanels(prev => {
                 const isCurrentlyOpen = prev[id];
-                const clickedCommodity = (isManifestView ? selectedCommodities : cargoViewEntries)
+                const clickedCommodity = (isManifestView ? selectedCommodities : currentShipCargo)
                     .find(item => item.id === id);
                 
                 console.log('Manifest View - Panel Clicked:', {
@@ -124,7 +156,7 @@ const Storage = () => {
                     clickedId: id,
                     action: isCurrentlyOpen ? 'Closing' : 'Opening',
                     currentlyOpenPanels: Object.keys(prev).map(key => {
-                        const c = (isManifestView ? selectedCommodities : cargoViewEntries)
+                        const c = (isManifestView ? selectedCommodities : currentShipCargo)
                             .find(item => item.id === key);
                         return c ? `${c.name} (${key})` : 'Unknown';
                     })
@@ -222,14 +254,16 @@ const Storage = () => {
             }
         } else {
             // When switching to Cargo View, restore saved cargo entries
-            setSelectedCommodities(cargoViewEntries);
+            setSelectedCommodities(currentShipCargo);
         }
         setIsManifestView(!isManifestView);
     };
 
-    const currentCommodities = isManifestView ? selectedCommodities : cargoViewEntries;
+    const currentCommodities = isManifestView ? selectedCommodities : currentShipCargo;
 
     const handleClearStorage = () => {
+        if (!selectedOption?.value) return;
+        
         if (!quickDeleteEnabled) {
             const confirmClear = window.confirm('Are you sure you want to clear all commodities?');
             if (!confirmClear) return;
@@ -238,23 +272,52 @@ const Storage = () => {
         if (isManifestView) {
             setSelectedCommodities([]);
         } else {
-            setCargoViewEntries([]);
+            updateCargo(selectedOption.value, []);
         }
+    };
+
+    // Calculate SCU used and available
+    const totalSCUUsed = currentCommodities.reduce((sum, item) => sum + (item.scu || 0), 0);
+    const selectedShip = ships.find(ship => ship.id === selectedOption?.value);
+    const scuAvailable = selectedShip ? selectedShip.cargoCapacity - totalSCUUsed : 0;
+
+    // Add this to handle ship deletion
+    const handleShipDeletion = (shipId) => {
+        updateCargo(shipId, []);
+    };
+
+    // Update cargo using context
+    const setCargoViewEntries = (newCargo) => {
+        updateCargo(selectedOption.value, newCargo);
     };
 
     return (
         <div className="storage-container">
             <div className="storage-top-container">
-                <Select
-                    className="storage-select"
-                    classNamePrefix="select"
-                    value={selectedOption}
-                    onChange={setSelectedOption}
-                    options={options}
-                    placeholder="Select an option..."
-                    isClearable={true}
-                    isSearchable={true}
-                />
+                <div className="ship-select-container">
+                    <Select
+                        className="storage-select"
+                        classNamePrefix="select"
+                        value={selectedOption}
+                        onChange={setSelectedOption}
+                        options={shipOptions}
+                        placeholder="Select a ship..."
+                        isClearable={true}
+                        isSearchable={true}
+                    />
+                    {selectedShip && (
+                        <div className="scu-indicators">
+                            <div className="scu-indicator">
+                                <span className="scu-label">SCU Used:</span>
+                                <span className="scu-value">{totalSCUUsed}</span>
+                            </div>
+                            <div className="scu-indicator">
+                                <span className="scu-label">SCU Available:</span>
+                                <span className="scu-value">{scuAvailable}</span>
+                            </div>
+                        </div>
+                    )}
+                </div>
                 <div className="top-buttons-container">
                     <button 
                         className="top-button"

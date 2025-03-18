@@ -27,14 +27,24 @@
     --table-outline-color: #00ffcc;
 }
 
-::-webkit-scrollbar { display: none; }
+/* Hide scrollbar for Firefox */
+html {
+    scrollbar-width: none; /* Firefox */
+}
+
+/* Hide scrollbar for Chrome, Safari, Edge */
+body::-webkit-scrollbar {
+    display: none;
+}
 
 body {
+    -ms-overflow-style: none; /* IE and Edge */
     scrollbar-width: none; /* Firefox */
 }
 
 body, button, input, select, textarea {
     font-family: var(--main-font);
+
 }
 
 /* Font styling */
@@ -106,5 +116,11 @@ body, button, input, select, textarea {
 [data-tooltip]:hover:before {
   opacity: 1;
   visibility: visible;
+}
+
+/* Reduce width of number inputs in the sidebar */
+.sidebar input[type="number"] {
+    width: 80px; /* Adjust this value as needed */
+    padding: 4px; /* Optional: Adjust padding for better appearance */
 }
 

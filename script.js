@@ -26,8 +26,11 @@ import { useTooltip } from './scripts/Tooltips/useTooltip';
 import { locationCorrections } from './scripts/Tabs/1) Hauling/Capture Tab/LocationCorrections';
 import { contextMenu } from './scripts/utils/ContextMenu.js';
 import Storage from './scripts/Tabs/2) Cargo Hold/Storage/Storage.js';
+import Grid3D from './scripts/Tabs/Grid3D.js';
 import StantonSystemData, { generateLocationLists } from './Location data/Stanton System/Location Data/Const Data Stanton.js';
 import { PyroSystemData } from './Location data/Pyro System/Location Data/Const Data Pyro.js';
+import { ShipProvider } from './scripts/utils/Ships/ShipContext';
+import Ships from './scripts/Tabs/2) Cargo Hold/Ships/Ships.js';
 const crypto = require('crypto');
 const nonce = crypto.randomBytes(16).toString('base64');
 const { pickupPoints, quickLookup } = generateLocationLists();
@@ -132,7 +135,7 @@ const App = () => {
     // Group all state declarations together at the top
     const [mainTab, setMainTab] = useState('Hauling');
     const [haulingSubTab, setHaulingSubTab] = useState('Hauling Missions');
-    const [cargoHoldSubTab, setCargoHoldSubTab] = useState('Inventory');
+    const [cargoHoldSubTab, setCargoHoldSubTab] = useState('Ships');
     const [darkMode, setDarkMode] = useState(false);
     const [isAutoScaling, setIsAutoScaling] = useState(true);
     const [hasEntries, setHasEntries] = useState(false);
@@ -1613,64 +1616,19 @@ const App = () => {
         setMissionEntries(parsedMissionEntries);
     }, []);
 
+    const openBugReportForm = () => {
+        window.open('https://docs.google.com/forms/d/e/1FAIpQLSecRDep1JIDVLuvkrJ0CIh_njRFdJjQtsssj0mh4suuu9ULhg/viewform?usp=dialog', '_blank');
+    };
+
     return (
-        <div className={darkMode ? 'dark-mode' : ''}>
-            <header>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '20px' }}>
-                    <h1 style={{ color: 'var(--title-color)' }}>SC Cargo Tracker</h1>
-                    <button 
-                        onClick={handleBugPopup}
-                        style={{
-                            padding: '8px 16px',
-                            backgroundColor: '#ff4444',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '4px',
-                            cursor: 'pointer'
-                        }}
-                    >
-                        Experiencing Bugs???
-                    </button>
-                </div>
-                <button onClick={toggleAutoScaling}>
-                    {isAutoScaling ? 'Disable Auto Scaling' : 'Enable Auto Scaling'}
-                </button>
-            </header>
-            {showBugPopup && (
-                <Portal>
-                    <div style={{
-                        position: 'fixed',
-                        top: '50%',
-                        left: '50%',
-                        transform: 'translate(-50%, -50%)',
-                        backgroundColor: '#333',
-                        padding: '20px',
-                        borderRadius: '8px',
-                        boxShadow: '0 2px 10px rgba(0,0,0,0.2)',
-                        zIndex: 1000,
-                        color: 'white',
-                        width: '400px',
-                        textAlign: 'left'
-                    }}>
-                        <h3>Bug Fix Instructions</h3>
-                        <p style={{ marginBottom: '15px', lineHeight: '1.5' }}>
-                            If you're experiencing issues with any of the features or your history and payouts tables are not working correctly:
-                        </p>
-                        <ol style={{ marginLeft: '20px', marginBottom: '15px', lineHeight: '1.5' }}>
-                            <li>Head over to Preferences {'>'} Data Management {'>'} User Settings</li>
-                            <li>Export your user settings (this will save your Set Colors and Fonts)</li>
-                            <li>Then proceed to Delete Local Storage</li>
-                        </ol>
-                        <p style={{ marginBottom: '15px', lineHeight: '1.5' }}>
-                            This will remove all local storage entries and hopefully clear most bugs or features not working correctly.
-                        </p>
-                        <p style={{ fontStyle: 'italic', lineHeight: '1.5' }}>
-                            Why? When I did a restructure of the files, some tables broke and forced me to rewrite tables since it was easier than fixing the problem of tables being duplicated across multiple files.
-                        </p>
+        <ShipProvider>
+            <div className={darkMode ? 'dark-mode' : ''}>
+                <header>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '20px' }}>
+                        <h1 style={{ color: 'var(--title-color)' }}>SC Cargo Tracker</h1>
                         <button 
                             onClick={handleBugPopup}
                             style={{
-                                marginTop: '10px',
                                 padding: '8px 16px',
                                 backgroundColor: '#ff4444',
                                 color: 'white',
@@ -1679,243 +1637,307 @@ const App = () => {
                                 cursor: 'pointer'
                             }}
                         >
-                            Close
+                            Experiencing Bugs???
                         </button>
                     </div>
-                </Portal>
-            )}
-            <Tabs
-                mainTab={mainTab}
-                haulingSubTab={haulingSubTab}
-                cargoHoldSubTab={cargoHoldSubTab}
-                handleMainTabChange={handleMainTabChange}
-                handleTabChange={handleTabChange}
-                handleCargoHoldTabChange={handleCargoHoldTabChange}
-                handleTooltipClick={tooltip.handleTooltipClick}
-            />
-            <div className="content">
-                {bannerMessage && (
+                    <button onClick={toggleAutoScaling}>
+                        {isAutoScaling ? 'Disable Auto Scaling' : 'Enable Auto Scaling'}
+                    </button>
+                </header>
+                {showBugPopup && (
                     <Portal>
-                        <div className="banner">
-                            {bannerMessage}
+                        <div style={{
+                            position: 'fixed',
+                            top: '50%',
+                            left: '50%',
+                            transform: 'translate(-50%, -50%)',
+                            backgroundColor: '#333',
+                            padding: '20px',
+                            borderRadius: '8px',
+                            boxShadow: '0 2px 10px rgba(0,0,0,0.2)',
+                            zIndex: 1000,
+                            color: 'white',
+                            width: '400px',
+                            textAlign: 'left'
+                        }}>
+                            <h3>Bug Fix Instructions</h3>
+                            <p style={{ marginBottom: '15px', lineHeight: '1.5' }}>
+                                If you're experiencing issues with any of the features or your history and payouts tables are not working correctly:
+                            </p>
+                            <ol style={{ marginLeft: '20px', marginBottom: '15px', lineHeight: '1.5' }}>
+                                <li>Head over to Preferences {'>'} Data Management {'>'} User Settings</li>
+                                <li>Export your user settings (this will save your Set Colors and Fonts)</li>
+                                <li>Then proceed to Delete Local Storage</li>
+                            </ol>
+                            <p style={{ marginBottom: '15px', lineHeight: '1.5' }}>
+                                This will remove all local storage entries and hopefully clear most bugs or features not working correctly.
+                            </p>
+                            <p style={{ fontStyle: 'italic', lineHeight: '1.5' }}>
+                                Why? When I did a restructure of the files, some tables broke and forced me to rewrite tables since it was easier than fixing the problem of tables being duplicated across multiple files.
+                            </p>
+                            <button 
+                            onClick={openBugReportForm}
+                            style={{
+                                padding: '8px 16px',
+                                paddingRight: '10px',
+                                backgroundColor: '#4444ff',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '4px',
+                                cursor: 'pointer'
+                            }}
+                        >
+                            Submit Bug Report
+                        </button>
+                            <button 
+                                onClick={handleBugPopup}
+                                style={{
+                                    marginTop: '10px',
+                                    padding: '8px 16px',
+                                    backgroundColor: '#ff4444',
+                                    color: 'white',
+                                    border: 'none',
+                                    borderRadius: '4px',
+                                    cursor: 'pointer'
+                                }}
+                            >
+                                Close
+                            </button>
                         </div>
                     </Portal>
                 )}
-                {mainTab === 'Hauling' && (
-                    <>
-                        {haulingSubTab === 'Capture' && (
-                            <CaptureSubTabHauling 
-                                data={systemData}
-                                addOCRToManifest={addOCRToManifest}
-                                showBannerMessage={showBannerMessage}
-                                hasEntries={hasEntries}
-                                setHasEntries={setHasEntries}
-                                locationCorrections={locationCorrections}
-                                debugMode={debugMode}
-                                debugFlags={debugFlags}
-                                missionEntries={missionEntries}        // Add these
-                                setMissionEntries={setMissionEntries} // two props
-                            />
-                        )}
-                        {haulingSubTab === 'Hauling Missions' && (
-                            <MissionSubTabHauling
-                                data={systemData}
-                                entries={entries}
-                                setEntries={setEntries}
-                                selectedMissions={selectedMissions}
-                                setSelectedMissions={setSelectedMissions}
-                                missionEntries={missionEntries}
-                                setMissionEntries={setMissionEntries}
-                                selectedDropOffPoint={selectedDropOffPoint}
-                                selectedCommodity={selectedCommodity}
-                                firstDropdownValue={firstDropdownValue}
-                                secondDropdownValue={secondDropdownValue}
-                                selectedPlanet={selectedPlanet}
-                                selectedMoon={selectedMoon}
-                                showBannerMessage={showBannerMessage}
-                                STATUS_OPTIONS={STATUS_OPTIONS}
-                                customStyles={customStyles}
-                                handleCommoditySelectChange={handleCommoditySelectChange}
-                                handleSelectChange={handleSelectChange}
-                                handleAmountChange={handleAmountChange}
-                                handleAmountKeyPress={handleAmountKeyPress}
-                                handleTopAmountKeyPress={handleTopAmountKeyPress}
-                                toggleCollapse={toggleCollapse}
-                                clearLog={clearLog}
-                                handlePlanetSelectChange={handlePlanetSelectChange}
-                                collapsed={collapsed}
-                                isAlternateTable={isAlternateTable}
-                                setIsAlternateTable={setIsAlternateTable}
-                                collapsedMissions={collapsedMissions}
-                                setCollapsedMissions={setCollapsedMissions}
-                                missionRewards={missionRewards}
-                                setMissionRewards={setMissionRewards}
-                                locationType={locationType}
-                                setLocationType={setLocationType}
-                                setSelectedPlanet={setSelectedPlanet}
-                                setSelectedMoon={setSelectedMoon}
-                                setSelectedDropOffPoint={setSelectedDropOffPoint}
-                                setFirstDropdownValue={setFirstDropdownValue}
-                                setSecondDropdownValue={setSecondDropdownValue}
-                                planetOptions={planetOptions}
-                                stationOptions={stationOptions}
-                                commodityOptions={commodityOptions}
-                                pickupPointOptions={pickupPointOptions}
-                                quickLookupOptions={quickLookupOptions(currentSystem)}
-                                handleLocationTypeChange={handleLocationTypeChange}
-                                handleMoonSelectChange={handleMoonSelectChange}
-                                handleStationSelectChange={handleStationSelectChange}
-                                handleDropOffSelectChange={handleDropOffSelectChange}
-                                handlePickupPointChange={handlePickupPointChange}
-                                handleQuickLookupChange={handleQuickLookupChange}
-                                updateCargo={updateCargo}
-                                removeCargo={removeCargo}
-                                moveDropOffPoint={moveDropOffPoint}
-                                markAsDelivered={markAsDelivered}
-                                toggleStatus={toggleStatus}
-                                setPayoutEntries={setPayoutEntries}
-                                handleMoveToPayouts={handleMoveToPayouts}
-                                calculateTotalSCU={calculateTotalSCU}
-                                amountInputRef={amountInputRef}
-                                sendEntriesToHistory={sendEntriesToHistory}
-                                setHistoryEntries={setHistoryEntries}
-                                currentSystem={currentSystem}
-                                handleSystemChange={handleSystemChange}
-                                lockedMissionIndex={lockedMissionIndex}
-                            />
-                        )}
-                        {haulingSubTab === 'History' && (
-                            <HistorySubTabHauling
-                                historyEntries={historyEntries}
-                                collapsed={collapsed}
-                                toggleCollapse={toggleCollapse}
-                            />
-                        )}
-                        {haulingSubTab === 'Payouts' && (
-                            <HaulingSubTabPayouts
-                                entries={payoutEntries}
-                                setEntries={setPayoutEntries}
-                            />
-                        )}
-                        {haulingSubTab === 'Route Planner' && (
-                            <RoutePlannerSubTabHauling
-                                data={systemData}
-                                showBannerMessage={showBannerMessage}
-                            />
-                        )}
-                    </>
-                )}
-                {mainTab === 'Mining' && (
-                    <div>Mining functionality coming soon...</div>
-                )}
-                {mainTab === 'Preferences' && (
-                    <PreferencesTab
-                        dropdownLabelColor={dropdownLabelColor}
-                        dropdownTextColor={dropdownTextColor}
-                        buttonColor={buttonColor}
-                        titleColor={titleColor}
-                        dropOffHeaderTextColor={dropOffHeaderTextColor}
-                        rowTextColor={rowTextColor}
-                        tableHeaderTextColor={tableHeaderTextColor}
-                        missionTextColor={missionTextColor}
-                        tableOutlineColor={tableOutlineColor}
-                        selectedFont={selectedFont}
-                        debugMode={debugMode}
-                        needsHistoryClearConfirmation={needsHistoryClearConfirmation}
-                        setDropdownLabelColor={setDropdownLabelColor}
-                        setDropdownTextColor={setDropdownTextColor}
-                        setButtonColor={setButtonColor}
-                        setTitleColor={setTitleColor}
-                        setDropOffHeaderTextColor={setDropOffHeaderTextColor}
-                        setRowTextColor={setRowTextColor}
-                        setTableHeaderTextColor={setTableHeaderTextColor}
-                        setMissionTextColor={setMissionTextColor}
-                        setTableOutlineColor={setTableOutlineColor}
-                        setSelectedFont={setSelectedFont}
-                        handleDebugMode={handleDebugMode}
-                        handleImport={handleImport}
-                        handleExport={handleExport}
-                        clearHistoryLogDebug={clearHistoryLogDebug}
-                        handleFontChange={handleFontChange}
-                        exportHistoryToXLS={exportHistoryToXLS}
-                        exportPayoutsToXLS={exportPayoutsToXLS}
-                    />
-                )}
-                {mainTab === 'Changelog' && (
-                    <ChangelogTab />
-                )}
-                {mainTab === 'Cargo Hold' && (
-                    <>
-                        {cargoHoldSubTab === 'Inventory' && (
-                            <div className="inventory-tab">
-                                <h3>Inventory</h3>
-                                <div>Inventory functionality coming soon...</div>
+                <Tabs
+                    mainTab={mainTab}
+                    haulingSubTab={haulingSubTab}
+                    cargoHoldSubTab={cargoHoldSubTab}
+                    handleMainTabChange={handleMainTabChange}
+                    handleTabChange={handleTabChange}
+                    handleCargoHoldTabChange={handleCargoHoldTabChange}
+                    handleTooltipClick={tooltip.handleTooltipClick}
+                />
+                <div className="content">
+                    {bannerMessage && (
+                        <Portal>
+                            <div className="banner">
+                                {bannerMessage}
                             </div>
-                        )}
-                        {cargoHoldSubTab === 'Ships' && (
-                            <div className="ships-tab">
-                                <h3>Ships</h3>
-                                <div>Ships functionality coming soon...</div>
+                        </Portal>
+                    )}
+                    {mainTab === 'Hauling' && (
+                        <>
+                            {haulingSubTab === 'Capture' && (
+                                <CaptureSubTabHauling 
+                                    data={systemData}
+                                    addOCRToManifest={addOCRToManifest}
+                                    showBannerMessage={showBannerMessage}
+                                    hasEntries={hasEntries}
+                                    setHasEntries={setHasEntries}
+                                    locationCorrections={locationCorrections}
+                                    debugMode={debugMode}
+                                    debugFlags={debugFlags}
+                                    missionEntries={missionEntries}        // Add these
+                                    setMissionEntries={setMissionEntries} // two props
+                                />
+                            )}
+                            {haulingSubTab === 'Hauling Missions' && (
+                                <MissionSubTabHauling
+                                    data={systemData}
+                                    entries={entries}
+                                    setEntries={setEntries}
+                                    selectedMissions={selectedMissions}
+                                    setSelectedMissions={setSelectedMissions}
+                                    missionEntries={missionEntries}
+                                    setMissionEntries={setMissionEntries}
+                                    selectedDropOffPoint={selectedDropOffPoint}
+                                    selectedCommodity={selectedCommodity}
+                                    firstDropdownValue={firstDropdownValue}
+                                    secondDropdownValue={secondDropdownValue}
+                                    selectedPlanet={selectedPlanet}
+                                    selectedMoon={selectedMoon}
+                                    showBannerMessage={showBannerMessage}
+                                    STATUS_OPTIONS={STATUS_OPTIONS}
+                                    customStyles={customStyles}
+                                    handleCommoditySelectChange={handleCommoditySelectChange}
+                                    handleSelectChange={handleSelectChange}
+                                    handleAmountChange={handleAmountChange}
+                                    handleAmountKeyPress={handleAmountKeyPress}
+                                    handleTopAmountKeyPress={handleTopAmountKeyPress}
+                                    toggleCollapse={toggleCollapse}
+                                    clearLog={clearLog}
+                                    handlePlanetSelectChange={handlePlanetSelectChange}
+                                    collapsed={collapsed}
+                                    isAlternateTable={isAlternateTable}
+                                    setIsAlternateTable={setIsAlternateTable}
+                                    collapsedMissions={collapsedMissions}
+                                    setCollapsedMissions={setCollapsedMissions}
+                                    missionRewards={missionRewards}
+                                    setMissionRewards={setMissionRewards}
+                                    locationType={locationType}
+                                    setLocationType={setLocationType}
+                                    setSelectedPlanet={setSelectedPlanet}
+                                    setSelectedMoon={setSelectedMoon}
+                                    setSelectedDropOffPoint={setSelectedDropOffPoint}
+                                    setFirstDropdownValue={setFirstDropdownValue}
+                                    setSecondDropdownValue={setSecondDropdownValue}
+                                    planetOptions={planetOptions}
+                                    stationOptions={stationOptions}
+                                    commodityOptions={commodityOptions}
+                                    pickupPointOptions={pickupPointOptions}
+                                    quickLookupOptions={quickLookupOptions(currentSystem)}
+                                    handleLocationTypeChange={handleLocationTypeChange}
+                                    handleMoonSelectChange={handleMoonSelectChange}
+                                    handleStationSelectChange={handleStationSelectChange}
+                                    handleDropOffSelectChange={handleDropOffSelectChange}
+                                    handlePickupPointChange={handlePickupPointChange}
+                                    handleQuickLookupChange={handleQuickLookupChange}
+                                    updateCargo={updateCargo}
+                                    removeCargo={removeCargo}
+                                    moveDropOffPoint={moveDropOffPoint}
+                                    markAsDelivered={markAsDelivered}
+                                    toggleStatus={toggleStatus}
+                                    setPayoutEntries={setPayoutEntries}
+                                    handleMoveToPayouts={handleMoveToPayouts}
+                                    calculateTotalSCU={calculateTotalSCU}
+                                    amountInputRef={amountInputRef}
+                                    sendEntriesToHistory={sendEntriesToHistory}
+                                    setHistoryEntries={setHistoryEntries}
+                                    currentSystem={currentSystem}
+                                    handleSystemChange={handleSystemChange}
+                                    lockedMissionIndex={lockedMissionIndex}
+                                />
+                            )}
+                            {haulingSubTab === 'History' && (
+                                <HistorySubTabHauling
+                                    historyEntries={historyEntries}
+                                    collapsed={collapsed}
+                                    toggleCollapse={toggleCollapse}
+                                />
+                            )}
+                            {haulingSubTab === 'Payouts' && (
+                                <HaulingSubTabPayouts
+                                    entries={payoutEntries}
+                                    setEntries={setPayoutEntries}
+                                />
+                            )}
+                            {haulingSubTab === 'Route Planner' && (
+                                <RoutePlannerSubTabHauling
+                                    data={systemData}
+                                    showBannerMessage={showBannerMessage}
+                                />
+                            )}
+                        </>
+                    )}
+                    {mainTab === 'Mining' && (
+                        <div>Mining functionality coming soon...</div>
+                    )}
+                    {mainTab === 'Preferences' && (
+                        <PreferencesTab
+                            dropdownLabelColor={dropdownLabelColor}
+                            dropdownTextColor={dropdownTextColor}
+                            buttonColor={buttonColor}
+                            titleColor={titleColor}
+                            dropOffHeaderTextColor={dropOffHeaderTextColor}
+                            rowTextColor={rowTextColor}
+                            tableHeaderTextColor={tableHeaderTextColor}
+                            missionTextColor={missionTextColor}
+                            tableOutlineColor={tableOutlineColor}
+                            selectedFont={selectedFont}
+                            debugMode={debugMode}
+                            needsHistoryClearConfirmation={needsHistoryClearConfirmation}
+                            setDropdownLabelColor={setDropdownLabelColor}
+                            setDropdownTextColor={setDropdownTextColor}
+                            setButtonColor={setButtonColor}
+                            setTitleColor={setTitleColor}
+                            setDropOffHeaderTextColor={setDropOffHeaderTextColor}
+                            setRowTextColor={setRowTextColor}
+                            setTableHeaderTextColor={setTableHeaderTextColor}
+                            setMissionTextColor={setMissionTextColor}
+                            setTableOutlineColor={setTableOutlineColor}
+                            setSelectedFont={setSelectedFont}
+                            handleDebugMode={handleDebugMode}
+                            handleImport={handleImport}
+                            handleExport={handleExport}
+                            clearHistoryLogDebug={clearHistoryLogDebug}
+                            handleFontChange={handleFontChange}
+                            exportHistoryToXLS={exportHistoryToXLS}
+                            exportPayoutsToXLS={exportPayoutsToXLS}
+                        />
+                    )}
+                    {mainTab === 'Changelog' && (
+                        <ChangelogTab />
+                    )}
+                                {mainTab === '3D Cargo Grid' && (
+                <div className="grid3d-container">
+                    <Grid3D />
+                </div>
+            )}
+
+                    {mainTab === 'Cargo Hold' && (
+                        <>
+                            {cargoHoldSubTab === 'Ships' && (
+                                <div className="ships-tab">
+                                    <Ships />
+                                </div>
+                            )}
+                            {cargoHoldSubTab === 'Storage' && (
+                                <div className="storage-tab">
+                                    <Storage />
+                                </div>
+                            )}
+                        </>
+                    )}
+                    {mainTab === 'Debug Options' && debugMode && (
+                        <DebugOptions 
+                            debugFlags={debugFlags}
+                            setDebugFlags={setDebugFlags}
+                        />
+                    )}
+                </div>
+                {showDebugPopup && debugMode && (
+                    <div 
+                        className="debug-popup"
+                        style={{
+                            left: debugPopupPosition.x,
+                            top: debugPopupPosition.y
+                        }}
+                    >
+                        <div 
+                            className="debug-popup-header"
+                            onMouseDown={handleDragStart}
+                            ref={dragRef}
+                        >
+                            <span>OCR Text</span>
+                            <button onClick={() => setShowDebugPopup(false)}>×</button>
+                        </div>
+                        <div className="debug-popup-content">
+                            <div className="debug-section">
+                                <h4>Raw OCR Text:</h4>
+                                <pre>{ocrText || 'No text captured yet'}</pre>
+                                {currentParsedResults && currentParsedResults.length > 0 && (
+                                    <>
+                                        <h4>Parsed Results:</h4>
+                                        <pre>{JSON.stringify(currentParsedResults, null, 2)}</pre>
+                                    </>
+                                )}
                             </div>
-                        )}
-                        {cargoHoldSubTab === 'Storage' && (
-                            <div className="storage-tab">
-                                <Storage />
-                            </div>
-                        )}
-                    </>
+                        </div>
+                    </div>
                 )}
-                {mainTab === 'Debug Options' && debugMode && (
-                    <DebugOptions 
-                        debugFlags={debugFlags}
-                        setDebugFlags={setDebugFlags}
+                {showTooltipPopup && (
+                    <TooltipPopup
+                        showTooltipPopup={showTooltipPopup}
+                        tooltipPopupPosition={tooltipPopupPosition}
+                        tooltipPopupSize={tooltipPopupSize}
+                        activeTooltipContent={activeTooltipContent}
+                        handleTooltipDragStart={handleTooltipDragStart}
+                        handleResizeStart={handleResizeStart}
+                        tooltipDragRef={tooltipDragRef}
+                        resizeRef={resizeRef}
+                        setShowTooltipPopup={setShowTooltipPopup}
                     />
                 )}
             </div>
-            {showDebugPopup && debugMode && (
-                <div 
-                    className="debug-popup"
-                    style={{
-                        left: debugPopupPosition.x,
-                        top: debugPopupPosition.y
-                    }}
-                >
-                    <div 
-                        className="debug-popup-header"
-                        onMouseDown={handleDragStart}
-                        ref={dragRef}
-                    >
-                        <span>OCR Text</span>
-                        <button onClick={() => setShowDebugPopup(false)}>×</button>
-                    </div>
-                    <div className="debug-popup-content">
-                        <div className="debug-section">
-                            <h4>Raw OCR Text:</h4>
-                            <pre>{ocrText || 'No text captured yet'}</pre>
-                            {currentParsedResults && currentParsedResults.length > 0 && (
-                                <>
-                                    <h4>Parsed Results:</h4>
-                                    <pre>{JSON.stringify(currentParsedResults, null, 2)}</pre>
-                                </>
-                            )}
-                        </div>
-                    </div>
-                </div>
-            )}
-            {showTooltipPopup && (
-                <TooltipPopup
-                    showTooltipPopup={showTooltipPopup}
-                    tooltipPopupPosition={tooltipPopupPosition}
-                    tooltipPopupSize={tooltipPopupSize}
-                    activeTooltipContent={activeTooltipContent}
-                    handleTooltipDragStart={handleTooltipDragStart}
-                    handleResizeStart={handleResizeStart}
-                    tooltipDragRef={tooltipDragRef}
-                    resizeRef={resizeRef}
-                    setShowTooltipPopup={setShowTooltipPopup}
-                />
-            )}
-        </div>
+        </ShipProvider>
     );
 };
 

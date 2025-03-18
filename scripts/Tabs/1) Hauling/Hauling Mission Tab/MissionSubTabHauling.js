@@ -1167,7 +1167,7 @@ export const MissionSubTabHauling = ({
 
     useEffect(() => {
         if (currentSystem === 'Pyro') {
-            showBannerMessage('Pyro system locations are not currently supported for quick lookup and pickup points');
+            showBannerMessage('Pyro system locations are not currently supported for Quick lookup and Pickup points');
         }
     }, [currentSystem]);
 

@@ -1,0 +1,11 @@
+.amount-input, .scu-total-input {
+    /* Revert to original size */
+    width: 100px; /* Original width */
+    padding: 4px; /* Original padding */
+    font-size: 14px; /* Original font size */
+    /* Remove any additional styling that was added */
+    box-shadow: none;
+    transition: none;
+    border-radius: 4px; /* Original border radius */
+    border: 1px solid #ccc; /* Original border */
+} 

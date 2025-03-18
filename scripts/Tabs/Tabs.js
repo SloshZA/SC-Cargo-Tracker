@@ -74,7 +74,7 @@ const Tabs = ({
         <div className="tabs-container">
             {/* Main Tabs */}
             <div className="main-tabs">
-                {['Hauling', 'Cargo Hold', 'Trading', 'Preferences', 'Changelog'].map(tab => (
+                {['Hauling', 'Cargo Hold', 'Trading', 'Preferences', 'Changelog', '3D Cargo Grid'].map(tab => (
                     <div 
                         key={tab} 
                         className={`main-tab ${mainTab === tab ? 'active-main-tab' : ''}`} 
@@ -97,6 +97,12 @@ const Tabs = ({
             />
         </div>
     );
+    {mainTab === '3D Cargo Grid' && (
+        <div className="grid3d-container">
+            <Grid3D />
+        </div>
+    )}
+
 };
 
 export default Tabs; 

@@ -698,17 +698,19 @@
 
 /* Add these styles for the select dropdown */
 .storage-select {
-    width: 35%; /* Reduced from 50% to 35% (30% reduction) */
+    width: 450px; /* Set a fixed width */
     margin: 20px 0;
     margin-left: 20px;
+    
 }
 
 .storage-select .select__control {
     background-color: #34495e;
     border: 1px solid #7f8c8d;
     border-radius: 4px;
-    min-height: 38px;
+    min-height: 48px; /* Increased height */
     box-shadow: none;
+    font-size: 16px; /* Increased font size */
 }
 
 .storage-select .select__control:hover {
@@ -724,9 +726,12 @@
     background-color: #2c3e50;
     border: 1px solid #7f8c8d;
     margin-top: 0;
+    font-size: 16px; /* Increased font size */
+    width: 300px; /* Match the width of the control */
 }
 
 .storage-select .select__option {
+    padding: 12px 15px; /* Increased padding */
     background-color: transparent;
     color: #ecf0f1;
 }
@@ -741,11 +746,15 @@
 }
 
 .storage-select .select__single-value {
-    color: #ecf0f1;
+    color: #ffffff !important; /* Force white text */
 }
 
 .storage-select .select__placeholder {
-    color: #95a5a6;
+    color: #ffffff !important; /* Force white text for placeholder */
+}
+
+.storage-select .select__input {
+    color: #ffffff !important; /* Force white text for input */
 }
 
 .storage-select .select__indicator-separator {
@@ -898,4 +907,35 @@
     font-size: 16px; /* Increased from 14px */
     font-weight: bold;
     color: #ecf0f1;
+}
+
+.ship-select-container {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+.scu-indicators {
+    display: flex;
+    gap: 15px;
+}
+
+.scu-indicator {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background-color: rgba(255, 255, 255, 0.1);
+    padding: 5px 10px;
+    border-radius: 4px;
+}
+
+.scu-label {
+    font-size: 12px;
+    color: #aaa;
+}
+
+.scu-value {
+    font-size: 14px;
+    font-weight: bold;
+    color: #fff;
 }

@@ -55,4 +55,14 @@
   /* Other styles to ensure square shape */
   width: 20px;
   height: 20px;
-} 
+}
+
+.render-window {
+    overflow: hidden;
+    width: 100%;
+    height: 100%;
+    position: fixed;
+    top: 0;
+    left: 0;
+}
+

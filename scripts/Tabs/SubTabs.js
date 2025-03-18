@@ -1,5 +1,6 @@
 import React from 'react';
 
+
 export const SubTabs = ({ 
     mainTab,
     haulingSubTab,
@@ -10,7 +11,7 @@ export const SubTabs = ({
     TAB_DESCRIPTIONS
 }) => {
     return (
-        <>
+        <div className="sub-tabs-container">
             {/* Sub Tabs - Show for Hauling and Cargo Hold */}
             {(mainTab === 'Hauling' || mainTab === 'Cargo Hold') && (
                 <div className="tabs">
@@ -60,6 +61,8 @@ export const SubTabs = ({
                     )}
                 </div>
             )}
-        </>
+        </div>
     );
-}; 
+};
+
+export default SubTabs; 
