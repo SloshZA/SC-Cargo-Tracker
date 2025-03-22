@@ -213,37 +213,37 @@ export const PreferencesTab = ({
             try {
                 if (file.name.endsWith('.json')) {
                     const data = JSON.parse(e.target.result);
-                    if (data.historyEntries && data.payoutEntries) {
-                        // Get existing data from local storage
+                    
+                    // Validate the imported data structure
+                    if (!data.historyEntries && !data.payoutEntries) {
+                        throw new Error('Invalid JSON file format. The file must contain historyEntries and/or payoutEntries.');
+                    }
+
+                    // Generate a unique mission number prefix based on the current date and time
+                    const now = new Date();
+                    const missionNumberPrefix = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}${String(now.getSeconds()).padStart(2, '0')}`;
+
+                    // Process history entries if they exist
+                    if (data.historyEntries) {
                         const existingHistoryEntries = JSON.parse(localStorage.getItem('historyEntries')) || [];
-                        const existingPayoutEntries = JSON.parse(localStorage.getItem('payoutEntries')) || [];
-
-                        // Generate a unique mission number prefix based on the current date and time
-                        const now = new Date();
-                        const missionNumberPrefix = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}${String(now.getSeconds()).padStart(2, '0')}`;
-
-                        // Update mission numbers for imported history entries
                         const updatedHistoryEntries = data.historyEntries.map((entry, index) => ({
                             ...entry,
-                            missionNumber: `${missionNumberPrefix}${String(index + 1).padStart(4, '0')}` // Ensure unique mission numbers
+                            missionNumber: `${missionNumberPrefix}${String(index + 1).padStart(4, '0')}`
                         }));
-
-                        // Concatenate the imported data with the existing data
                         const updatedHistoryEntriesCombined = [...existingHistoryEntries, ...updatedHistoryEntries];
-                        const updatedPayoutEntriesCombined = [...existingPayoutEntries, ...data.payoutEntries];
-
-                        // Save the updated data back to local storage
                         localStorage.setItem('historyEntries', JSON.stringify(updatedHistoryEntriesCombined));
-                        localStorage.setItem('payoutEntries', JSON.stringify(updatedPayoutEntriesCombined));
-
-                        alert('Tables imported and merged successfully!');
-                        window.location.reload(); // Refresh the page to reflect the changes
-                    } else {
-                        alert('Invalid JSON file format. The file must contain historyEntries and payoutEntries.');
                     }
+
+                    // Process payout entries if they exist
+                    if (data.payoutEntries) {
+                        const existingPayoutEntries = JSON.parse(localStorage.getItem('payoutEntries')) || [];
+                        const updatedPayoutEntriesCombined = [...existingPayoutEntries, ...data.payoutEntries];
+                        localStorage.setItem('payoutEntries', JSON.stringify(updatedPayoutEntriesCombined));
+                    }
+
+                    alert('Tables imported successfully!');
+                    window.location.reload();
                 } else if (file.name.endsWith('.xls')) {
-                    // Add your XLS import logic here
-                    // You'll need to parse the Excel file and convert it to the expected format
                     alert('XLS import functionality is not yet implemented.');
                 } else {
                     alert('Unsupported file format. Please use .json or .xls files.');
