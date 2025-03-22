@@ -58,9 +58,9 @@ const customStyles = {
 };
 
 const FONT_OPTIONS = [
+    { value: 'Verdana', label: 'Verdana' },
     { value: 'Orbitron', label: 'Orbitron' },
     { value: 'Arial', label: 'Arial' },
-    { value: 'Verdana', label: 'Verdana' },
     { value: 'Helvetica', label: 'Helvetica' },
     { value: 'Courier New', label: 'Courier New' },
     { value: 'Georgia', label: 'Georgia' },
@@ -79,7 +79,7 @@ export const PreferencesTab = ({
     tableHeaderTextColor,
     missionTextColor,
     tableOutlineColor,
-    selectedFont,
+    selectedFont = 'Verdana',
     debugMode,
     setDropdownLabelColor,
     setDropdownTextColor,

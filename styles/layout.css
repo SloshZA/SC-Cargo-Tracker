@@ -1,8 +1,8 @@
 /* Layout Container */
 body {
-    width: 1200px;
+    width: 1500px;
     height: 800px;
-    margin: 0 auto;
+
 }
 
 /* Content Layout */
@@ -181,5 +181,30 @@ body {
     border-radius: 5px;
 }
 
+/* Add new compact mode button style */
+.compact-mode-btn {
+    background-color: #00ffcc;
+    color: #0d0d0d;
+    padding: 5px 10px;
+    border: 1px solid #333;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.compact-mode-btn:hover {
+    background-color: #00cc99;
+}
+
+/* Add compact mode classes */
+.compact-mode body {
+    width: 100vw;
+    height: 100vh;
+}
+
+.normal-mode body {
+    width: 1500px;
+    height: 800px;
+}
 
 /* Mission Checkbox */

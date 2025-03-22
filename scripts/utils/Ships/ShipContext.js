@@ -31,9 +31,13 @@ export const ShipProvider = ({ children }) => {
     }, [cargoData]);
 
     const addShip = (ship) => {
+        const array = new Uint8Array(16);
+        crypto.getRandomValues(array);
+        const id = Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('');
+        
         const newShip = {
             ...ship,
-            id: crypto.randomBytes(16).toString('hex')
+            id: id
         };
         setShips(prev => [...prev, newShip]);
     };

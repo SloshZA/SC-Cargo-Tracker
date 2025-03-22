@@ -6,42 +6,59 @@ import { useShipContext } from '../utils/Ships/ShipContext';
 // Modify createBlock function to use Standard material with texture
 const createBlock = (size, color) => {
     let width, height, depth;
+    let xOffset = 0, yOffset = 0, zOffset = 0;
+    
     switch (size) {
         case '1SCU':
             width = 1;
             height = 1;
             depth = 1;
+            xOffset = 0.5;  // Center the 1SCU block
+            zOffset = 0;  // Center the 1SCU block
             break;
         case '2SCU':
             width = 1;
             height = 1;
             depth = 2;
+            xOffset = 0.5;  // Center the 2SCU block
+            zOffset = 1.5;    // Align with grid for 2SCU
             break;
         case '4SCU':
             width = 2;
             height = 1;
             depth = 2;
+            xOffset = 1;    // Align with grid for 4SCU
+            zOffset = 1.5;    // Align with grid for 4SCU
             break;
         case '8SCU':
             width = 2;
             height = 2;
             depth = 2;
+            xOffset = 1;    // Align with grid for 8SCU
+            zOffset = 1.5;    // Align with grid for 8SCU
             break;
         case '16SCU':
             width = 2;
             height = 2;
             depth = 4;
+            xOffset = 1;    // Align with grid for 16SCU
+            zOffset = 2.5;    // Align with grid for 16SCU
             break;
         case '32SCU':
             width = 2;
             height = 2;
             depth = 8;
+            xOffset = 1;    // Align with grid for 32SCU
+            zOffset = 4.5;    // Align with grid for 32SCU
             break;
         default:
             width = 1;
             height = 1;
             depth = 1;
+            xOffset = 0;
+            zOffset = 0;
     }
+
     const geometry = new THREE.BoxGeometry(width, height, depth);
     
     // Create a texture loader with fallback
@@ -82,8 +99,8 @@ const createBlock = (size, color) => {
             uColor: { value: new THREE.Color(color) },
             uNormalMap: { value: normalMap },
             uRoughnessMap: { value: roughnessMap },
-            uEdgeColor: { value: new THREE.Color(0xffffff) },
-            uEdgeWidth: { value: 0.02 }
+            uEdgeColor: { value: new THREE.Color(0xffffff) }, // White edge color
+            uEdgeWidth: { value: 0.02 } // Edge width
         },
         vertexShader: `
             varying vec2 vUv;
@@ -139,7 +156,11 @@ const createBlock = (size, color) => {
     const mesh = new THREE.Mesh(geometry, material);
     mesh.castShadow = true;
     mesh.receiveShadow = true;
-    mesh.userData.originalColor = color;
+    mesh.userData = {
+        originalColor: color,
+        size: size,
+        offsets: { x: xOffset, y: yOffset, z: zOffset }
+    };
     return mesh;
 };
 
@@ -461,6 +482,7 @@ const Grid3D = () => {
     const sceneRef = useRef(null);
     const dimensionsRef = useRef(null);
     const bannerRef = useRef(null);
+    const rendererRef = useRef(null); // Add this line
     const [blockDetails, setBlockDetails] = useState(null);
     const [activeTab, setActiveTab] = useState('Playground');
     const [missionEntries, setMissionEntries] = useState([]);
@@ -468,7 +490,7 @@ const Grid3D = () => {
     const [activeGridTab, setActiveGridTab] = useState('Grid 1');
     const [missionsWithBlocks, setMissionsWithBlocks] = useState([]);
     const [highlightedMission, setHighlightedMission] = useState(null);
-    const [showCommodities, setShowCommodities] = useState(false);
+    const [showCommodities, setShowCommodities] = useState(true); // Changed from false to true
     const [highlightedCommodity, setHighlightedCommodity] = useState(null);
     const [commodityEntries, setCommodityEntries] = useState({});
     const [expandedCommodity, setExpandedCommodity] = useState(null);
@@ -487,22 +509,22 @@ const Grid3D = () => {
             'Grid 1': {
                 width: 1,
                 length: 1,
-                height: 5
+                height: 20 // Set default height to 20
             },
             'Grid 2': {
                 width: 1,
                 length: 1,
-                height: 8
+                height: 20 // Set default height to 20
             },
             'Grid 3': {
                 width: 1,
                 length: 1,
-                height: 10
+                height: 20 // Set default height to 20
             },
             'Grid 4': {
                 width: 1,
                 length: 1,
-                height: 12
+                height: 20 // Set default height to 20
             }
         };
     });
@@ -545,6 +567,15 @@ const Grid3D = () => {
     // Add this state at the top of the component
     const DEFAULT_MISSION_INDEX = -1; // Use -1 for the default mission
 
+    // Update the renderer size state initialization
+    const [rendererSize, setRendererSize] = useState(() => {
+        const savedSize = localStorage.getItem('rendererSize');
+        if (savedSize) {
+            return JSON.parse(savedSize);
+        }
+        return { width: 1500, height: 800 }; // Set default size to 1500x800
+    });
+
     // Update the input change handlers
     const updateGridSettings = (gridName, newSettings) => {
         setGrids(prev => {
@@ -566,6 +597,7 @@ const Grid3D = () => {
         if (value === '') return;
         const newValue = Math.min(Math.max(parseInt(value), 1), 20);
         updateGridSettings(activeGridTab, { width: newValue });
+        setSelectedShipTemplate(null); // Clear the selected template
     };
 
     const handleLengthChange = (e) => {
@@ -573,13 +605,72 @@ const Grid3D = () => {
         if (value === '') return;
         const newValue = Math.min(Math.max(parseInt(value), 1), 20);
         updateGridSettings(activeGridTab, { length: newValue });
+        setSelectedShipTemplate(null); // Clear the selected template
     };
 
     const handleHeightChange = (e) => {
         const value = e.target.value;
         if (value === '') return;
         const newValue = Math.min(Math.max(parseInt(value), 1), 20);
+        
+        // Update the grid settings
         updateGridSettings(activeGridTab, { height: newValue });
+        
+        // Update the height reference
+        gridHeightRef.current = newValue;
+        
+        // Get the scene
+        if (sceneRef && sceneRef.current) {
+            const scene = sceneRef.current;
+            
+            // Remove existing grid
+            const existingGrid = scene.getObjectByName(activeGridTab);
+            if (existingGrid) {
+                scene.remove(existingGrid);
+            }
+            
+            // Remove existing background
+            const existingBackground = scene.getObjectByName(`${activeGridTab}-background`);
+            if (existingBackground) {
+                scene.remove(existingBackground);
+            }
+            
+            // Find the createDedicatedGrids function from the component context and call it
+            // This should recreate the grid with the updated height
+            const gridData = {
+                ...grids[activeGridTab],
+                height: newValue
+            };
+            
+            // Recreate the grid with new dimensions
+            const newGrid = createGrid(
+                gridData.width,
+                gridData.length,
+                0xffffff
+            );
+            newGrid.name = activeGridTab;
+            newGrid.userData = { ...gridData, maxHeight: newValue };
+            scene.add(newGrid);
+            
+            // Recreate background grid
+            const backgroundGrid = createBackgroundGrid();
+            backgroundGrid.name = `${activeGridTab}-background`;
+            
+            // Position the background grid according to the grid dimensions
+            backgroundGrid.position.set(
+                gridData.width / 2,
+                gridData.height, // Use the new height
+                gridData.length / 2
+            );
+            scene.add(backgroundGrid);
+        }
+        
+        // Force re-render by updating a state
+        setGrids(prev => {
+            return { ...prev };
+        });
+        
+        setSelectedShipTemplate(null);
     };
 
     // Helper function to snap to grid
@@ -650,7 +741,55 @@ const Grid3D = () => {
         }
     };
 
-    // Update the addBlock function to ensure it's properly defined
+    // Update the saveBlocksToLocalStorage function
+    const saveBlocksToLocalStorage = () => {
+        const blocksToSave = blocks.current
+            .filter(block => {
+                // Check if block is on any of the grids
+                const grid = sceneRef.current.children.find(
+                    obj => obj.userData && 
+                           obj.userData.size === getBlockSize(block)
+                );
+                return grid !== undefined;
+            })
+            .map(block => {
+                // Ensure we have a valid color value
+                let colorValue;
+                if (block.userData.originalColor instanceof THREE.Color) {
+                    colorValue = block.userData.originalColor.getHex();
+                } else if (typeof block.userData.originalColor === 'number') {
+                    colorValue = block.userData.originalColor;
+                } else {
+                    // Fallback to default color based on size
+                    const sizeColors = {
+                        '1SCU': 0x00ff00,
+                        '2SCU': 0x0000ff,
+                        '4SCU': 0xff00ff,
+                        '8SCU': 0xffa500,
+                        '16SCU': 0x800080,
+                        '32SCU': 0xff0000
+                    };
+                    colorValue = sizeColors[getBlockSize(block)] || 0xffffff;
+                }
+
+                return {
+                    size: getBlockSize(block),
+                    position: {
+                        x: block.position.x,
+                        y: block.position.y,
+                        z: block.position.z
+                    },
+                    rotation: block.rotation.y,
+                    missionIndex: block.userData.missionIndex,
+                    commodity: block.userData.commodity,
+                    color: colorValue
+                };
+            });
+        
+        localStorage.setItem('savedBlocks', JSON.stringify(blocksToSave));
+    };
+
+    // Update the addBlock function
     const addBlock = (size = '4SCU', color, missionIndex, commodity) => {
         const scene = sceneRef.current;
         if (!scene) return null;
@@ -681,65 +820,88 @@ const Grid3D = () => {
             return null;
         }
 
-        // Get all blocks in this dedicated grid
-        const blocksInGrid = blocks.current.filter(block => {
-            const blockPos = block.position;
-            const gridPos = dedicatedGrid.position;
-            const gridSize = dedicatedGrid.userData.size === '32SCU' ? 16 : 
-                            dedicatedGrid.userData.size === '16SCU' ? 8 : 
-                            dedicatedGrid.userData.size === '2SCU' ? 6 : 
-                            dedicatedGrid.userData.size === '4SCU' ? 8 : 
-                            dedicatedGrid.userData.size === '8SCU' ? 8 : 5;
-            
-            return blockPos.x >= gridPos.x - gridSize/2 &&
-                   blockPos.x <= gridPos.x + gridSize/2 &&
-                   blockPos.z >= gridPos.z - gridSize/2 &&
-                   blockPos.z <= gridPos.z + gridSize/2;
-        });
-
-        // Calculate grid dimensions based on SCU size
+        // Get grid cell size from userData
+        const cellSize = dedicatedGrid.userData.cellSize || 1;
         const gridSize = dedicatedGrid.userData.size === '32SCU' ? 16 : 
                         dedicatedGrid.userData.size === '16SCU' ? 8 : 
                         dedicatedGrid.userData.size === '2SCU' ? 6 : 
                         dedicatedGrid.userData.size === '4SCU' ? 8 : 
                         dedicatedGrid.userData.size === '8SCU' ? 8 : 5;
-        
-        // Calculate number of blocks per row based on size
-        const blocksPerRow = Math.floor(gridSize / newBlock.geometry.parameters.width);
-        const blocksPerColumn = Math.floor(gridSize / newBlock.geometry.parameters.depth);
-        
-        // Calculate current position in grid
-        const totalBlocks = blocksInGrid.length;
 
-        // Calculate position within the grid
-        const gridStartX = dedicatedGrid.position.x - gridSize/2 + newBlock.geometry.parameters.width/2;
-        const gridStartZ = dedicatedGrid.position.z + gridSize/2 - newBlock.geometry.parameters.depth/2;
-        
-        // Calculate column and row
-        const col = totalBlocks % blocksPerRow;
-        const row = Math.floor(totalBlocks / blocksPerRow) % blocksPerColumn;
-        
-        // Calculate offsets
-        const offsetX = gridStartX + col * newBlock.geometry.parameters.width;
-        const offsetZ = gridStartZ - row * newBlock.geometry.parameters.depth;
-        
-        // Find all blocks in this stack
-        const blocksInStack = blocksInGrid.filter(block => 
-            Math.abs(block.position.x - offsetX) < 0.1 &&
-            Math.abs(block.position.z - offsetZ) < 0.1
-        );
-        
-        // Calculate stack height
-        const stackHeight = blocksInStack.reduce((sum, block) => 
-            sum + block.geometry.parameters.height, 0
-        );
-        
-        // Set initial position
-        const newPosition = new THREE.Vector3(
-            offsetX,
-            stackHeight + (blockHeight / 2), // Center the block vertically
-            offsetZ
-        );
+        // Calculate number of blocks per row and column based on size
+        const blocksPerRow = Math.floor(gridSize / (newBlock.geometry.parameters.width * cellSize));
+        const blocksPerColumn = Math.floor(gridSize / (newBlock.geometry.parameters.depth * cellSize));
+
+        // Find all existing blocks in this grid
+        const gridBlocks = blocks.current.filter(block => {
+            const blockGrid = scene.children.find(
+                obj => obj.userData && 
+                       obj.userData.size === getBlockSize(block) &&
+                       obj === dedicatedGrid
+            );
+            return blockGrid !== undefined;
+        });
+
+        // Find the first available position in the grid
+        let foundPosition = false;
+        let col = 0, row = 0;
+        let newPosition = new THREE.Vector3();
+
+        for (row = 0; row < blocksPerColumn && !foundPosition; row++) {
+            for (col = 0; col < blocksPerRow && !foundPosition; col++) {
+                // Calculate position for this cell
+                const xPos = dedicatedGrid.position.x - (gridSize / 2) + (col * newBlock.geometry.parameters.width) + (newBlock.geometry.parameters.width / 2);
+                const zPos = dedicatedGrid.position.z + (gridSize / 2) - (row * newBlock.geometry.parameters.depth) - (newBlock.geometry.parameters.depth / 2);
+
+                // Check if this position is occupied
+                const blocksAtPosition = gridBlocks.filter(block => 
+                    Math.abs(block.position.x - xPos) < 0.1 &&
+                    Math.abs(block.position.z - zPos) < 0.1
+                );
+
+                // If position is empty, place at bottom
+                if (blocksAtPosition.length === 0) {
+                    newPosition.set(xPos, newBlock.geometry.parameters.height / 2, zPos);
+                    foundPosition = true;
+                }
+            }
+        }
+
+        // If no empty positions found, stack on top of existing blocks
+        if (!foundPosition) {
+            // Find the first position with the lowest stack
+            let minStackHeight = Infinity;
+            let stackPosition = new THREE.Vector3();
+            
+            for (row = 0; row < blocksPerColumn; row++) {
+                for (col = 0; col < blocksPerRow; col++) {
+                    const xPos = dedicatedGrid.position.x - (gridSize / 2) + (col * newBlock.geometry.parameters.width) + (newBlock.geometry.parameters.width / 2);
+                    const zPos = dedicatedGrid.position.z + (gridSize / 2) - (row * newBlock.geometry.parameters.depth) - (newBlock.geometry.parameters.depth / 2);
+
+                    const blocksAtPosition = gridBlocks.filter(block => 
+                        Math.abs(block.position.x - xPos) < 0.1 &&
+                        Math.abs(block.position.z - zPos) < 0.1
+                    );
+
+                    const stackHeight = blocksAtPosition.reduce((sum, block) => 
+                        sum + block.geometry.parameters.height, 0
+                    );
+
+                    if (stackHeight < minStackHeight) {
+                        minStackHeight = stackHeight;
+                        stackPosition.set(xPos, stackHeight + (newBlock.geometry.parameters.height / 2), zPos);
+                    }
+                }
+            }
+            
+            newPosition.copy(stackPosition);
+            foundPosition = true;
+        }
+
+        if (!foundPosition) {
+            console.warn('No available position found in grid');
+            return null;
+        }
 
         // Skip collision check for all SCU sizes when using Add button
         newBlock.position.copy(newPosition);
@@ -748,6 +910,14 @@ const Grid3D = () => {
         if (missionIndex !== undefined) {
             newBlock.userData.missionIndex = missionIndex;
             newBlock.userData.commodity = commodity;
+        } else if (commodity !== undefined) {
+            // If no mission is selected but commodity is provided
+            newBlock.userData.commodity = commodity;
+            // Use default color for the SCU size
+            newBlock.userData.originalColor = new THREE.Color(blockColor);
+        } else {
+            // If no mission or commodity is selected, use the default color for the SCU size
+            newBlock.userData.originalColor = new THREE.Color(blockColor);
         }
 
         scene.add(newBlock);
@@ -758,6 +928,9 @@ const Grid3D = () => {
 
         // Log block creation and position
         console.log(`Added ${size} block for ${commodity} at position:`, newBlock.position);
+
+        // Save blocks after adding
+        saveBlocksToLocalStorage();
 
         return newBlock;
     };
@@ -875,43 +1048,63 @@ const Grid3D = () => {
     // Update the createDedicatedGrids function
     const createDedicatedGrids = (scene) => {
         const gridPositions = {
-            '1SCU': { x: -20.5, z: -20, size: 5, height: 5 },  // Adjusted x position by -0.5
-            '2SCU': { x: -20, z: 0, size: 6, height: 6 },
-            '4SCU': { x: -20.5, z: 20, size: 8, height: 8 },   // Adjusted x position by -0.5
-            '8SCU': { x: -40, z: -20, size: 8, height: 10 },
-            '16SCU': { x: -40, z: 0, size: 8, height: 12 },
-            '32SCU': { x: -40, z: 20, size: 16, height: 15 },
+            '1SCU': { x: -20, z: -20.5, size: 5, height: 5, cellSize: 1 },
+            '2SCU': { x: -20, z: 0.5, size: 6, height: 6, cellSize: 1 },
+            '4SCU': { x: -20, z: 20.5, size: 8, height: 8, cellSize: 1 },
+            '8SCU': { x: -40, z: -20.5, size: 8, height: 10, cellSize: 1 },
+            '16SCU': { x: -40, z: 0.5, size: 8, height: 12, cellSize: 1 },
+            '32SCU': { x: -40, z: 20.5, size: 16, height: 15, cellSize: 1 },
         };
 
         Object.entries(gridPositions).forEach(([size, position]) => {
             const grid = createGrid(position.size, position.size);
-            grid.position.set(position.x, 0, position.z);
+            
+            // Calculate grid position based on cell size
+            const gridWidth = position.size * position.cellSize;
+            const gridLength = position.size * position.cellSize;
+            
+            // Adjust position to center the grid
+            grid.position.set(
+                position.x,
+                0,
+                position.z
+            );
+            
             grid.userData = { 
                 size: size, 
-                maxHeight: position.height  // Set the specific height for each grid
+                maxHeight: position.height,
+                cellSize: position.cellSize
             };
             scene.add(grid);
         });
     };
 
-    // Update the createGrids function
+    // Update the createGrids function to position grids separately
     const createGrids = (scene, grids) => {
-        const gridsArray = ['Grid 1', 'Grid 2', 'Grid 3', 'Grid 4'];
-        let currentPosition = 0;
-
-        // Calculate total length of all grids plus spacing
-        const totalLength = gridsArray.reduce((sum, name) => sum + grids[name].length, 0) + (gridsArray.length - 1);
-        
-        // Calculate starting position to center the grids
-        const startPosition = -totalLength / 2;
-
-        gridsArray.forEach((name, index) => {
-            // Calculate position based on previous grids' sizes
-            if (index > 0) {
-                const prevGrid = grids[gridsArray[index - 1]];
-                currentPosition += prevGrid.length / 2 + 1; // Half of previous grid's length + 1 unit spacing
+        const gridPositions = {
+            'Grid 1': { 
+                x: 0, 
+                z: 37.5,
+                rotation: 0
+            },
+            'Grid 2': { 
+                x: 0, 
+                z: 16.5,
+                rotation: 0
+            },
+            'Grid 3': { 
+                x: 0, 
+                z: -4.5,
+                rotation: 0
+            },
+            'Grid 4': { 
+                x: 0, 
+                z: -25.5,
+                rotation: 0
             }
+        };
 
+        Object.entries(gridPositions).forEach(([name, position]) => {
             // Create new grid if it doesn't exist
             let grid = scene.getObjectByName(name);
             if (!grid) {
@@ -920,9 +1113,10 @@ const Grid3D = () => {
                 scene.add(grid);
             }
 
-            // Update grid position and geometry
-            grid.position.set(0, 0, startPosition + currentPosition + grids[name].length / 2);
-            
+            // Set position and rotation
+            grid.position.set(position.x, 0, position.z);
+            grid.rotation.y = position.rotation;
+
             // Update grid geometry if width or length changed
             if (grid.geometry) {
                 const newGeometry = new THREE.BoxGeometry(grids[name].width, 1, grids[name].length);
@@ -932,42 +1126,28 @@ const Grid3D = () => {
 
             // Hide grid if it's 1x1, show if larger
             grid.visible = !(grids[name].width === 1 && grids[name].length === 1);
-
-            // Update current position for next grid
-            currentPosition += grids[name].length / 2;
         });
     };
 
-    // Update the createBackgroundPlanes function
+    // Update the createBackgroundPlanes function to match new grid positions
     const createBackgroundPlanes = (scene, grids) => {
-        const gridsArray = ['Grid 1', 'Grid 2', 'Grid 3', 'Grid 4'];
-        let currentPosition = 0;
+        const gridPositions = {
+            'Grid 1': { x: -20, z: -20 },
+            'Grid 2': { x: 20, z: -20 },
+            'Grid 3': { x: -20, z: 20 },
+            'Grid 4': { x: 20, z: 20 }
+        };
 
-        // Calculate total length of all grids plus spacing
-        const totalLength = gridsArray.reduce((sum, name) => sum + grids[name].length, 0) + (gridsArray.length - 1);
-        
-        // Calculate starting position to center the grids
-        const startPosition = -totalLength / 2;
-
-        gridsArray.forEach((name, index) => {
-            // Calculate position based on previous grids' sizes
-            if (index > 0) {
-                const prevGrid = grids[gridsArray[index - 1]];
-                currentPosition += prevGrid.length / 2 + 1; // Half of previous grid's length + 1 unit spacing
-            }
-
+        Object.entries(gridPositions).forEach(([name, position]) => {
             const planeGeometry = new THREE.PlaneGeometry(grids[name].width, grids[name].length);
             const planeMaterial = new THREE.MeshBasicMaterial({ 
-                color: 0x1a1a1a, // Changed to match background color
+                color: 0x1a1a1a,
                 side: THREE.DoubleSide
             });
             const plane = new THREE.Mesh(planeGeometry, planeMaterial);
             plane.rotation.x = Math.PI / 2;
-            plane.position.set(0, -1.01, startPosition + currentPosition + grids[name].length / 2);
+            plane.position.set(position.x, -1.01, position.z);
             scene.add(plane);
-
-            // Update current position for next grid
-            currentPosition += grids[name].length / 2;
         });
     };
 
@@ -984,32 +1164,12 @@ const Grid3D = () => {
         axisIndicator.position.set(-45, 0, -45);
         scene.add(axisIndicator);
 
-        // Remove this line:
-        // const backgroundGrid = createBackgroundGrid();
-        // scene.add(backgroundGrid);
-
-        // Create SCU grids with white lines
-        const gridPositions = {
-            '1SCU': { x: -20.5, z: -20, size: 5, height: 5 },  // Adjusted x position by -0.5
-            '2SCU': { x: -20, z: 0, size: 6, height: 6 },
-            '4SCU': { x: -20.5, z: 20, size: 8, height: 8 },   // Adjusted x position by -0.5
-            '8SCU': { x: -40, z: -20, size: 8, height: 10 },
-            '16SCU': { x: -40, z: 0, size: 8, height: 12 },
-            '32SCU': { x: -40, z: 20, size: 16, height: 15 },
-        };
-
-        Object.entries(gridPositions).forEach(([size, position]) => {
-            const grid = createGrid(position.size, position.size);
-            grid.position.set(position.x, 0, position.z);
-            grid.userData = { 
-                size: size, 
-                maxHeight: position.height
-            };
-            scene.add(grid);
-        });
+        // Remove the duplicate grid creation code from here
+        // Only call createDedicatedGrids once
+        createDedicatedGrids(scene);
 
         // Enhanced lighting setup
-        const ambientLight = new THREE.AmbientLight(0x404040, 0.8); // Increased intensity
+        const ambientLight = new THREE.AmbientLight(0x404040, 0.8);
         scene.add(ambientLight);
         
         // Add multiple directional lights from different angles
@@ -1045,8 +1205,8 @@ const Grid3D = () => {
             1000
         );
 
-        // Set default position and rotation
-        camera.position.set(10, 10, 0); // Changed Y from 40.14 to 30.14
+        // Set default position and rotation - increase the Y and Z values to zoom out
+        camera.position.set(20, 30, 20); // Changed from (10, 10, 0) to (20, 30, 20)
         const euler = new THREE.Euler(
             THREE.MathUtils.degToRad(-89.61),
             THREE.MathUtils.degToRad(36.25),
@@ -1056,14 +1216,12 @@ const Grid3D = () => {
 
         cameraRef.current = camera;
         const renderer = new THREE.WebGLRenderer();
-        renderer.setSize(1100, 600); // Set fixed size to 1200x800
+        renderer.setSize(rendererSize.width, rendererSize.height);
         mountRef.current.appendChild(renderer.domElement);
+        rendererRef.current = renderer; // Store the renderer in the ref
 
         // Create the grids
         createGrids(scene, grids);
-
-        // Create dedicated SCU grids
-        createDedicatedGrids(scene);
 
         // Add white background planes for each grid
         createBackgroundPlanes(scene, grids);
@@ -1122,7 +1280,19 @@ const Grid3D = () => {
             // Calculate objects intersecting the picking ray
             const intersects = raycaster.intersectObjects(blocks.current);
 
-            if (intersects.length > 0) {
+            if (blockCellMode && !intersects.length) {
+                // If in block cell mode and clicking empty space
+                const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+                const intersection = new THREE.Vector3();
+                raycaster.ray.intersectPlane(plane, intersection);
+
+                // Snap to grid
+                const snappedX = Math.round(intersection.x);
+                const snappedZ = Math.round(intersection.z);
+
+                // Toggle cell block state
+                handleCellBlock(activeGridTab, snappedX, snappedZ);
+            } else if (intersects.length > 0) {
                 // Left click - select block
                 if (event.button === 0) { // 0 = left click
                 const clickedBlock = intersects[0].object;
@@ -1257,21 +1427,22 @@ const Grid3D = () => {
                 const blockWidth = selectedObject.current.geometry.parameters.width;
                 const blockDepth = selectedObject.current.geometry.parameters.depth;
 
-                // Calculate snapped positions
-                let snappedX = Math.round(intersection.x);
-                let snappedZ = Math.round(intersection.z);
+                // Get block dimensions and offsets
+                const { x: xOffset, z: zOffset } = selectedObject.current.userData.offsets;
+
+                // Calculate snapped positions with offsets
+                let snappedX = Math.round(intersection.x - xOffset) + xOffset;
+                let snappedZ = Math.round(intersection.z - zOffset) + zOffset;
 
                 // Update the block depth snapping logic
                 if (blockDepth === 1) {
-                    snappedZ = Math.floor(intersection.z) + 0.5;
+                    snappedZ = Math.floor(intersection.z - zOffset) + zOffset;
                 } else if (blockDepth === 2) {
-                    snappedZ = Math.round(intersection.z);
+                    snappedZ = Math.round(intersection.z - zOffset) + zOffset;
                 } else if (blockDepth === 4) {
-                    // For 16SCU blocks (depth 4), snap to 1-block increments
-                    snappedZ = Math.round(intersection.z);
+                    snappedZ = Math.round(intersection.z - zOffset) + zOffset;
                 } else if (blockDepth === 8) {
-                    // For 32SCU blocks (depth 8), snap to 1-block increments
-                    snappedZ = Math.round(intersection.z);
+                    snappedZ = Math.round(intersection.z - zOffset) + zOffset;
                 }
 
                 // Find all blocks at this position to calculate stack height
@@ -1305,6 +1476,19 @@ const Grid3D = () => {
                 // Update block position
                 selectedObject.current.position.copy(finalPosition);
 
+                // Maintain highlight color if in commodity view
+                if (showCommodities && selectedObject.current.userData.commodity) {
+                    const commodityColor = new THREE.Color(
+                        Math.abs(hashCode(selectedObject.current.userData.commodity) % 0xffffff)
+                    );
+                    if (highlightedCommodity === selectedObject.current.userData.commodity) {
+                        const highlightColor = commodityColor.multiplyScalar(1.5);
+                        selectedObject.current.material.uniforms.uColor.value.copy(highlightColor);
+                    } else {
+                        selectedObject.current.material.uniforms.uColor.value.copy(commodityColor);
+                    }
+                }
+
                 // Log block movement
                 console.log(`Moving block to position:`, finalPosition);
             }
@@ -1312,21 +1496,61 @@ const Grid3D = () => {
 
         const onMouseUp = () => {
             if (selectedObject.current) {
-                // Restore original color
-                selectedObject.current.material.uniforms.uColor.value.set(
-                    selectedObject.current.userData.originalColor
-                );
+                // If in commodity view and block has a commodity
+                if (showCommodities && selectedObject.current.userData.commodity) {
+                    const commodityColor = new THREE.Color(
+                        Math.abs(hashCode(selectedObject.current.userData.commodity) % 0xffffff)
+                    );
+                    
+                    // If this commodity is highlighted, maintain the glow
+                    if (highlightedCommodity === selectedObject.current.userData.commodity) {
+                        const highlightColor = commodityColor.multiplyScalar(1.5);
+                        selectedObject.current.material.uniforms.uColor.value.copy(highlightColor);
+                    } 
+                    // Otherwise, apply normal commodity color (not dimmed)
+                    else {
+                        selectedObject.current.material.uniforms.uColor.value.copy(commodityColor);
+                    }
+                }
+                // If not in commodity view, restore original color
+                else {
+                    selectedObject.current.material.uniforms.uColor.value.set(
+                        selectedObject.current.userData.originalColor
+                    );
+                }
+                
                 selectedObject.current = null;
+                // Save blocks after moving
+                saveBlocksToLocalStorage();
             }
             isRotating.current = false;
         };
 
         const onMouseLeave = () => {
             if (selectedObject.current) {
-                // Restore original color
-                selectedObject.current.material.uniforms.uColor.value.set(
-                    selectedObject.current.userData.originalColor
-                );
+                // If in commodity view and block has a commodity
+                if (showCommodities && selectedObject.current.userData.commodity) {
+                    const commodityColor = new THREE.Color(
+                        Math.abs(hashCode(selectedObject.current.userData.commodity) % 0xffffff)
+                    );
+                    
+                    // If this commodity is highlighted, maintain the glow
+                    if (highlightedCommodity === selectedObject.current.userData.commodity) {
+                        const highlightColor = commodityColor.multiplyScalar(1.5);
+                        selectedObject.current.material.uniforms.uColor.value.copy(highlightColor);
+                    } 
+                    // Otherwise, apply normal commodity color (not dimmed)
+                    else {
+                        selectedObject.current.material.uniforms.uColor.value.copy(commodityColor);
+                    }
+                }
+                // If not in commodity view, restore original color
+                else {
+                    selectedObject.current.material.uniforms.uColor.value.set(
+                        selectedObject.current.userData.originalColor
+                    );
+                }
+                
                 selectedObject.current = null;
             }
             isRotating.current = false;
@@ -1442,6 +1666,9 @@ const Grid3D = () => {
                         rotation: block.rotation.y * (180 / Math.PI) // Convert to degrees
                     }));
                 }
+                
+                // Save blocks after rotation
+                saveBlocksToLocalStorage();
             }
             // Handle Delete key
             else if (event.key === 'Delete' && selectedObject.current) {
@@ -1456,6 +1683,9 @@ const Grid3D = () => {
                 });
                 selectedObject.current = null;
                 setBlockDetails(null);
+                
+                // Save blocks after deletion
+                saveBlocksToLocalStorage();
             }
             // Handle Undo (Ctrl+Z or Cmd+Z)
             else if ((event.ctrlKey || event.metaKey) && event.key === 'z') {
@@ -1467,6 +1697,9 @@ const Grid3D = () => {
                     // Restore position
                     lastDeleted.block.position.copy(lastDeleted.position);
                 }
+                
+                // Save blocks after undo
+                saveBlocksToLocalStorage();
             }
         };
 
@@ -1616,9 +1849,14 @@ const Grid3D = () => {
         return 'Unknown';
     };
 
-    // Update the handleShipClick function
+    // Add this state near the top of the component
+    const [selectedShipTemplate, setSelectedShipTemplate] = useState(null);
+
+    // Modify the handleShipClick function
     const handleShipClick = (ship) => {
         if (ship.grids) {
+            setSelectedShipTemplate(ship.name); // Store the selected ship name
+            
             // Create a new grids object with default 1x1 values
             const newGrids = {
                 'Grid 1': { width: 1, length: 1, height: 5 },
@@ -1627,13 +1865,13 @@ const Grid3D = () => {
                 'Grid 4': { width: 1, length: 1, height: 12 }
             };
 
-            // Update with ship-specific grid dimensions
+            // Update with ship-specific grid dimensions, ignoring height
             Object.entries(ship.grids).forEach(([gridName, dimensions]) => {
                 if (newGrids[gridName]) {
                     newGrids[gridName] = {
                         width: dimensions.W || 1,
                         length: dimensions.L || 1,
-                        height: dimensions.H || newGrids[gridName].height
+                        height: newGrids[gridName].height // Keep the default height
                     };
                 }
             });
@@ -1919,6 +2157,131 @@ const Grid3D = () => {
         });
     }
 
+    // Add the loadBlocksFromLocalStorage function before the useEffect hook
+    const loadBlocksFromLocalStorage = () => {
+        const savedBlocks = localStorage.getItem('savedBlocks');
+        if (savedBlocks) {
+            try {
+                const blocksData = JSON.parse(savedBlocks);
+                blocksData.forEach(blockData => {
+                    const newBlock = addBlock(
+                        blockData.size,
+                        new THREE.Color(blockData.color),
+                        blockData.missionIndex,
+                        blockData.commodity
+                    );
+                    if (newBlock) {
+                        newBlock.position.set(
+                            blockData.position.x,
+                            blockData.position.y,
+                            blockData.position.z
+                        );
+                        newBlock.rotation.y = blockData.rotation;
+                        // Ensure originalColor is set correctly
+                        newBlock.userData.originalColor = new THREE.Color(blockData.color);
+                    }
+                });
+            } catch (error) {
+                console.error('Error loading blocks:', error);
+            }
+        }
+    };
+
+    // Add this useEffect to load blocks on mount
+    useEffect(() => {
+        loadBlocksFromLocalStorage();
+    }, []);
+
+    // Add this state near the top of the component
+    const [blockCellMode, setBlockCellMode] = useState(false);
+    const [blockedCells, setBlockedCells] = useState({});
+
+    // Add this function to handle cell blocking
+    const handleCellBlock = (gridName, x, z) => {
+        const cellKey = `${gridName}-${x}-${z}`;
+        setBlockedCells(prev => ({
+            ...prev,
+            [cellKey]: !prev[cellKey] // Toggle blocked state
+        }));
+    };
+
+    // Add this useEffect to update the grid colors when blocked cells change
+    useEffect(() => {
+        const scene = sceneRef.current;
+        if (!scene) return;
+
+        // Get the active grid
+        const grid = scene.getObjectByName(activeGridTab);
+        if (!grid) return;
+
+        // Update grid line colors based on blocked cells
+        grid.children.forEach(line => {
+            // Get the cell position from the line
+            const x = Math.round(line.geometry.attributes.position.array[0]);
+            const z = Math.round(line.geometry.attributes.position.array[2]);
+
+            const cellKey = `${activeGridTab}-${x}-${z}`;
+            if (blockedCells[cellKey]) {
+                // If cell is blocked, set color to red
+                line.material.color.set(0xff0000);
+            } else {
+                // If cell is not blocked, set color to white
+                line.material.color.set(0xffffff);
+            }
+        });
+    }, [blockedCells, activeGridTab]);
+
+    // Add this state for controlling the modal visibility
+    const [showControlsModal, setShowControlsModal] = useState(false);
+
+    // Add this function to render the controls modal
+    const renderControlsModal = () => {
+        if (!showControlsModal) return null;
+
+        return (
+            <div style={{
+                position: 'fixed',
+                top: '50%',
+                left: '50%',
+                transform: 'translate(-50%, -50%)',
+                backgroundColor: 'rgba(30, 30, 30, 0.95)',
+                padding: '20px',
+                borderRadius: '8px',
+                zIndex: 1000,
+                width: '400px',
+                maxWidth: '90%',
+                color: 'white',
+                boxShadow: '0 0 20px rgba(0,0,0,0.5)'
+            }}>
+                <h3 style={{ marginTop: 0, textAlign: 'center' }}>Controls</h3>
+                <div style={{ lineHeight: '1.6' }}>
+                    <p><strong>Left Click:</strong> Select and move blocks</p>
+                    <p><strong>Right Click + Drag:</strong> Rotate camera</p>
+                    <p><strong>WASD:</strong> Move camera</p>
+                    <p><strong>Mouse Wheel:</strong> Zoom in/out</p>
+                    <p><strong>R Key:</strong> Rotate selected block</p>
+                    <p><strong>Delete Key:</strong> Delete selected block</p>
+                    <p><strong>Ctrl+Z:</strong> Undo last deletion</p>
+                </div>
+                <button 
+                    onClick={() => setShowControlsModal(false)}
+                    style={{
+                        display: 'block',
+                        margin: '20px auto 0',
+                        padding: '8px 16px',
+                        backgroundColor: '#444',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '4px',
+                        cursor: 'pointer'
+                    }}
+                >
+                    Close
+                </button>
+            </div>
+        );
+    };
+
     return (
         <div style={{ 
             display: 'flex', 
@@ -1934,7 +2297,7 @@ const Grid3D = () => {
             
             {/* Sidebar */}
             <div style={{
-                width: '36%', // Changed from 28% to 33%
+                width: '36%',
                 height: '100%',
                 backgroundColor: '#1e1e1e',
                 padding: '10px',
@@ -2350,6 +2713,31 @@ const Grid3D = () => {
                             Add 32SCU
                         </button>
 
+                        {/* Add Clear Boxes button */}
+                        <button 
+                            onClick={() => {
+                                const scene = sceneRef.current;
+                                if (scene) {
+                                    // Remove all blocks from the scene
+                                    blocks.current.forEach(block => scene.remove(block));
+                                    blocks.current = [];
+                                    // Clear local storage
+                                    localStorage.removeItem('savedBlocks');
+                                }
+                            }}
+                            style={{
+                                padding: '8px 16px',
+                                backgroundColor: '#ff4444',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '4px',
+                                cursor: 'pointer',
+                                marginTop: '20px'
+                            }}
+                        >
+                            Clear All Boxes
+                        </button>
+
                         {/* Grid Control Section */}
                         <div style={{
                             marginTop: '20px',
@@ -2425,241 +2813,314 @@ const Grid3D = () => {
                                     }}
                                 />
                             </div>
-
-                            {/* Edit Height */}
-                            <div style={{ marginBottom: '10px' }}>
-                                <label style={{ color: 'white', display: 'block', marginBottom: '5px' }}>Edit Height</label>
-                                <input
-                                    type="number"
-                                    min="1"
-                                    max="20"
-                                    value={grids[activeGridTab].height}
-                                    onChange={handleHeightChange}
-                                    style={{
-                                        width: '95%',
-                                        padding: '5px',
-                                        borderRadius: '4px',
-                                        border: '1px solid #444'
-                                    }}
-                                />
-                            </div>
                         </div>
 
+                        {/* Add controls in the Playground tab */}
+                        <div style={{ marginTop: '20px' }}>
+                            <h3 style={{ color: 'white' }}>Renderer Size</h3>
+                            <div style={{ marginBottom: '10px' }}>
+                                <label style={{ color: 'white', display: 'block', marginBottom: '5px' }}>Width</label>
+                                <input
+                                    type="number"
+                                    value={rendererSize.width}
+                                    onChange={(e) => {
+                                        const newWidth = parseInt(e.target.value);
+                                        if (!isNaN(newWidth) && newWidth > 0) {
+                                            const newSize = { ...rendererSize, width: newWidth };
+                                            setRendererSize(newSize);
+                                            localStorage.setItem('rendererSize', JSON.stringify(newSize));
+                                        }
+                                    }}
+                                    style={{ width: '95%', padding: '5px', borderRadius: '4px', border: '1px solid #444' }}
+                                />
+                            </div>
+                            <div style={{ marginBottom: '10px' }}>
+                                <label style={{ color: 'white', display: 'block', marginBottom: '5px' }}>Height</label>
+                                <input
+                                    type="number"
+                                    value={rendererSize.height}
+                                    onChange={(e) => {
+                                        const newHeight = parseInt(e.target.value);
+                                        if (!isNaN(newHeight) && newHeight > 0) {
+                                            const newSize = { ...rendererSize, height: newHeight };
+                                            setRendererSize(newSize);
+                                            localStorage.setItem('rendererSize', JSON.stringify(newSize));
+                                        }
+                                    }}
+                                    style={{ width: '95%', padding: '5px', borderRadius: '4px', border: '1px solid #444' }}
+                                />
+                            </div>
+                            <button 
+                                onClick={() => {
+                                    rendererRef.current.setSize(rendererSize.width, rendererSize.height);
+                                    localStorage.setItem('rendererSize', JSON.stringify(rendererSize));
+                                }}
+                                style={{
+                                    padding: '8px 16px',
+                                    backgroundColor: '#444',
+                                    color: 'white',
+                                    border: 'none',
+                                    borderRadius: '4px',
+                                    cursor: 'pointer'
+                                }}
+                            >
+                                Apply Size
+                            </button>
+                        </div>
                     </div>
                 )}
             </div>
 
             {/* Floating panel for missions with blocks */}
-            {missionsWithBlocks.length > 0 && (
+            <div style={{
+                position: 'absolute',
+                top: '10px',
+                left: '10px',
+                backgroundColor: 'rgba(30, 30, 30, 0.9)',
+                padding: '10px',
+                borderRadius: '4px',
+                zIndex: 1,
+                width: '300px',
+                height: 'auto',
+                maxHeight: '80vh',
+                overflowY: 'auto',
+                pointerEvents: 'all'
+            }}>
+                <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    marginBottom: '10px'
+                }}>
+                    <h3 style={{ 
+                        color: 'white',
+                        margin: 0,
+                        textAlign: 'center'
+                    }}>
+                        {showCommodities ? 'Commodities' : 'Active Missions'}
+                    </h3>
+                    <button
+                        style={{
+                            padding: '4px 8px',
+                            backgroundColor: '#444',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '4px',
+                            cursor: 'pointer',
+                            fontSize: '0.8em'
+                        }}
+                        onClick={() => handleCommodityViewToggle(!showCommodities)}
+                    >
+                        {showCommodities ? 'Missions' : 'Commodities'}
+                    </button>
+                </div>
+                
+                {showCommodities ? (
+                    // Show commodities list
+                    <div>
+                        {Object.entries(
+                            blocks.current
+                                .filter(block => block.userData.commodity)
+                                .reduce((acc, block) => {
+                                    const commodity = block.userData.commodity;
+                                    if (!acc[commodity]) {
+                                        const commodityColor = new THREE.Color(
+                                            Math.abs(hashCode(commodity) % 0xffffff)
+                                        );
+                                        acc[commodity] = {
+                                            count: 0,
+                                            size: getBlockSize(block),
+                                            color: commodityColor,
+                                            missionIndex: block.userData.missionIndex,
+                                            expanded: commodityEntries[commodity]?.expanded || false,
+                                            scuSizes: calculateSCUSizes(commodity)
+                                        };
+                                    }
+                                    acc[commodity].count += 1;
+                                    return acc;
+                                }, {})
+                        ).map(([commodity, details], index) => {
+                            const { count, size, color, expanded, scuSizes } = details;
+                            const isHighlighted = highlightedCommodity === commodity;
+                            
+                            return (
+                                <div key={index} style={{
+                                    marginBottom: '5px',
+                                    backgroundColor: isHighlighted ? '#444' : '#2a2a2a',
+                                    borderRadius: '4px',
+                                    border: isHighlighted ? '1px solid #fff' : '1px solid transparent'
+                                }}>
+                                    <div 
+                                        style={{
+                                            display: 'flex',
+                                            justifyContent: 'space-between',
+                                            alignItems: 'center',
+                                            padding: '5px',
+                                            cursor: 'pointer'
+                                        }}
+                                        onClick={() => {
+                                            if (expandedCommodity === commodity) {
+                                                setExpandedCommodity(null);
+                                            } else {
+                                                setExpandedCommodity(commodity);
+                                            }
+                                            handleCommodityClick(commodity);
+                                        }}
+                                    >
+                                        <div style={{ 
+                                            width: '10px',
+                                            height: '10px',
+                                            backgroundColor: `#${color.getHexString()}`,
+                                            marginRight: '8px',
+                                            borderRadius: '2px'
+                                        }} />
+                                        <div style={{ color: 'white', flex: 1 }}>
+                                            {commodity}
+                                        </div>
+                                        <div style={{ 
+                                            color: 'white',
+                                            backgroundColor: '#666',
+                                            padding: '2px 6px',
+                                            borderRadius: '4px',
+                                            fontSize: '0.8em'
+                                        }}>
+                                            {count} blocks
+                                        </div>
+                                    </div>
+                                    
+                                    {expandedCommodity === commodity && (
+                                        <div style={{
+                                            padding: '10px',
+                                            backgroundColor: '#333',
+                                            borderTop: '1px solid #444',
+                                            borderBottomLeftRadius: '4px',
+                                            borderBottomRightRadius: '4px'
+                                        }}>
+                                            <div style={{
+                                                display: 'grid',
+                                                gridTemplateColumns: 'repeat(3, 1fr)',
+                                                gap: '6px'
+                                            }}>
+                                                {Object.entries(scuSizes).map(([scuSize, count]) => (
+                                                    <div key={scuSize} style={{
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        gap: '4px',
+                                                        padding: '4px 6px',
+                                                        backgroundColor: '#444',
+                                                        borderRadius: '4px',
+                                                        justifyContent: 'center'
+                                                    }}>
+                                                        <div style={{ 
+                                                            color: '#ccc', 
+                                                            fontSize: '0.8em'
+                                                        }}>
+                                                            {scuSize}
+                                                        </div>
+                                                        <div style={{ 
+                                                            color: 'white',
+                                                            backgroundColor: '#555',
+                                                            padding: '2px 6px',
+                                                            borderRadius: '4px',
+                                                            fontSize: '0.8em'
+                                                        }}>
+                                                            {count}
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            );
+                        })}
+                    </div>
+                ) : (
+                    // Show missions list
+                    missionsWithBlocks.map((mission, index) => {
+                        const missionNumber = index + 1;
+                        const formattedMissionNumber = String(missionNumber).padStart(2, '0');
+                        const isHighlighted = highlightedMission === mission.missionIndex;
+
+                        return (
+                            <div 
+                                key={index} 
+                                style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    marginBottom: '5px',
+                                    padding: '5px',
+                                    backgroundColor: isHighlighted ? '#444' : '#2a2a2a',
+                                    borderRadius: '4px',
+                                    cursor: 'pointer',
+                                    border: isHighlighted ? '1px solid #fff' : '1px solid transparent'
+                                }}
+                                onClick={() => handleMissionClick(mission.missionIndex)}
+                            >
+                                <div style={{
+                                    width: '10px',
+                                    height: '10px',
+                                    backgroundColor: `#${mission.color.toString(16)}`,
+                                    marginRight: '8px',
+                                    borderRadius: '2px'
+                                }} />
+                                <div style={{ color: 'white', flex: 1 }}>
+                                    Mission {formattedMissionNumber}
+                                </div>
+                                <div style={{ 
+                                    color: 'white',
+                                    backgroundColor: '#666',
+                                    padding: '2px 6px',
+                                    borderRadius: '4px',
+                                    fontSize: '0.8em'
+                                }}>
+                                    {mission.blockCount} blocks
+                                </div>
+                            </div>
+                        );
+                    })
+                )}
+            </div>
+
+            {selectedShipTemplate && (
                 <div style={{
                     position: 'absolute',
                     top: '10px',
-                    left: '10px',
+                    left: '50%',
+                    transform: 'translateX(-50%)',
                     backgroundColor: 'rgba(30, 30, 30, 0.9)',
-                    padding: '0px 10px 10px 10px',
+                    padding: '8px 16px',
                     borderRadius: '4px',
                     zIndex: 1,
-                    minWidth: '200px',
-                    pointerEvents: 'all'
+                    color: 'white',
+                    fontSize: '14px',
+                    pointerEvents: 'none'
                 }}>
-                    <div style={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        marginBottom: '10px'
-                    }}>
-                        <h3 style={{ 
-                            color: 'white',
-                            margin: 0,
-                            textAlign: 'center'
-                        }}>
-                            {showCommodities ? 'Commodities' : 'Active Missions'}
-                        </h3>
-                        <button
-                            style={{
-                                padding: '4px 8px',
-                                backgroundColor: '#444',
-                                color: 'white',
-                                border: 'none',
-                                borderRadius: '4px',
-                                cursor: 'pointer',
-                                fontSize: '0.8em'
-                            }}
-                            onClick={() => handleCommodityViewToggle(!showCommodities)}
-                        >
-                            {showCommodities ? 'Missions' : 'Commodities'}
-                        </button>
-                    </div>
-                    
-                    {showCommodities ? (
-                        // Show commodities list
-                        <div>
-                            {Object.entries(
-                                blocks.current
-                                    .filter(block => block.userData.commodity)
-                                    .reduce((acc, block) => {
-                                        const commodity = block.userData.commodity;
-                                        if (!acc[commodity]) {
-                                            const commodityColor = new THREE.Color(
-                                                Math.abs(hashCode(commodity) % 0xffffff)
-                                            );
-                                            acc[commodity] = {
-                                                count: 0,
-                                                size: getBlockSize(block),
-                                                color: commodityColor,
-                                                missionIndex: block.userData.missionIndex,
-                                                expanded: commodityEntries[commodity]?.expanded || false,
-                                                scuSizes: calculateSCUSizes(commodity)
-                                            };
-                                        }
-                                        acc[commodity].count += 1;
-                                        return acc;
-                                    }, {})
-                            ).map(([commodity, details], index) => {
-                                const { count, size, color, expanded, scuSizes } = details;
-                                const isHighlighted = highlightedCommodity === commodity;
-                                
-                                return (
-                                    <div key={index} style={{
-                                        marginBottom: '5px',
-                                        backgroundColor: isHighlighted ? '#444' : '#2a2a2a',
-                                        borderRadius: '4px',
-                                        border: isHighlighted ? '1px solid #fff' : '1px solid transparent'
-                                    }}>
-                                        <div 
-                                            style={{
-                                                display: 'flex',
-                                                justifyContent: 'space-between',
-                                                alignItems: 'center',
-                                                padding: '5px',
-                                                cursor: 'pointer'
-                                            }}
-                                            onClick={() => {
-                                                // If clicking the currently expanded commodity, collapse it
-                                                if (expandedCommodity === commodity) {
-                                                    setExpandedCommodity(null);
-                                                } else {
-                                                    // Otherwise, expand the clicked commodity and collapse any others
-                                                    setExpandedCommodity(commodity);
-                                                }
-                                                handleCommodityClick(commodity);
-                                            }}
-                                        >
-                                            <div style={{ 
-                                                width: '10px',
-                                                height: '10px',
-                                                backgroundColor: `#${color.getHexString()}`,
-                                                marginRight: '8px',
-                                                borderRadius: '2px'
-                                            }} />
-                                            <div style={{ color: 'white', flex: 1 }}>
-                                                {commodity}
-                                            </div>
-                                            <div style={{ 
-                                                color: 'white',
-                                                backgroundColor: '#666',
-                                                padding: '2px 6px',
-                                                borderRadius: '4px',
-                                                fontSize: '0.8em'
-                                            }}>
-                                                {count} blocks
-                                            </div>
-                                        </div>
-                                        
-                                        {expandedCommodity === commodity && (
-                                            <div style={{
-                                                padding: '10px',
-                                                backgroundColor: '#333',
-                                                borderTop: '1px solid #444',
-                                                borderBottomLeftRadius: '4px',
-                                                borderBottomRightRadius: '4px'
-                                            }}>
-                                                <div style={{
-                                                    display: 'grid',
-                                                    gridTemplateColumns: 'repeat(3, 1fr)',
-                                                    gap: '6px'
-                                                }}>
-                                                    {Object.entries(scuSizes).map(([scuSize, count]) => (
-                                                        <div key={scuSize} style={{
-                                                            display: 'flex',
-                                                            alignItems: 'center',
-                                                            gap: '4px',
-                                                            padding: '4px 6px',
-                                                            backgroundColor: '#444',
-                                                            borderRadius: '4px',
-                                                            justifyContent: 'center'
-                                                        }}>
-                                                            <div style={{ 
-                                                                color: '#ccc', 
-                                                                fontSize: '0.8em'
-                                                            }}>
-                                                                {scuSize}
-                                                            </div>
-                                                            <div style={{ 
-                                                                color: 'white',
-                                                                backgroundColor: '#555',
-                                                                padding: '2px 6px',
-                                                                borderRadius: '4px',
-                                                                fontSize: '0.8em'
-                                                            }}>
-                                                                {count}
-                                                            </div>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                        )}
-                                    </div>
-                                );
-                            })}
-                        </div>
-                    ) : (
-                        // Show missions list
-                        missionsWithBlocks.map((mission, index) => {
-                            const missionNumber = index + 1;
-                            const formattedMissionNumber = String(missionNumber).padStart(2, '0');
-                            const isHighlighted = highlightedMission === mission.missionIndex;
-
-                            return (
-                                <div 
-                                    key={index} 
-                                    style={{
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        marginBottom: '5px',
-                                        padding: '5px',
-                                        backgroundColor: isHighlighted ? '#444' : '#2a2a2a',
-                                        borderRadius: '4px',
-                                        cursor: 'pointer',
-                                        border: isHighlighted ? '1px solid #fff' : '1px solid transparent'
-                                    }}
-                                    onClick={() => handleMissionClick(mission.missionIndex)}
-                                >
-                                    <div style={{
-                                        width: '10px',
-                                        height: '10px',
-                                        backgroundColor: `#${mission.color.toString(16)}`,
-                                        marginRight: '8px',
-                                        borderRadius: '2px'
-                                    }} />
-                                    <div style={{ color: 'white', flex: 1 }}>
-                                        Mission {formattedMissionNumber}
-                                    </div>
-                                    <div style={{ 
-                                        color: 'white',
-                                        backgroundColor: '#666',
-                                        padding: '2px 6px',
-                                        borderRadius: '4px',
-                                        fontSize: '0.8em'
-                                    }}>
-                                        {mission.blockCount} blocks
-                                    </div>
-                                </div>
-                            );
-                        })
-                    )}
+                    Current Template: {selectedShipTemplate}
                 </div>
             )}
+
+            {/* Separate Controls button */}
+            <button
+                onClick={() => setShowControlsModal(true)}
+                style={{
+                    position: 'absolute',
+                    top: '30px', // Changed from 50px to 30px
+                    left: '350px',
+                    padding: '8px 16px',
+                    backgroundColor: 'rgba(30, 30, 30, 0.9)',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                    zIndex: 100
+                }}
+            >
+                Controls
+            </button>
+
+            {/* Add the modal */}
+            {renderControlsModal()}
         </div>
     );
 };

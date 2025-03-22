@@ -85,13 +85,13 @@
     background: var(--button-color);
     border: none;
     border-radius: 4px;
-    color: white;
+    color: black;
     cursor: pointer;
-    transition: background 0.3s;
+    transition: color 0.3s ease;
 }
 
 .add-ship-btn:hover {
-    background: var(--button-hover-color);
+    color: white;
 }
 
 .fleet-actions {

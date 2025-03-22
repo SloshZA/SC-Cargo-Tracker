@@ -4,7 +4,114 @@ export const ChangelogTab = () => {
     return (
         <div className="changelog">
             <div className="changelog-container">
-            <div className="changelog-entry">
+                <div className="changelog-entry">
+                    <h3>Version 2.0</h3>
+                    <h4>Major Changes</h4>
+                    <ul>
+                        <li><b>UI Size:</b> Changed to full screen scale instead of small window in center</li>
+                        <ul>
+                            <li>Scaling still works but gets weird when size becomes too small (Half window for 1920x1080 works)</li>
+                            <li>Making changes to tab layouts for better PC experience</li>
+                        </ul>
+                    </ul>
+
+                    <h4>New Features</h4>
+                    <ul>
+                        <li><b>3D Cargo Grid - Test Version</b></li>
+                        <ul>
+                            <li>Allows users to place and move cargo boxes in 3D space</li>
+                            <li><b>Playground:</b> Custom grids with unlimited cargo (4 separate grids)</li>
+                            <li><b>Ship:</b> Two options</li>
+                            <ul>
+                                <li>Presets for quick grid size settings (More grids to be added)</li>
+                                <li>Cargo Hold integration to load cargo from storage</li>
+                            </ul>
+                            <li><b>Manifest:</b> Pull mission cargo into 3D environment with box sizes calculated from highest to lowest (matches in-game cargo mission acceptance)</li>
+                        </ul>
+                        <li><b>Extra Features:</b></li>
+                        <ul>
+                            <li>New window popup when adding boxes from manifest/cargo hold</li>
+                            <li>Displays all missions and commodities with highlighting for easier identification</li>
+                        </ul>
+                        <li><b>UI Changes for 3D Cargo Grid:</b></li>
+                        <ul>
+                            <li>Current graphics are plain and simple (will be changed)</li>
+                        </ul>
+                    </ul>
+
+                    <h4>Currently in Work</h4>
+                    <ul>
+                        <li>Adding more ships</li>
+                        <li>Adding blocked zones to grids for proper alignment with cargo grid designs</li>
+                        <li>Adding ability to move grids around (after fixing other bugs)</li>
+                    </ul>
+
+                    <h4>Cargo Hold - Ships</h4>
+                    <ul>
+                        <li>Added ship management option</li>
+                        <ul>
+                            <li>Adding ships adds them to available ships list under storage tab</li>
+                            <li>Adding the same ship again indexes name (1, 2, 3) as separate entries to allow more than one of the same ship</li>
+                            <li>Links to 3D Cargo Grid tab for populating environment with boxes</li>
+                            <li>Ships are sorted by SCU Capacity</li>
+                        </ul>
+                    </ul>
+
+                    <h4>Bug Report</h4>
+                    <ul>
+                        <li>Changed "Experiencing bugs" button to "Bug Report"</li>
+                        <ul>
+                            <li>Opens new tab to Google Form</li>
+                            <li>Original guide on simple fixes remains</li>
+                        </ul>
+                    </ul>
+
+                    <h4>Misc Fixes</h4>
+                    <ul>
+                        <li>Pyro Location Recognition improvements</li>
+                    </ul>
+
+                    <h4>Known Issues</h4>
+                    <ul>
+                        <li><b>Hauling - Route Planner - Basic View:</b></li>
+                        <ul>
+                            <li>Still not allowing users to move entries up and down</li>
+                        </ul>
+                        <li><b>Hauling - Hauling Missions:</b></li>
+                        <ul>
+                            <li>Need to add Pyro locations to quick lookup and drop off points</li>
+                        </ul>
+                        <li><b>Capture Tab:</b></li>
+                        <ul>
+                            <li>First capture 90% wrong read - second capture corrects result</li>
+                        </ul>
+                        <li><b>3D Cargo Grid:</b></li>
+                        <ul>
+                            <li>Boxes can't be placed under another box if there's a box above it</li>
+                            <li>Height calculation bugged - currently removed (default height set to 20 blocks)</li>
+                        </ul>
+                        <li><b>Preferences Layout:</b></li>
+                        <ul>
+                            <li>Blocks are spaced out</li>
+                        </ul>
+                    </ul>
+
+                    <h4>Todo</h4>
+                    <ul>
+                        <li><b>Trading Tab:</b></li>
+                        <ul>
+                            <li>Add simple cargo type and value based on user input</li>
+                            <li>Similar input as storage tab but with aUEC value and locations</li>
+                            <li>Can still use hauling manifest to track trading trips</li>
+                        </ul>
+                        <li><b>3D Cargo Grid:</b></li>
+                        <ul>
+                            <li>Save cargo present based on cargo hold data</li>
+                            <li>Example: Hull C's 4 grids will be made, switching to playground loads separate instance to keep box locations saved</li>
+                        </ul>
+                    </ul>
+                </div>
+                <div className="changelog-entry">
                     <h3>Version 1.8</h3>
                     <h4>New Features</h4>
                     <ul>

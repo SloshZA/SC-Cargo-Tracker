@@ -1637,12 +1637,9 @@ const App = () => {
                                 cursor: 'pointer'
                             }}
                         >
-                            Experiencing Bugs???
+                            Bug Report
                         </button>
                     </div>
-                    <button onClick={toggleAutoScaling}>
-                        {isAutoScaling ? 'Disable Auto Scaling' : 'Enable Auto Scaling'}
-                    </button>
                 </header>
                 {showBugPopup && (
                     <Portal>
@@ -1672,9 +1669,7 @@ const App = () => {
                             <p style={{ marginBottom: '15px', lineHeight: '1.5' }}>
                                 This will remove all local storage entries and hopefully clear most bugs or features not working correctly.
                             </p>
-                            <p style={{ fontStyle: 'italic', lineHeight: '1.5' }}>
-                                Why? When I did a restructure of the files, some tables broke and forced me to rewrite tables since it was easier than fixing the problem of tables being duplicated across multiple files.
-                            </p>
+
                             <button 
                             onClick={openBugReportForm}
                             style={{

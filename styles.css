@@ -124,3 +124,24 @@ body, button, input, select, textarea {
     padding: 4px; /* Optional: Adjust padding for better appearance */
 }
 
+#root {
+    width: 100vw;
+    transition: width 0.3s ease;
+}
+
+.compact-mode #root {
+    width: 100vw;
+}
+
+.normal-mode #root {
+    width: 1500px;
+}
+
+.main-container {
+    flex: 1;
+    display: flex;
+    overflow: hidden;
+    min-width: 1200px;
+    min-height: 800px;
+}
+

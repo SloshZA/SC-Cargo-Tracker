@@ -29,7 +29,7 @@ const ShipList = [
     { name: "Drake Cutlass Black", size: "Medium", scu: 46 },
     { name: "Origin 600i", size: "Large", scu: 44 },
     { name: "Origin 400i", size: "Large", scu: 42 },
-    { name: "Aegis Hammerhead", size: "Large", scu: 40 },
+    { name: "Aegis Hammerhead", size: "Large", scu: 40, grids: { 'Grid 1': { W: 4, L: 5, H: 2 } } },
     { name: "MISC Freelancer DUR", size: "Medium", scu: 36 },
     { name: "MISC Freelancer MIS", size: "Medium", scu: 36 },
     { name: "MISC Prospector", size: "Small", scu: 32 },

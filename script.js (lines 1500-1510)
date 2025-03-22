@@ -1,0 +1,13 @@
+<button 
+    onClick={handleBugPopup}
+    style={{
+        padding: '8px 16px',
+        backgroundColor: '#ff4444',
+        color: 'white',
+        border: 'none',
+        borderRadius: '4px',
+        cursor: 'pointer'
+    }}
+>
+    Bug Report
+</button> 
