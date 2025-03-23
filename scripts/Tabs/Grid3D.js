@@ -1897,13 +1897,9 @@ const Grid3D = () => {
     // Update the handleMissionClick function
     const handleMissionClick = (missionIndex) => {
         if (highlightedMission === missionIndex) {
-            // If clicking the same mission again, reset to default
-            setHighlightedMission(DEFAULT_MISSION_INDEX);
-            highlightAllBlocks();
+            setHighlightedMission(null); // Deselect if clicking the same mission
         } else {
-            // If clicking a different mission, highlight its blocks
-            setHighlightedMission(missionIndex);
-            highlightMissionBlocks(missionIndex);
+            setHighlightedMission(missionIndex); // Select the mission
         }
     };
 
@@ -1991,28 +1987,37 @@ const Grid3D = () => {
     // Add this function to handle commodity clicks
     const handleCommodityClick = (commodity) => {
         if (highlightedCommodity === commodity) {
-            // If clicking the same commodity again, reset to default
+            // Deselect the commodity
             setHighlightedCommodity(null);
-            highlightAllCommodities();
+            // Reset colors for all blocks
+            blocks.current.forEach(block => {
+                if (block.userData.commodity) {
+                    const baseColor = new THREE.Color(
+                        Math.abs(hashCode(block.userData.commodity) % 0xffffff)
+                    );
+                    block.material.uniforms.uColor.value.copy(baseColor);
+                }
+            });
         } else {
-            // If clicking a different commodity, highlight its blocks
+            // Select the commodity
             setHighlightedCommodity(commodity);
-            highlightCommodityBlocks(commodity);
-            
-            // Calculate SCU sizes for the commodity
-            const scuSizes = calculateSCUSizes(commodity);
-            
-            // Show SCU sizes in a banner
-            if (bannerRef.current) {
-                bannerRef.current.textContent = `Commodity: ${commodity} | ` +
-                    `1SCU: ${scuSizes['1SCU']} | ` +
-                    `2SCU: ${scuSizes['2SCU']} | ` +
-                    `4SCU: ${scuSizes['4SCU']} | ` +
-                    `8SCU: ${scuSizes['8SCU']} | ` +
-                    `16SCU: ${scuSizes['16SCU']} | ` +
-                    `32SCU: ${scuSizes['32SCU']}`;
-                bannerRef.current.style.display = 'block';
-            }
+            // Highlight the selected commodity and dim others
+            blocks.current.forEach(block => {
+                if (block.userData.commodity) {
+                    const baseColor = new THREE.Color(
+                        Math.abs(hashCode(block.userData.commodity) % 0xffffff)
+                    );
+                    if (block.userData.commodity === commodity) {
+                        // Brighten the selected commodity
+                        const highlightColor = baseColor.multiplyScalar(1.5);
+                        block.material.uniforms.uColor.value.copy(highlightColor);
+                    } else {
+                        // Dim other commodities
+                        const dimColor = baseColor.multiplyScalar(0.3);
+                        block.material.uniforms.uColor.value.copy(dimColor);
+                    }
+                }
+            });
         }
     };
 
@@ -2247,10 +2252,16 @@ const Grid3D = () => {
     useEffect(() => {
         if (blocks.current) {
             blocks.current.forEach(block => {
-                block.material.uniforms.uOpacity.value = opacity;
+                // Check if the block belongs to the selected mission or commodity
+                const isSelected = 
+                    (highlightedMission !== null && block.userData.missionIndex === highlightedMission) ||
+                    (highlightedCommodity !== null && block.userData.commodity === highlightedCommodity);
+                
+                // Apply opacity only to selected blocks
+                block.material.uniforms.uOpacity.value = isSelected ? opacity : 1.0;
             });
         }
-    }, [opacity]);
+    }, [opacity, highlightedMission, highlightedCommodity]);
 
     // Add a state variable for visibility
     const [showFirstSlider, setShowFirstSlider] = useState(false);
@@ -2270,6 +2281,41 @@ const Grid3D = () => {
             />
         </div>
     )}
+
+    useEffect(() => {
+        if (highlightedMission === null && highlightedCommodity === null) {
+            blocks.current.forEach(block => {
+                block.material.uniforms.uOpacity.value = 1.0;
+            });
+        }
+    }, [highlightedMission, highlightedCommodity]);
+
+    useEffect(() => {
+        if (blocks.current) {
+            blocks.current.forEach(block => {
+                // Check if the block belongs to the selected mission or commodity
+                const isSelected = 
+                    (highlightedMission !== null && block.userData.missionIndex === highlightedMission) ||
+                    (highlightedCommodity !== null && block.userData.commodity === highlightedCommodity);
+                
+                // Apply opacity to all blocks except the selected ones
+                block.material.uniforms.uOpacity.value = isSelected ? 1.0 : opacity;
+            });
+        }
+    }, [opacity, highlightedMission, highlightedCommodity]);
+
+    useEffect(() => {
+        if (highlightedCommodity === null) {
+            blocks.current.forEach(block => {
+                if (block.userData.commodity) {
+                    const baseColor = new THREE.Color(
+                        Math.abs(hashCode(block.userData.commodity) % 0xffffff)
+                    );
+                    block.material.uniforms.uColor.value.copy(baseColor);
+                }
+            });
+        }
+    }, [highlightedCommodity]);
 
     return (
         <div style={{ 
