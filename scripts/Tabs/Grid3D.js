@@ -5,102 +5,59 @@ import { useShipContext } from '../utils/Ships/ShipContext';
 
 // Modify createBlock function to use Standard material with texture
 const createBlock = (size, color) => {
+    // Determine dimensions and offsets based on size
     let width, height, depth;
     let xOffset = 0, yOffset = 0, zOffset = 0;
     
     switch (size) {
         case '1SCU':
-            width = 1;
-            height = 1;
-            depth = 1;
-            xOffset = 0.5;  // Center the 1SCU block
-            zOffset = 0;  // Center the 1SCU block
+            width = 1; height = 1; depth = 1;
+            xOffset = 0.5; zOffset = 0;
             break;
         case '2SCU':
-            width = 1;
-            height = 1;
-            depth = 2;
-            xOffset = 0.5;  // Center the 2SCU block
-            zOffset = 1.5;    // Align with grid for 2SCU
+            width = 1; height = 1; depth = 2;
+            xOffset = 0.5; zOffset = 1.5;
             break;
         case '4SCU':
-            width = 2;
-            height = 1;
-            depth = 2;
-            xOffset = 1;    // Align with grid for 4SCU
-            zOffset = 1.5;    // Align with grid for 4SCU
+            width = 2; height = 1; depth = 2;
+            xOffset = 1; zOffset = 1.5;
             break;
         case '8SCU':
-            width = 2;
-            height = 2;
-            depth = 2;
-            xOffset = 1;    // Align with grid for 8SCU
-            zOffset = 1.5;    // Align with grid for 8SCU
+            width = 2; height = 2; depth = 2;
+            xOffset = 1; zOffset = 1.5;
             break;
         case '16SCU':
-            width = 2;
-            height = 2;
-            depth = 4;
-            xOffset = 1;    // Align with grid for 16SCU
-            zOffset = 2.5;    // Align with grid for 16SCU
+            width = 2; height = 2; depth = 4;
+            xOffset = 1; zOffset = 2.5;
             break;
         case '32SCU':
-            width = 2;
-            height = 2;
-            depth = 8;
-            xOffset = 1;    // Align with grid for 32SCU
-            zOffset = 4.5;    // Align with grid for 32SCU
+            width = 2; height = 2; depth = 8;
+            xOffset = 1; zOffset = 4.5;
             break;
         default:
-            width = 1;
-            height = 1;
-            depth = 1;
-            xOffset = 0;
-            zOffset = 0;
+            width = 1; height = 1; depth = 1;
+            xOffset = 0; zOffset = 0;
     }
 
+    // Create the box geometry
     const geometry = new THREE.BoxGeometry(width, height, depth);
     
-    // Create a texture loader with fallback
+    // Load textures with fallbacks
     const textureLoader = new THREE.TextureLoader();
-    const texture = textureLoader.load(
-        '/textures/cargo_box.png',
-        undefined,
-        undefined,
-        () => {
-            // Fallback to a solid color if texture fails to load
-            console.warn('Failed to load texture, using fallback color');
-            return new THREE.Color(color);
-        }
-    );
-    const normalMap = textureLoader.load(
-        '/textures/cargo_normal.png',
-        undefined,
-        undefined,
-        () => {
-            console.warn('Failed to load normal map, using default');
-            return new THREE.Texture();
-        }
-    );
-    const roughnessMap = textureLoader.load(
-        '/textures/cargo_roughness.png',
-        undefined,
-        undefined,
-        () => {
-            console.warn('Failed to load roughness map, using default');
-            return new THREE.Texture();
-        }
-    );
+    const texture = textureLoader.load('/textures/cargo_box.png');
+    const normalMap = textureLoader.load('/textures/cargo_normal.png');
+    const roughnessMap = textureLoader.load('/textures/cargo_roughness.png');
 
-    // Custom shader material
+    // Create custom shader material
     const material = new THREE.ShaderMaterial({
         uniforms: {
             uTexture: { value: texture },
             uColor: { value: new THREE.Color(color) },
             uNormalMap: { value: normalMap },
             uRoughnessMap: { value: roughnessMap },
-            uEdgeColor: { value: new THREE.Color(0xffffff) }, // White edge color
-            uEdgeWidth: { value: 0.02 } // Edge width
+            uEdgeColor: { value: new THREE.Color(0xffffff) },
+            uEdgeWidth: { value: 0.02 },
+            uOpacity: { value: 1.0 } // Add this uniform for opacity control
         },
         vertexShader: `
             varying vec2 vUv;
@@ -120,6 +77,7 @@ const createBlock = (size, color) => {
             uniform vec3 uColor;
             uniform vec3 uEdgeColor;
             uniform float uEdgeWidth;
+            uniform float uOpacity; // Add this uniform
             varying vec2 vUv;
             varying vec3 vNormal;
             varying vec3 vPosition;
@@ -146,13 +104,15 @@ const createBlock = (size, color) => {
                 vec3 normal = texture2D(uNormalMap, vUv).rgb * 2.0 - 1.0;
                 float roughness = texture2D(uRoughnessMap, vUv).r;
                 
-                // Final color with full opacity
-                gl_FragColor = vec4(finalColor, 1.0);
+                // Apply opacity
+                gl_FragColor = vec4(finalColor, uOpacity); // Use uOpacity here
             }
         `,
+        transparent: true, // Enable transparency
         side: THREE.DoubleSide
     });
     
+    // Create the mesh
     const mesh = new THREE.Mesh(geometry, material);
     mesh.castShadow = true;
     mesh.receiveShadow = true;
@@ -2282,6 +2242,35 @@ const Grid3D = () => {
         );
     };
 
+    const [opacity, setOpacity] = useState(1.0);
+
+    useEffect(() => {
+        if (blocks.current) {
+            blocks.current.forEach(block => {
+                block.material.uniforms.uOpacity.value = opacity;
+            });
+        }
+    }, [opacity]);
+
+    // Add a state variable for visibility
+    const [showFirstSlider, setShowFirstSlider] = useState(false);
+
+    // Conditionally render the first slider
+    {showFirstSlider && (
+        <div style={{ marginBottom: '10px' }}>
+            <label style={{ color: 'white', display: 'block', marginBottom: '5px' }}>Opacity</label>
+            <input
+                type="range"
+                min="0"
+                max="1"
+                step="0.01"
+                value={opacity}
+                onChange={(e) => setOpacity(parseFloat(e.target.value))}
+                style={{ width: '95%' }}
+            />
+        </div>
+    )}
+
     return (
         <div style={{ 
             display: 'flex', 
@@ -3105,7 +3094,7 @@ const Grid3D = () => {
                 onClick={() => setShowControlsModal(true)}
                 style={{
                     position: 'absolute',
-                    top: '30px', // Changed from 50px to 30px
+                    top: '30px',
                     left: '350px',
                     padding: '8px 16px',
                     backgroundColor: 'rgba(30, 30, 30, 0.9)',
@@ -3121,6 +3110,28 @@ const Grid3D = () => {
 
             {/* Add the modal */}
             {renderControlsModal()}
+
+            {/* Add this near the Controls button */}
+            <div style={{
+                position: 'absolute',
+                top: '30px', // Align with the Controls button
+                left: '450px', // Position to the right of the Controls button
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+                zIndex: 100
+            }}>
+                <label style={{ color: 'white', fontSize: '14px' }}>Opacity:</label>
+                <input
+                    type="range"
+                    min="0"
+                    max="1"
+                    step="0.01"
+                    value={opacity}
+                    onChange={(e) => setOpacity(parseFloat(e.target.value))}
+                    style={{ width: '100px' }}
+                />
+            </div>
         </div>
     );
 };
