@@ -12,27 +12,27 @@ const createBlock = (size, color) => {
     switch (size) {
         case '1SCU':
             width = 1; height = 1; depth = 1;
-            xOffset = 0.5; zOffset = 0;
+            xOffset = 0; zOffset = 0;
             break;
         case '2SCU':
             width = 1; height = 1; depth = 2;
-            xOffset = 0.5; zOffset = 1.5;
+            xOffset = 0; zOffset = 0;
             break;
         case '4SCU':
             width = 2; height = 1; depth = 2;
-            xOffset = 1; zOffset = 1.5;
+            xOffset = 0; zOffset = 0;
             break;
         case '8SCU':
             width = 2; height = 2; depth = 2;
-            xOffset = 1; zOffset = 1.5;
+            xOffset = 0; zOffset = 0;
             break;
         case '16SCU':
             width = 2; height = 2; depth = 4;
-            xOffset = 1; zOffset = 2.5;
+            xOffset = 0; zOffset = 0;
             break;
         case '32SCU':
             width = 2; height = 2; depth = 8;
-            xOffset = 1; zOffset = 4.5;
+            xOffset = 0; zOffset = 0;
             break;
         default:
             width = 1; height = 1; depth = 1;
@@ -116,6 +116,8 @@ const createBlock = (size, color) => {
     const mesh = new THREE.Mesh(geometry, material);
     mesh.castShadow = true;
     mesh.receiveShadow = true;
+    
+    // Store the offsets but don't apply them here
     mesh.userData = {
         originalColor: color,
         size: size,
@@ -374,64 +376,41 @@ const ShipCard = ({ ship, addBlock }) => {
     );
 };
 
-// Add this function to create axis indicators
+// Add this function to create the axis indicator
 const createAxisIndicator = () => {
-    const axisGroup = new THREE.Group();
+    const canvas = document.createElement('canvas');
+    canvas.width = 100;
+    canvas.height = 100;
+    const ctx = canvas.getContext('2d');
     
-    // Create X axis (red)
-    const xAxis = new THREE.ArrowHelper(
-        new THREE.Vector3(1, 0, 0),
-        new THREE.Vector3(0, 0, 0),
-        5,
-        0xff0000,
-        0.5,
-        0.3
-    );
-    axisGroup.add(xAxis);
-
-    // Create Y axis (green)
-    const yAxis = new THREE.ArrowHelper(
-        new THREE.Vector3(0, 1, 0),
-        new THREE.Vector3(0, 0, 0),
-        5,
-        0x00ff00,
-        0.5,
-        0.3
-    );
-    axisGroup.add(yAxis);
-
-    // Create Z axis (blue)
-    const zAxis = new THREE.ArrowHelper(
-        new THREE.Vector3(0, 0, 1),
-        new THREE.Vector3(0, 0, 0),
-        5,
-        0x0000ff,
-        0.5,
-        0.3
-    );
-    axisGroup.add(zAxis);
-
+    // Draw the + sign
+    ctx.strokeStyle = 'white';
+    ctx.lineWidth = 2;
+    
+    // Vertical line (Y axis)
+    ctx.beginPath();
+    ctx.moveTo(50, 10);
+    ctx.lineTo(50, 90);
+    ctx.stroke();
+    
+    // Horizontal line (X axis)
+    ctx.beginPath();
+    ctx.moveTo(10, 50);
+    ctx.lineTo(90, 50);
+    ctx.stroke();
+    
     // Add labels
-    const createAxisLabel = (text, color, position) => {
-        const canvas = document.createElement('canvas');
-        const context = canvas.getContext('2d');
-        context.font = 'Bold 20px Arial';
-        context.fillStyle = color;
-        context.fillText(text, 0, 20);
-        
-        const texture = new THREE.CanvasTexture(canvas);
-        const material = new THREE.SpriteMaterial({ map: texture });
-        const sprite = new THREE.Sprite(material);
-        sprite.scale.set(1, 0.5, 1);
-        sprite.position.copy(position);
-        return sprite;
-    };
-
-    axisGroup.add(createAxisLabel('X', '#ff0000', new THREE.Vector3(6, 0, 0)));
-    axisGroup.add(createAxisLabel('Y', '#00ff00', new THREE.Vector3(0, 6, 0)));
-    axisGroup.add(createAxisLabel('Z', '#0000ff', new THREE.Vector3(0, 0, 6)));
-
-    return axisGroup;
+    ctx.font = '12px Arial';
+    ctx.fillStyle = 'white';
+    ctx.textAlign = 'center';
+    ctx.fillText('X', 80, 55);
+    ctx.fillText('Y', 55, 20);
+    
+    const texture = new THREE.CanvasTexture(canvas);
+    const material = new THREE.SpriteMaterial({ map: texture });
+    const sprite = new THREE.Sprite(material);
+    sprite.scale.set(0.5, 0.5, 1);
+    return sprite;
 };
 
 const Grid3D = () => {
@@ -580,9 +559,8 @@ const Grid3D = () => {
         gridHeightRef.current = newValue;
         
         // Get the scene
-        if (sceneRef && sceneRef.current) {
-            const scene = sceneRef.current;
-            
+        const scene = sceneRef.current;
+        if (scene) {
             // Remove existing grid
             const existingGrid = scene.getObjectByName(activeGridTab);
             if (existingGrid) {
@@ -595,14 +573,12 @@ const Grid3D = () => {
                 scene.remove(existingBackground);
             }
             
-            // Find the createDedicatedGrids function from the component context and call it
-            // This should recreate the grid with the updated height
+            // Recreate the grid with new dimensions
             const gridData = {
                 ...grids[activeGridTab],
                 height: newValue
             };
             
-            // Recreate the grid with new dimensions
             const newGrid = createGrid(
                 gridData.width,
                 gridData.length,
@@ -615,20 +591,16 @@ const Grid3D = () => {
             // Recreate background grid
             const backgroundGrid = createBackgroundGrid();
             backgroundGrid.name = `${activeGridTab}-background`;
-            
-            // Position the background grid according to the grid dimensions
             backgroundGrid.position.set(
                 gridData.width / 2,
-                gridData.height, // Use the new height
+                gridData.height,
                 gridData.length / 2
             );
             scene.add(backgroundGrid);
         }
         
         // Force re-render by updating a state
-        setGrids(prev => {
-            return { ...prev };
-        });
+        setGrids(prev => ({ ...prev }));
         
         setSelectedShipTemplate(null);
     };
@@ -786,7 +758,9 @@ const Grid3D = () => {
                         dedicatedGrid.userData.size === '16SCU' ? 8 : 
                         dedicatedGrid.userData.size === '2SCU' ? 6 : 
                         dedicatedGrid.userData.size === '4SCU' ? 8 : 
-                        dedicatedGrid.userData.size === '8SCU' ? 8 : 5;
+                        dedicatedGrid.userData.size === '8SCU' ? 8 : 
+                        dedicatedGrid.userData.size === '1SCU' ? 6 : 6;
+                        
 
         // Calculate number of blocks per row and column based on size
         const blocksPerRow = Math.floor(gridSize / (newBlock.geometry.parameters.width * cellSize));
@@ -807,49 +781,48 @@ const Grid3D = () => {
         let col = 0, row = 0;
         let newPosition = new THREE.Vector3();
 
-        for (row = 0; row < blocksPerColumn && !foundPosition; row++) {
-            for (col = 0; col < blocksPerRow && !foundPosition; col++) {
-                // Calculate position for this cell
-                const xPos = dedicatedGrid.position.x - (gridSize / 2) + (col * newBlock.geometry.parameters.width) + (newBlock.geometry.parameters.width / 2);
-                const zPos = dedicatedGrid.position.z + (gridSize / 2) - (row * newBlock.geometry.parameters.depth) - (newBlock.geometry.parameters.depth / 2);
-
-                // Check if this position is occupied
-                const blocksAtPosition = gridBlocks.filter(block => 
-                    Math.abs(block.position.x - xPos) < 0.1 &&
-                    Math.abs(block.position.z - zPos) < 0.1
-                );
-
-                // If position is empty, place at bottom
-                if (blocksAtPosition.length === 0) {
-                    newPosition.set(xPos, newBlock.geometry.parameters.height / 2, zPos);
-                    foundPosition = true;
-                }
-            }
-        }
-
         // If no empty positions found, stack on top of existing blocks
         if (!foundPosition) {
             // Find the first position with the lowest stack
             let minStackHeight = Infinity;
             let stackPosition = new THREE.Vector3();
+            let targetCol = 0, targetRow = 0;
             
             for (row = 0; row < blocksPerColumn; row++) {
                 for (col = 0; col < blocksPerRow; col++) {
-                    const xPos = dedicatedGrid.position.x - (gridSize / 2) + (col * newBlock.geometry.parameters.width) + (newBlock.geometry.parameters.width / 2);
-                    const zPos = dedicatedGrid.position.z + (gridSize / 2) - (row * newBlock.geometry.parameters.depth) - (newBlock.geometry.parameters.depth / 2);
+                    // Calculate the position for this cell
+                    const xPos = dedicatedGrid.position.x - (gridSize / 2) + 
+                                (col * newBlock.geometry.parameters.width) + 
+                                (newBlock.geometry.parameters.width / 2);
+                    
+                    const zPos = dedicatedGrid.position.z + (gridSize / 2) - 
+                                (row * newBlock.geometry.parameters.depth) - 
+                                (newBlock.geometry.parameters.depth / 2);
 
+                    // Apply offsets based on width
+                    const widthOffset = newBlock.geometry.parameters.width === 1 ? 0.5 : 0;
+                    const depthOffset = newBlock.geometry.parameters.depth === 1 ? 0.5 : 0;
+
+                    const finalX = xPos + widthOffset;
+                    const finalZ = zPos + depthOffset;
+
+                    // Find all blocks at this position
                     const blocksAtPosition = gridBlocks.filter(block => 
-                        Math.abs(block.position.x - xPos) < 0.1 &&
-                        Math.abs(block.position.z - zPos) < 0.1
+                        Math.abs(block.position.x - finalX) < 0.1 &&
+                        Math.abs(block.position.z - finalZ) < 0.1
                     );
 
+                    // Calculate the total height of the stack at this position
                     const stackHeight = blocksAtPosition.reduce((sum, block) => 
                         sum + block.geometry.parameters.height, 0
                     );
 
+                    // If this stack is shorter than the current minimum, update target position
                     if (stackHeight < minStackHeight) {
                         minStackHeight = stackHeight;
-                        stackPosition.set(xPos, stackHeight + (newBlock.geometry.parameters.height / 2), zPos);
+                        targetCol = col;
+                        targetRow = row;
+                        stackPosition.set(finalX, stackHeight + (newBlock.geometry.parameters.height / 2), finalZ);
                     }
                 }
             }
@@ -873,7 +846,7 @@ const Grid3D = () => {
         } else if (commodity !== undefined) {
             // If no mission is selected but commodity is provided
             newBlock.userData.commodity = commodity;
-            // Use default color for the SCU size
+            // Store original color for commodity blocks
             newBlock.userData.originalColor = new THREE.Color(blockColor);
         } else {
             // If no mission or commodity is selected, use the default color for the SCU size
@@ -886,9 +859,6 @@ const Grid3D = () => {
         // Update missions with blocks
         updateMissionsWithBlocks();
 
-        // Log block creation and position
-        console.log(`Added ${size} block for ${commodity} at position:`, newBlock.position);
-
         // Save blocks after adding
         saveBlocksToLocalStorage();
 
@@ -897,6 +867,13 @@ const Grid3D = () => {
 
     // Move checkCollision inside the component
     const checkCollision = (movingBlock, newPosition, blocks, gridName, bannerRef) => {
+        // Apply the block's offsets to the new position
+        const offsetPosition = new THREE.Vector3(
+            newPosition.x + movingBlock.userData.offsets.x,
+            newPosition.y + movingBlock.userData.offsets.y,
+            newPosition.z + movingBlock.userData.offsets.z
+        );
+
         const gridHeight = grids[gridName].height;
         
         // Get the block's dimensions
@@ -915,7 +892,7 @@ const Grid3D = () => {
         movingBox.applyMatrix4(rotationMatrix);
 
         // Translate to new position
-        movingBox.translate(newPosition);
+        movingBox.translate(offsetPosition);
 
         let highestY = 0;
         let collisionDetected = false;
@@ -974,9 +951,9 @@ const Grid3D = () => {
 
         return { 
             position: new THREE.Vector3(
-                newPosition.x,
+                offsetPosition.x,
                 newY,
-                newPosition.z
+                offsetPosition.z
             ),
             collision: collisionDetected
         };
@@ -984,36 +961,29 @@ const Grid3D = () => {
 
     // Update the getMissionColor function
     const getMissionColor = (missionIndex) => {
-        // Use more diverse and vibrant colors
+        // Define a set of distinct colors for missions
         const missionColors = [
-            0xFF5733, // Vibrant Orange
-            0x33FF57, // Lime Green
-            0x3357FF, // Bright Blue
-            0xFF33A1, // Hot Pink
-            0x33FFF5, // Cyan
-            0xF5FF33, // Yellow
-            0x8E33FF, // Purple
-            0xFF3333, // Red
-            0x33FF8E, // Mint Green
-            0x338EFF, // Sky Blue
-            0xFF8E33, // Orange
-            0x33FF33, // Neon Green
-            0x5733FF, // Royal Blue
-            0xFF33F5, // Magenta
-            0x33F5FF  // Aqua
+            0x00ff00, // green
+            0x0000ff, // blue
+            0xff00ff, // magenta
+            0xffff00, // yellow
+            0xffa500, // orange
+            0x00ffff, // cyan
         ];
+        
+        // Use modulo to cycle through colors if we have more missions than colors
         return missionColors[missionIndex % missionColors.length];
     };
 
     // Update the createDedicatedGrids function
     const createDedicatedGrids = (scene) => {
         const gridPositions = {
-            '1SCU': { x: -20, z: -20.5, size: 5, height: 5, cellSize: 1 },
-            '2SCU': { x: -20, z: 0.5, size: 6, height: 6, cellSize: 1 },
-            '4SCU': { x: -20, z: 20.5, size: 8, height: 8, cellSize: 1 },
-            '8SCU': { x: -40, z: -20.5, size: 8, height: 10, cellSize: 1 },
-            '16SCU': { x: -40, z: 0.5, size: 8, height: 12, cellSize: 1 },
-            '32SCU': { x: -40, z: 20.5, size: 16, height: 15, cellSize: 1 },
+            '1SCU': { x: -20, z: -20, size: 6, height: 5, cellSize: 1 },
+            '2SCU': { x: -20, z: 0, size: 6, height: 6, cellSize: 1 },
+            '4SCU': { x: -20, z: 20, size: 8, height: 8, cellSize: 1 },
+            '8SCU': { x: -40, z: -20, size: 8, height: 10, cellSize: 1 },
+            '16SCU': { x: -40, z: 0, size: 8, height: 12, cellSize: 1 },
+            '32SCU': { x: -40, z: 20, size: 16, height: 15, cellSize: 1 },
         };
 
         Object.entries(gridPositions).forEach(([size, position]) => {
@@ -1044,22 +1014,22 @@ const Grid3D = () => {
         const gridPositions = {
             'Grid 1': { 
                 x: 0, 
-                z: 37.5,
+                z: 37,
                 rotation: 0
             },
             'Grid 2': { 
                 x: 0, 
-                z: 16.5,
+                z: 16,
                 rotation: 0
             },
             'Grid 3': { 
                 x: 0, 
-                z: -4.5,
+                z: -4,
                 rotation: 0
             },
             'Grid 4': { 
                 x: 0, 
-                z: -25.5,
+                z: -25,
                 rotation: 0
             }
         };
@@ -1121,7 +1091,7 @@ const Grid3D = () => {
         
         // Add axis indicator
         const axisIndicator = createAxisIndicator();
-        axisIndicator.position.set(-45, 0, -45);
+        axisIndicator.position.set(4.5, -4.5, -5); // Position in bottom right
         scene.add(axisIndicator);
 
         // Remove the duplicate grid creation code from here
@@ -1255,39 +1225,40 @@ const Grid3D = () => {
             } else if (intersects.length > 0) {
                 // Left click - select block
                 if (event.button === 0) { // 0 = left click
-                const clickedBlock = intersects[0].object;
-                
-                // Only update if clicking a different block
-                if (!selectedObject.current || selectedObject.current !== clickedBlock) {
-                    // Deselect previous block if any
-                    if (selectedObject.current) {
-                            // Restore original color
-                            selectedObject.current.material.uniforms.uColor.value.set(
-                                selectedObject.current.userData.originalColor
-                            );
-                    }
+                    const clickedBlock = intersects[0].object;
                     
-                    selectedObject.current = clickedBlock;
-                    // Change color to yellow when selected
-                        selectedObject.current.material.uniforms.uColor.value.set(0xffff00);
-                    
-                    // Update block details
-                    const block = selectedObject.current;
-                    const size = getBlockSize(block);
-                    setBlockDetails({
-                        size: size,
-                        position: {
-                            x: block.position.x.toFixed(2),
-                            y: block.position.y.toFixed(2),
-                            z: block.position.z.toFixed(2)
-                        },
-                        dimensions: {
-                            width: block.geometry.parameters.width,
-                            height: block.geometry.parameters.height,
-                            depth: block.geometry.parameters.depth
+                    // Only update if clicking a different block
+                    if (!selectedObject.current || selectedObject.current !== clickedBlock) {
+                        // Deselect previous block if any
+                        if (selectedObject.current) {
+                            // Restore original color based on context
+                            if (showCommodities && selectedObject.current.userData.commodity) {
+                                const commodityColor = new THREE.Color(
+                                    Math.abs(hashCode(selectedObject.current.userData.commodity) % 0xffffff)
+                                );
+                            } 
+
                         }
-                    });
-                }
+                        
+                        selectedObject.current = clickedBlock;
+                        
+                        // Update block details
+                        const block = selectedObject.current;
+                        const size = getBlockSize(block);
+                        setBlockDetails({
+                            size: size,
+                            position: {
+                                x: block.position.x.toFixed(2),
+                                y: block.position.y.toFixed(2),
+                                z: block.position.z.toFixed(2)
+                            },
+                            dimensions: {
+                                width: block.geometry.parameters.width,
+                                height: block.geometry.parameters.height,
+                                depth: block.geometry.parameters.depth
+                            }
+                        });
+                    }
                 }
                 // Right click - start rotating
                 else if (event.button === 2) { // 2 = right click
@@ -1367,120 +1338,44 @@ const Grid3D = () => {
                     y: event.clientY
                 };
             } else if (selectedObject.current) {
-                // Get the canvas's bounding rectangle
+                // Get mouse position in normalized device coordinates
                 const rect = renderer.domElement.getBoundingClientRect();
-                
-                // Calculate mouse position in normalized device coordinates
                 mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
                 mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
 
                 // Update the picking ray with the camera and mouse position
                 raycaster.setFromCamera(mouse, camera);
 
-                // Create a plane at the block's current height
-                const blockHeight = selectedObject.current.geometry.parameters.height;
-                const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -blockHeight / 2);
+                // Find intersection with the ground plane
+                const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
                 const intersection = new THREE.Vector3();
-                raycaster.ray.intersectPlane(plane, intersection);
+                if (raycaster.ray.intersectPlane(plane, intersection)) {
+                    // Calculate offsets based on block width
+                    const widthOffset = selectedObject.current.geometry.parameters.width === 1 ? 0.5 : 0;
+                    const depthOffset = selectedObject.current.geometry.parameters.depth === 1 ? 0.5 : 0;
 
-                // Get block dimensions
-                const blockWidth = selectedObject.current.geometry.parameters.width;
-                const blockDepth = selectedObject.current.geometry.parameters.depth;
+                    // Snap to grid and apply offsets
+                    const snappedX = snapToGrid(intersection.x, 1) - widthOffset;
+                    const snappedZ = snapToGrid(intersection.z, 1) - depthOffset;
 
-                // Get block dimensions and offsets
-                const { x: xOffset, z: zOffset } = selectedObject.current.userData.offsets;
-
-                // Calculate snapped positions with offsets
-                let snappedX = Math.round(intersection.x - xOffset) + xOffset;
-                let snappedZ = Math.round(intersection.z - zOffset) + zOffset;
-
-                // Update the block depth snapping logic
-                if (blockDepth === 1) {
-                    snappedZ = Math.floor(intersection.z - zOffset) + zOffset;
-                } else if (blockDepth === 2) {
-                    snappedZ = Math.round(intersection.z - zOffset) + zOffset;
-                } else if (blockDepth === 4) {
-                    snappedZ = Math.round(intersection.z - zOffset) + zOffset;
-                } else if (blockDepth === 8) {
-                    snappedZ = Math.round(intersection.z - zOffset) + zOffset;
-                }
-
-                // Find all blocks at this position to calculate stack height
-                const blocksAtPosition = blocks.current.filter(block => 
-                    Math.abs(block.position.x - snappedX) < 0.1 &&
-                    Math.abs(block.position.z - snappedZ) < 0.1 &&
-                    block !== selectedObject.current
-                );
-
-                // Calculate stack height
-                const stackHeight = blocksAtPosition.reduce((sum, block) => 
-                    sum + block.geometry.parameters.height, 0
-                );
-
-                // Create new position vector with correct Y position
-                const newPosition = new THREE.Vector3(
-                    snappedX,
-                    stackHeight + (blockHeight / 2),
-                    snappedZ
-                );
-
-                // Check for collision and get new position
-                const { position: finalPosition, collision } = checkCollision(
-                    selectedObject.current, 
-                    newPosition, 
-                    blocks.current, 
-                    activeGridTab,  // Pass the active grid tab name
-                    bannerRef
-                );
-
-                // Update block position
-                selectedObject.current.position.copy(finalPosition);
-
-                // Maintain highlight color if in commodity view
-                if (showCommodities && selectedObject.current.userData.commodity) {
-                    const commodityColor = new THREE.Color(
-                        Math.abs(hashCode(selectedObject.current.userData.commodity) % 0xffffff)
+                    // Check for collisions
+                    const collisionResult = checkCollision(
+                        selectedObject.current,
+                        new THREE.Vector3(snappedX, 0, snappedZ),
+                        blocks.current,
+                        activeGridTab,
+                        bannerRef
                     );
-                    if (highlightedCommodity === selectedObject.current.userData.commodity) {
-                        const highlightColor = commodityColor.multiplyScalar(1.5);
-                        selectedObject.current.material.uniforms.uColor.value.copy(highlightColor);
-                    } else {
-                        selectedObject.current.material.uniforms.uColor.value.copy(commodityColor);
-                    }
-                }
 
-                // Log block movement
-                console.log(`Moving block to position:`, finalPosition);
+                    // Update block position
+                    selectedObject.current.position.copy(collisionResult.position);
+                }
             }
         };
 
-        const onMouseUp = () => {
+        const onMouseUp = (event) => {
             if (selectedObject.current) {
-                // If in commodity view and block has a commodity
-                if (showCommodities && selectedObject.current.userData.commodity) {
-                    const commodityColor = new THREE.Color(
-                        Math.abs(hashCode(selectedObject.current.userData.commodity) % 0xffffff)
-                    );
-                    
-                    // If this commodity is highlighted, maintain the glow
-                    if (highlightedCommodity === selectedObject.current.userData.commodity) {
-                        const highlightColor = commodityColor.multiplyScalar(1.5);
-                        selectedObject.current.material.uniforms.uColor.value.copy(highlightColor);
-                    } 
-                    // Otherwise, apply normal commodity color (not dimmed)
-                    else {
-                        selectedObject.current.material.uniforms.uColor.value.copy(commodityColor);
-                    }
-                }
-                // If not in commodity view, restore original color
-                else {
-                    selectedObject.current.material.uniforms.uColor.value.set(
-                        selectedObject.current.userData.originalColor
-                    );
-                }
-                
                 selectedObject.current = null;
-                // Save blocks after moving
                 saveBlocksToLocalStorage();
             }
             isRotating.current = false;
@@ -1491,18 +1386,9 @@ const Grid3D = () => {
                 // If in commodity view and block has a commodity
                 if (showCommodities && selectedObject.current.userData.commodity) {
                     const commodityColor = new THREE.Color(
-                        Math.abs(hashCode(selectedObject.current.userData.commodity) % 0xffffff)
+                        Math.abs(hashCode(selectedObject.current.userData) % 0xffffff)
                     );
                     
-                    // If this commodity is highlighted, maintain the glow
-                    if (highlightedCommodity === selectedObject.current.userData.commodity) {
-                        const highlightColor = commodityColor.multiplyScalar(1.5);
-                        selectedObject.current.material.uniforms.uColor.value.copy(highlightColor);
-                    } 
-                    // Otherwise, apply normal commodity color (not dimmed)
-                    else {
-                        selectedObject.current.material.uniforms.uColor.value.copy(commodityColor);
-                    }
                 }
                 // If not in commodity view, restore original color
                 else {
@@ -1566,57 +1452,12 @@ const Grid3D = () => {
             if ((event.key === 'r' || event.key === 'R') && selectedObject.current) {
                 const block = selectedObject.current;
                 
-                // Rotate the block 90 degrees around the Y axis
+                // Simply rotate the block 90 degrees around the Y axis
                 block.rotation.y += Math.PI / 2;
                 
                 // Normalize the rotation to keep it between 0 and 2π
                 if (block.rotation.y >= Math.PI * 2) {
                     block.rotation.y = 0;
-                }
-                
-                // Calculate new position based on rotation
-                const { width, depth } = block.geometry.parameters;
-                const { x, z } = block.position;
-                
-                // Special handling for 16SCU blocks
-                if (getBlockSize(block) === '16SCU') {
-                    // For 16SCU blocks, we need to snap to 2-block increments
-                    let snappedX, snappedZ;
-                    const isRotated = Math.abs(block.rotation.y % (Math.PI / 2)) > 0.01;
-                    
-                    if (!isRotated) {
-                        // 0 or 180 degrees - use original width/depth
-                        snappedX = Math.floor(x / 2) * 2;
-                        snappedZ = Math.floor(z / 4) * 4;
-                        
-                        // Adjust position to center the block
-                        snappedX += (x >= 0) ? 1 : -1; // Center in width
-                        snappedZ += (z >= 0) ? 2 : -2; // Center in depth
-                    } else {
-                        // 90 or 270 degrees - swap width and depth
-                        snappedX = Math.floor(x / 4) * 4;
-                        snappedZ = Math.floor(z / 2) * 2;
-                        
-                        // Adjust position to center the block
-                        snappedX += (x >= 0) ? 2 : -2; // Center in depth
-                        snappedZ += (z >= 0) ? 1 : -1; // Center in width
-                    }
-                    
-                    block.position.set(snappedX, block.position.y, snappedZ);
-                } else {
-                    // Default snapping for other block sizes
-                    let snappedX, snappedZ;
-                    if (Math.abs(block.rotation.y % Math.PI) < 0.01) {
-                        // 0 or 180 degrees - use original width/depth
-                        snappedX = Math.round(x / width) * width;
-                        snappedZ = Math.round(z / depth) * depth;
-                    } else {
-                        // 90 or 270 degrees - swap width and depth
-                        snappedX = Math.round(x / depth) * depth;
-                        snappedZ = Math.round(z / width) * width;
-                    }
-                    
-                    block.position.set(snappedX, block.position.y, snappedZ);
                 }
                 
                 // Update block details if needed
@@ -1819,10 +1660,10 @@ const Grid3D = () => {
             
             // Create a new grids object with default 1x1 values
             const newGrids = {
-                'Grid 1': { width: 1, length: 1, height: 5 },
-                'Grid 2': { width: 1, length: 1, height: 8 },
-                'Grid 3': { width: 1, length: 1, height: 10 },
-                'Grid 4': { width: 1, length: 1, height: 12 }
+                'Grid 1': { width: 1, length: 1, height: 20 },
+                'Grid 2': { width: 1, length: 1, height: 20 },
+                'Grid 3': { width: 1, length: 1, height: 20 },
+                'Grid 4': { width: 1, length: 1, height: 20 }
             };
 
             // Update with ship-specific grid dimensions, ignoring height
@@ -1894,31 +1735,6 @@ const Grid3D = () => {
         setMissionsWithBlocks(Array.from(missionMap.values()));
     };
 
-    // Update the handleMissionClick function
-    const handleMissionClick = (missionIndex) => {
-        if (highlightedMission === missionIndex) {
-            setHighlightedMission(null); // Deselect if clicking the same mission
-        } else {
-            setHighlightedMission(missionIndex); // Select the mission
-        }
-    };
-
-    // Add this helper function to highlight all blocks
-    const highlightAllBlocks = () => {
-        const scene = sceneRef.current;
-        if (!scene) return;
-
-        blocks.current.forEach(block => {
-            // Store original color if not already stored
-            if (!block.userData.originalColor) {
-                block.userData.originalColor = block.material.uniforms.uColor.value.clone();
-            }
-            // Brighten all blocks
-            const highlightColor = new THREE.Color(block.userData.originalColor).multiplyScalar(1.2);
-            block.material.uniforms.uColor.value.copy(highlightColor);
-        });
-    };
-
     // Update the highlightMissionBlocks function
     const highlightMissionBlocks = (missionIndex) => {
         const scene = sceneRef.current;
@@ -1930,16 +1746,53 @@ const Grid3D = () => {
                 block.userData.originalColor = block.material.uniforms.uColor.value.clone();
             }
 
-            // Highlight mission blocks and dim others
+            // This will highlight the selected Mission blocks
             if (block.userData && block.userData.missionIndex === missionIndex) {
-                // Brighten mission blocks
+                // Selected mission blocks stay fully opaque
                 const highlightColor = new THREE.Color(block.userData.originalColor).multiplyScalar(1.5);
                 block.material.uniforms.uColor.value.copy(highlightColor);
+                block.material.uniforms.uOpacity.value = 1.0;
             } else {
-                // Dim non-mission blocks
+                // Non-mission blocks use the opacity slider value
                 const dimColor = new THREE.Color(block.userData.originalColor).multiplyScalar(0.3);
                 block.material.uniforms.uColor.value.copy(dimColor);
+                block.material.uniforms.uOpacity.value = opacity;
             }
+        });
+    };
+
+    // Update the handleMissionClick function
+    const handleMissionClick = (missionIndex) => {
+        if (highlightedMission === missionIndex) {
+            // Deselect mission - reset all blocks to original color and full opacity
+            blocks.current.forEach(block => {
+                block.material.uniforms.uColor.value.set(
+                    block.userData.originalColor
+                );
+                block.material.uniforms.uOpacity.value = 1.0;
+            });
+            setHighlightedMission(null);
+        } else {
+            // Select mission - highlight its blocks and apply opacity to others
+            highlightMissionBlocks(missionIndex);
+            setHighlightedMission(missionIndex);
+        }
+    };
+
+    // Update the highlightAllBlocks function
+    const highlightAllBlocks = () => {
+        const scene = sceneRef.current;
+        if (!scene) return;
+
+        blocks.current.forEach(block => {
+            // Store original color if not already stored
+            if (!block.userData.originalColor) {
+                block.userData.originalColor = block.material.uniforms.uColor.value.clone();
+            }
+            // Reset all blocks to full opacity
+            const highlightColor = new THREE.Color(block.userData.originalColor).multiplyScalar(1.2);
+            block.material.uniforms.uColor.value.copy(highlightColor);
+            block.material.uniforms.uOpacity.value = 1.0;
         });
     };
 
@@ -1955,89 +1808,35 @@ const Grid3D = () => {
     // Update the handleCommodityViewToggle function
     const handleCommodityViewToggle = (show) => {
         setShowCommodities(show);
-        setHighlightedCommodity(null); // Reset commodity highlight when switching views
-        setHighlightedMission(null); // Reset mission highlight when switching views
-        
-        const scene = sceneRef.current;
-        if (!scene) return;
-
+        // Reset expanded commodity when switching to mission view
+        if (!show) {
+            setExpandedCommodity(null);
+        }
         if (show) {
-            // When switching to commodity view
-            blocks.current.forEach(block => {
-                if (block.userData.commodity) {
-                    // Generate a consistent color for the commodity
-                    const commodityColor = new THREE.Color(
-                        Math.abs(hashCode(block.userData.commodity) % 0xffffff)
-                    );
-                    block.material.uniforms.uColor.value.copy(commodityColor);
-                }
-            });
+            highlightAllCommodities();
         } else {
-            // When switching back to mission view
-            blocks.current.forEach(block => {
-                if (block.userData.missionIndex !== undefined) {
-                    // Restore the mission color
-                    const missionColor = getMissionColor(block.userData.missionIndex);
-                    block.material.uniforms.uColor.value.copy(missionColor);
-                }
-            });
-        }
-    };
-
-    // Add this function to handle commodity clicks
-    const handleCommodityClick = (commodity) => {
-        if (highlightedCommodity === commodity) {
-            // Deselect the commodity
-            setHighlightedCommodity(null);
-            // Reset colors for all blocks
-            blocks.current.forEach(block => {
-                if (block.userData.commodity) {
-                    const baseColor = new THREE.Color(
-                        Math.abs(hashCode(block.userData.commodity) % 0xffffff)
-                    );
-                    block.material.uniforms.uColor.value.copy(baseColor);
-                }
-            });
-        } else {
-            // Select the commodity
-            setHighlightedCommodity(commodity);
-            // Highlight the selected commodity and dim others
-            blocks.current.forEach(block => {
-                if (block.userData.commodity) {
-                    const baseColor = new THREE.Color(
-                        Math.abs(hashCode(block.userData.commodity) % 0xffffff)
-                    );
-                    if (block.userData.commodity === commodity) {
-                        // Brighten the selected commodity
-                        const highlightColor = baseColor.multiplyScalar(1.5);
-                        block.material.uniforms.uColor.value.copy(highlightColor);
-                    } else {
-                        // Dim other commodities
-                        const dimColor = baseColor.multiplyScalar(0.3);
-                        block.material.uniforms.uColor.value.copy(dimColor);
-                    }
-                }
-            });
-        }
-    };
-
-    // Add this helper function to highlight all commodities
-    const highlightAllCommodities = () => {
-        const scene = sceneRef.current;
-        if (!scene) return;
-
-        blocks.current.forEach(block => {
-            if (block.userData.commodity) {
-                const commodityColor = new THREE.Color(
-                    Math.abs(hashCode(block.userData.commodity) % 0xffffff)
-                );
-                block.material.uniforms.uColor.value.copy(commodityColor);
+            highlightAllBlocks();
+            // Replace activeMissionIndex with highlightedMission
+            if (highlightedMission !== null) {
+                highlightMissionBlocks(highlightedMission);
             }
-        });
+        }
     };
 
-    // Add this helper function to highlight specific commodity blocks
-    const highlightCommodityBlocks = (commodity) => {
+    // Update the handleCommodityClick function
+    const handleCommodityClick = (commodity) => {
+        if (showCommodities) {
+            setHighlightedCommodity(commodity === highlightedCommodity ? null : commodity);
+            if (commodity === highlightedCommodity) {
+                highlightAllCommodities(); // Reset all commodities to full opacity
+            } else {
+                highlightCommodity(commodity); // Apply opacity to non-selected commodities
+            }
+        }
+    };
+
+    // Update the HightlightedCommodity function (fix typo in name and add opacity)
+    const highlightCommodity = (commodity) => {
         const scene = sceneRef.current;
         if (!scene) return;
 
@@ -2048,14 +1847,32 @@ const Grid3D = () => {
                 );
                 
                 if (block.userData.commodity === commodity) {
-                    // Brighten the selected commodity
+                    // Selected commodity stays fully opaque
                     const highlightColor = baseColor.multiplyScalar(1.5);
                     block.material.uniforms.uColor.value.copy(highlightColor);
+                    block.material.uniforms.uOpacity.value = 1.0;
                 } else {
-                    // Dim other commodities
+                    // Other commodities use the opacity slider value
                     const dimColor = baseColor.multiplyScalar(0.3);
                     block.material.uniforms.uColor.value.copy(dimColor);
+                    block.material.uniforms.uOpacity.value = opacity;
                 }
+            }
+        });
+    };
+
+    // Update the highlightAllCommodities function
+    const highlightAllCommodities = () => {
+        const scene = sceneRef.current;
+        if (!scene) return;
+
+        blocks.current.forEach(block => {
+            if (block.userData.commodity) {
+                const commodityColor = new THREE.Color(
+                    Math.abs(hashCode(block.userData.commodity) % 0xffffff)
+                );
+                block.material.uniforms.uColor.value.copy(commodityColor);
+                block.material.uniforms.uOpacity.value = 1.0; // Reset opacity to full
             }
         });
     };
@@ -2249,19 +2066,8 @@ const Grid3D = () => {
 
     const [opacity, setOpacity] = useState(1.0);
 
-    useEffect(() => {
-        if (blocks.current) {
-            blocks.current.forEach(block => {
-                // Check if the block belongs to the selected mission or commodity
-                const isSelected = 
-                    (highlightedMission !== null && block.userData.missionIndex === highlightedMission) ||
-                    (highlightedCommodity !== null && block.userData.commodity === highlightedCommodity);
-                
-                // Apply opacity only to selected blocks
-                block.material.uniforms.uOpacity.value = isSelected ? opacity : 1.0;
-            });
-        }
-    }, [opacity, highlightedMission, highlightedCommodity]);
+    // Update the useEffect for opacity changes
+    
 
     // Add a state variable for visibility
     const [showFirstSlider, setShowFirstSlider] = useState(false);
@@ -2283,39 +2089,20 @@ const Grid3D = () => {
     )}
 
     useEffect(() => {
-        if (highlightedMission === null && highlightedCommodity === null) {
-            blocks.current.forEach(block => {
-                block.material.uniforms.uOpacity.value = 1.0;
-            });
+        if (showCommodities && highlightedCommodity) {
+            highlightCommodity(highlightedCommodity);
+        } else if (!showCommodities && highlightedMission !== null) {
+            highlightMissionBlocks(highlightedMission);
         }
-    }, [highlightedMission, highlightedCommodity]);
+    }, [opacity]);
 
-    useEffect(() => {
-        if (blocks.current) {
-            blocks.current.forEach(block => {
-                // Check if the block belongs to the selected mission or commodity
-                const isSelected = 
-                    (highlightedMission !== null && block.userData.missionIndex === highlightedMission) ||
-                    (highlightedCommodity !== null && block.userData.commodity === highlightedCommodity);
-                
-                // Apply opacity to all blocks except the selected ones
-                block.material.uniforms.uOpacity.value = isSelected ? 1.0 : opacity;
-            });
-        }
-    }, [opacity, highlightedMission, highlightedCommodity]);
-
-    useEffect(() => {
-        if (highlightedCommodity === null) {
-            blocks.current.forEach(block => {
-                if (block.userData.commodity) {
-                    const baseColor = new THREE.Color(
-                        Math.abs(hashCode(block.userData.commodity) % 0xffffff)
-                    );
-                    block.material.uniforms.uColor.value.copy(baseColor);
-                }
-            });
-        }
-    }, [highlightedCommodity]);
+    const log1SCUBlockPositions = () => {
+        blocks.current.forEach(block => {
+            if (getBlockSize(block) === '1SCU') {
+                console.log(`1 SCU Block at position: x=${block.position.x}, y=${block.position.y}, z=${block.position.z}`);
+            }
+        });
+    };
 
     return (
         <div style={{ 
@@ -2330,6 +2117,40 @@ const Grid3D = () => {
                 height: '100%'
             }} />
             
+            {/* Add this div for editable grid height display */}
+            <div style={{
+                position: 'absolute',
+                bottom: '10px',
+                left: '10px',
+                backgroundColor: 'rgba(0, 0, 0, 0.7)',
+                padding: '8px 16px',
+                borderRadius: '4px',
+                color: 'white',
+                fontSize: '14px',
+                zIndex: 100,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+            }}>
+                <span>Grid Height:</span>
+                <input
+                    type="number"
+                    min="1"
+                    max="20"
+                    value={grids[activeGridTab].height}
+                    onChange={handleHeightChange}
+                    style={{
+                        width: '50px',
+                        padding: '4px',
+                        borderRadius: '4px',
+                        border: '1px solid #444',
+                        backgroundColor: '#333',
+                        color: 'white',
+                        textAlign: 'center'
+                    }}
+                />
+            </div>
+
             {/* Sidebar */}
             <div style={{
                 width: '36%',
@@ -2902,6 +2723,22 @@ const Grid3D = () => {
                                 Apply Size
                             </button>
                         </div>
+
+                        {/* In the Playground tab section */}
+                        <button 
+                            onClick={log1SCUBlockPositions}
+                            style={{
+                                padding: '8px 16px',
+                                backgroundColor: '#444',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '4px',
+                                cursor: 'pointer',
+                                marginTop: '10px'
+                            }}
+                        >
+                            Log 1 SCU Block Positions
+                        </button>
                     </div>
                 )}
             </div>
@@ -2983,7 +2820,8 @@ const Grid3D = () => {
                                     marginBottom: '5px',
                                     backgroundColor: isHighlighted ? '#444' : '#2a2a2a',
                                     borderRadius: '4px',
-                                    border: isHighlighted ? '1px solid #fff' : '1px solid transparent'
+                                    border: isHighlighted ? '2px solid #fff' : '1px solid transparent',
+                                    boxShadow: isHighlighted ? '0 0 10px rgba(255,255,255,0.2)' : 'none'
                                 }}>
                                     <div 
                                         style={{
