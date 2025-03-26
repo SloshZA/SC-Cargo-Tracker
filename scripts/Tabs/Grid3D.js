@@ -448,22 +448,22 @@ const Grid3D = () => {
             'Grid 1': {
                 width: 1,
                 length: 1,
-                height: 20 // Set default height to 20
+                height: 20 // Fixed height of 20
             },
             'Grid 2': {
                 width: 1,
                 length: 1,
-                height: 20 // Set default height to 20
+                height: 20 // Fixed height of 20
             },
             'Grid 3': {
                 width: 1,
                 length: 1,
-                height: 20 // Set default height to 20
+                height: 20 // Fixed height of 20
             },
             'Grid 4': {
                 width: 1,
                 length: 1,
-                height: 20 // Set default height to 20
+                height: 20 // Fixed height of 20
             }
         };
     });
@@ -545,64 +545,6 @@ const Grid3D = () => {
         const newValue = Math.min(Math.max(parseInt(value), 1), 20);
         updateGridSettings(activeGridTab, { length: newValue });
         setSelectedShipTemplate(null); // Clear the selected template
-    };
-
-    const handleHeightChange = (e) => {
-        const value = e.target.value;
-        if (value === '') return;
-        const newValue = Math.min(Math.max(parseInt(value), 1), 20);
-        
-        // Update the grid settings
-        updateGridSettings(activeGridTab, { height: newValue });
-        
-        // Update the height reference
-        gridHeightRef.current = newValue;
-        
-        // Get the scene
-        const scene = sceneRef.current;
-        if (scene) {
-            // Remove existing grid
-            const existingGrid = scene.getObjectByName(activeGridTab);
-            if (existingGrid) {
-                scene.remove(existingGrid);
-            }
-            
-            // Remove existing background
-            const existingBackground = scene.getObjectByName(`${activeGridTab}-background`);
-            if (existingBackground) {
-                scene.remove(existingBackground);
-            }
-            
-            // Recreate the grid with new dimensions
-            const gridData = {
-                ...grids[activeGridTab],
-                height: newValue
-            };
-            
-            const newGrid = createGrid(
-                gridData.width,
-                gridData.length,
-                0xffffff
-            );
-            newGrid.name = activeGridTab;
-            newGrid.userData = { ...gridData, maxHeight: newValue };
-            scene.add(newGrid);
-            
-            // Recreate background grid
-            const backgroundGrid = createBackgroundGrid();
-            backgroundGrid.name = `${activeGridTab}-background`;
-            backgroundGrid.position.set(
-                gridData.width / 2,
-                gridData.height,
-                gridData.length / 2
-            );
-            scene.add(backgroundGrid);
-        }
-        
-        // Force re-render by updating a state
-        setGrids(prev => ({ ...prev }));
-        
-        setSelectedShipTemplate(null);
     };
 
     // Helper function to snap to grid
@@ -874,7 +816,10 @@ const Grid3D = () => {
             newPosition.z + movingBlock.userData.offsets.z
         );
 
-        const gridHeight = grids[gridName].height;
+        // Get the current grid's height from the scene
+        const scene = sceneRef.current;
+        const grid = scene.getObjectByName(gridName);
+        const gridHeight = grid ? grid.userData.maxHeight : grids[gridName].height;
         
         // Get the block's dimensions
         const width = movingBlock.geometry.parameters.width;
@@ -935,7 +880,7 @@ const Grid3D = () => {
 
         if (newY > maxAllowedY) {
             if (bannerRef && bannerRef.current) {
-                bannerRef.current.textContent = `Cannot place block: would exceed grid height (${newY} > ${maxAllowedY})`;
+                bannerRef.current.textContent = `Cannot place block: would exceed grid height (${newY.toFixed(1)} > ${maxAllowedY.toFixed(1)})`;
                 bannerRef.current.style.display = 'block';
                 setTimeout(() => {
                     if (bannerRef.current) {
@@ -2117,40 +2062,6 @@ const Grid3D = () => {
                 height: '100%'
             }} />
             
-            {/* Add this div for editable grid height display */}
-            <div style={{
-                position: 'absolute',
-                bottom: '10px',
-                left: '10px',
-                backgroundColor: 'rgba(0, 0, 0, 0.7)',
-                padding: '8px 16px',
-                borderRadius: '4px',
-                color: 'white',
-                fontSize: '14px',
-                zIndex: 100,
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px'
-            }}>
-                <span>Grid Height:</span>
-                <input
-                    type="number"
-                    min="1"
-                    max="20"
-                    value={grids[activeGridTab].height}
-                    onChange={handleHeightChange}
-                    style={{
-                        width: '50px',
-                        padding: '4px',
-                        borderRadius: '4px',
-                        border: '1px solid #444',
-                        backgroundColor: '#333',
-                        color: 'white',
-                        textAlign: 'center'
-                    }}
-                />
-            </div>
-
             {/* Sidebar */}
             <div style={{
                 width: '36%',
@@ -2217,22 +2128,25 @@ const Grid3D = () => {
                 {activeTab === 'Manifest' && (
                     <div style={{
                         flex: 1,
-                        backgroundColor: '#2a2a2a',
-                        padding: '10px',
-                        borderRadius: '4px',
+                        backgroundColor: '#2a2a2a', // Match existing dark theme
+                        padding: '15px',
+                        borderRadius: '4px', // Match existing border radius
                         overflowY: 'auto',
                         maxHeight: '680px',
                         position: 'relative'
                     }}>
                         {/* Main Header */}
                         <h3 style={{ 
-                            color: 'white', 
+                            color: 'white',
                             marginBottom: '20px',
                             textAlign: 'center',
-                            textDecoration: 'underline',
-                            paddingBottom: '5px'
+                            fontSize: '1.2em',
+                            fontWeight: 'bold',
+                            borderBottom: '1px solid #444',
+                            paddingBottom: '10px'
                         }}>Manifest View</h3>
                         
+                        {/* Mission Entry Container */}
                         {(function() {
                             try {
                                 const storedData = localStorage.getItem('missionEntries');
@@ -2273,31 +2187,40 @@ const Grid3D = () => {
                                 return Object.entries(missions).map(([missionIndex, entries]) => {
                                     const isCollapsed = collapsedMissions[missionIndex];
                                     return (
-                                        <div key={missionIndex} style={{ marginBottom: '20px' }}>
+                                        <div key={missionIndex} style={{ 
+                                            marginBottom: '10px', // Changed from 20px to 10px
+                                            backgroundColor: '#333',
+                                            borderRadius: '4px',
+                                            overflow: 'hidden'
+                                        }}>
                                             {/* Mission Header */}
                                             <div 
                                                 style={{
                                                     color: 'white',
                                                     fontSize: '1.1em',
                                                     fontWeight: 'bold',
-                                                    marginBottom: '10px',
-                                                    padding: '5px',
-                                                    backgroundColor: '#333',
-                                                    borderRadius: '4px',
+                                                    padding: '10px',
+                                                    backgroundColor: '#444', // Match existing button colors
                                                     cursor: 'pointer',
                                                     display: 'flex',
                                                     alignItems: 'center',
-                                                    justifyContent: 'space-between'
+                                                    justifyContent: 'space-between',
+                                                    borderBottom: '1px solid #555'
                                                 }}
                                                 onClick={() => setCollapsedMissions(prev => ({
                                                     ...prev,
                                                     [missionIndex]: !prev[missionIndex]
                                                 }))}
                                             >
-                                                <span style={{ flex: 1 }}>
+                                                <span style={{ 
+                                                    flex: 1,
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    gap: '10px'
+                                                }}>
                                                     Mission {parseInt(missionIndex) + 1}
                                                 </span>
-                                                <div>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                                                     <button
                                                         onClick={(e) => {
                                                             e.stopPropagation();
@@ -2321,59 +2244,55 @@ const Grid3D = () => {
                                                             });
                                                         }}
                                                         style={{
-                                                            marginLeft: '10px',
-                                                            padding: '4px 8px',
-                                                            backgroundColor: '#444',
+                                                            padding: '8px',
+                                                            backgroundColor: '#666', // Match existing button style
                                                             color: 'white',
                                                             border: 'none',
                                                             borderRadius: '4px',
                                                             cursor: 'pointer',
-                                                            fontSize: '0.8em'
+                                                            fontSize: '0.9em'
                                                         }}
                                                     >
-                                                        Add
+                                                        Add to Grid
                                                     </button>
-                                                    <span style={{ fontSize: '0.8em', marginLeft: '10px' }}>
+                                                    <span style={{ 
+                                                        fontSize: '0.8em',
+                                                        color: '#aaa'
+                                                    }}>
                                                         {isCollapsed ? '▼' : '▲'}
                                                     </span>
                                                 </div>
                                             </div>
+
                                             {!isCollapsed && (
                                                 <div style={{
-                                                    display: 'grid',
-                                                    gridTemplateColumns: 'repeat(2, 1fr)',
-                                                    gap: '10px',
-                                                    marginBottom: '10px',
                                                     padding: '10px',
-                                                    backgroundColor: '#333',
-                                                    borderRadius: '4px'
+                                                    backgroundColor: '#333'
                                                 }}>
-                                                    <div style={{ 
-                                                        color: 'white', 
-                                                        fontWeight: 'bold',
-                                                        textDecoration: 'underline'
-                                                    }}>Commodity</div>
-                                                    <div style={{ 
-                                                        color: 'white', 
-                                                        fontWeight: 'bold', 
-                                                        textAlign: 'right',
-                                                        textDecoration: 'underline'
-                                                    }}>QTY</div>
+                                                    {/* Remove the header row and directly show entries */}
+                                                    {entries.map((entry, entryIndex) => (
+                                                        <div key={entryIndex} style={{
+                                                            display: 'grid',
+                                                            gridTemplateColumns: 'repeat(2, 1fr)',
+                                                            gap: '10px',
+                                                            padding: '10px',
+                                                            backgroundColor: entryIndex % 2 === 0 ? '#444' : '#3a3a3a',
+                                                            borderRadius: '4px',
+                                                            marginBottom: '4px'
+                                                        }}>
+                                                            <div style={{ 
+                                                                color: 'white',
+                                                                fontSize: '0.95em'
+                                                            }}>{entry.commodity}</div>
+                                                            <div style={{ 
+                                                                color: '#aaa',
+                                                                textAlign: 'right',
+                                                                fontSize: '0.95em'
+                                                            }}>{entry.originalAmount}</div>
+                                                        </div>
+                                                    ))}
                                                 </div>
                                             )}
-                                            {!isCollapsed && entries.map((entry, entryIndex) => (
-                                                <div key={entryIndex} style={{
-                                                    display: 'grid',
-                                                    gridTemplateColumns: 'repeat(2, 1fr)',
-                                                    gap: '10px',
-                                                    padding: '10px',
-                                                    backgroundColor: entryIndex % 2 === 0 ? '#2a2a2a' : '#333',
-                                                    borderRadius: '4px'
-                                                }}>
-                                                    <div style={{ color: 'white' }}>{entry.commodity}</div>
-                                                    <div style={{ color: 'white', textAlign: 'right' }}>{entry.originalAmount}</div>
-                                                </div>
-                                            ))}
                                         </div>
                                     );
                                 });
