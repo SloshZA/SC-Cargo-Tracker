@@ -158,11 +158,17 @@ export const StantonSystemData = {
             'Sakura Sun Goldenrod Workcenter',
             'microTech Logistics Depot S4LD01',
             'microTech Logistics Depot S4LD13',
-            'Rayari Deltana Research Outpost',
             'Shubin Mining Facility SM0-10',
             'Shubin Mining Facility SM0-13',
             'Shubin Mining Facility SM0-18',
-            'Shubin Mining Facility SM0-22'
+            'Shubin Mining Facility SM0-22',
+            '--Outpost--',
+            'Rayari Deltana Research Outpost',
+            'Rayari Anvik Research Outpost',
+            'Rayari Kaltag Research Outpost',
+            'Shubin Mining Facility SMCa-6',
+            'Shubin Mining Facility SMCa-8',
+            
         ],
     },
 

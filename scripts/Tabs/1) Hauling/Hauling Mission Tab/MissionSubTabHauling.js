@@ -13,25 +13,68 @@ const systemDataMap = {
 };
 
 // Update the pickup point options generation
-const pickupPointOptions = (selectedSystem) => {
-    const systemData = systemDataMap[selectedSystem] || StantonSystemData;
-    return systemData.FullList
-        .filter(location => !location.startsWith('--') && !location.endsWith('--'))
-        .map(location => ({
+const pickupPointOptions = (selectedSystem, currentSystem) => {
+    let locations = [];
+    
+    if (currentSystem === 'Pyro') {
+        // Use Pyro FullList for locations
+        locations = [...new Set(PyroSystemData.FullList || [])];
+    } else {
+        // Get Stanton locations with headers and remove duplicates
+        const { pickupPoints } = generateStantonLocations();
+        locations = [...new Set(pickupPoints)];
+    }
+    
+    // Map locations to options
+    return locations.map(location => {
+        if (location.startsWith('--')) {
+            return {
+                label: `-- ${location.replace(/--/g, '')} --`,
+                isDisabled: true,
+                className: 'dropdown-separator',
+                style: {
+                    fontWeight: 'bold',
+                    fontStyle: 'italic'
+                }
+            };
+        }
+        return {
             value: location,
             label: location
-        }));
+        };
+    });
 };
 
 // Update the quick lookup options generation
-const quickLookupOptions = (selectedSystem) => {
-    const systemData = systemDataMap[selectedSystem] || StantonSystemData;
-    return systemData.FullList
-        .filter(location => !location.startsWith('--') && !location.endsWith('--'))
-        .map(location => ({
+const quickLookupOptions = (selectedSystem, currentSystem) => {
+    let locations = [];
+    
+    if (currentSystem === 'Pyro') {
+        // Use Pyro FullList for locations
+        locations = [...new Set(PyroSystemData.FullList || [])];
+    } else {
+        // Get Stanton locations with headers and remove duplicates
+        locations = [...new Set(StantonSystemData.FullList)];
+    }
+    
+    // Map locations to options
+    return locations.map(location => {
+        if (location.startsWith('--')) {
+            return {
+                label: `-- ${location.replace(/--/g, '')} --`,
+                isDisabled: true,
+                className: 'dropdown-separator',
+                style: {
+                    fontWeight: 'bold',
+                    fontStyle: 'italic'
+                }
+            };
+        }
+        return {
             value: location,
             label: location
-        }));
+        };
+    });
 };
 
 // Add this function near the top of the file, after the systemDataMap declaration
@@ -174,6 +217,23 @@ export const MissionSubTabHauling = ({
 
     // Add new state for selected system in advanced view
     const [advancedSelectedSystem, setAdvancedSelectedSystem] = useState('Stanton');
+
+    // Add this state near your other state declarations
+    const [positionInputs, setPositionInputs] = useState({});
+
+    // Add this handler function
+    const handlePositionChange = (e, dropOffPoint) => {
+        const newPosition = parseInt(e.target.value);
+        if (isNaN(newPosition) || newPosition < 1 || newPosition > entries.length) return;
+
+        setEntries(prev => {
+            const currentIndex = prev.findIndex(entry => entry.dropOffPoint === dropOffPoint);
+            const newEntries = [...prev];
+            const [movedEntry] = newEntries.splice(currentIndex, 1);
+            newEntries.splice(newPosition - 1, 0, movedEntry);
+            return newEntries;
+        });
+    };
 
     // Add effect to save state changes
     useEffect(() => {
@@ -1678,57 +1738,77 @@ export const MissionSubTabHauling = ({
                                         {advancedViewEntries.find(entry => entry.dropOffPoint === dropOffPoint)?.moon}
                                         </span>
                                     </div>
-                                <div style={{ display: 'flex', gap: '2px' }}> {/* Reduce gap between buttons */}
-                                        <button 
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                            // Move entry up in advancedViewEntries
-                                            setAdvancedViewEntries(prev => {
-                                                const index = prev.findIndex(entry => entry.dropOffPoint === dropOffPoint);
-                                                if (index > 0) {
-                                                    const newEntries = [...prev];
-                                                    [newEntries[index - 1], newEntries[index]] = [newEntries[index], newEntries[index - 1]];
-                                                    return newEntries;
-                                                }
-                                                return prev;
-                                            });
-                                        }}
-                                        style={{
-                                            padding: '4px 8px', // Reduce padding
-                                            backgroundColor: 'var(--button-color)',
-                                            color: 'black',
-                                            border: 'none',
-                                            borderRadius: '4px',
-                                            cursor: 'pointer'
-                                        }}
-                                    >
-                                        ▲
-                                    </button>
-                                    <button 
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            // Move entry down in advancedViewEntries
-                                            setAdvancedViewEntries(prev => {
-                                                const index = prev.findIndex(entry => entry.dropOffPoint === dropOffPoint);
-                                                if (index < prev.length - 1) {
-                                                    const newEntries = [...prev];
-                                                    [newEntries[index], newEntries[index + 1]] = [newEntries[index + 1], newEntries[index]];
-                                                    return newEntries;
-                                                }
-                                                return prev;
-                                            });
-                                        }}
-                                        style={{
-                                            padding: '4px 8px', // Reduce padding
-                                            backgroundColor: 'var(--button-color)',
-                                            color: 'black',
-                                            border: 'none',
-                                            borderRadius: '4px',
-                                            cursor: 'pointer'
-                                        }}
-                                    >
-                                        ▼
-                                    </button>
+                                <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+                                        <input
+                                            type="number"
+                                            min="1"
+                                            max={entries.length}
+                                            value={entries.findIndex(entry => entry.dropOffPoint === dropOffPoint) + 1}
+                                            onChange={(e) => handlePositionChange(e, dropOffPoint)}
+                                            style={{
+                                                width: '50px',
+                                                padding: '4px',
+                                                textAlign: 'center',
+                                                backgroundColor: 'var(--table-row-color)',
+                                                color: 'var(--text-color)',
+                                                border: 'none',
+                                                borderRadius: '4px',
+                                                appearance: 'textfield',
+                                                WebkitAppearance: 'none',
+                                                MozAppearance: 'textfield'
+                                            }}
+                                            onWheel={(e) => e.target.blur()}
+                                        />
+                                        <div style={{ display: 'flex', gap: '4px' }}>
+                                            <button 
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setEntries(prev => {
+                                                        const index = prev.findIndex(entry => entry.dropOffPoint === dropOffPoint);
+                                                        if (index > 0) {
+                                                            const newEntries = [...prev];
+                                                            [newEntries[index - 1], newEntries[index]] = [newEntries[index], newEntries[index - 1]];
+                                                            return newEntries;
+                                                        }
+                                                        return prev;
+                                                    });
+                                                }}
+                                                style={{
+                                                    padding: '4px 8px',
+                                                    backgroundColor: 'var(--button-color)',
+                                                    color: 'black',
+                                                    border: 'none',
+                                                    borderRadius: '4px',
+                                                    cursor: 'pointer'
+                                                }}
+                                            >
+                                                ▲
+                                            </button>
+                                            <button 
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setEntries(prev => {
+                                                        const index = prev.findIndex(entry => entry.dropOffPoint === dropOffPoint);
+                                                        if (index < prev.length - 1) {
+                                                            const newEntries = [...prev];
+                                                            [newEntries[index + 1], newEntries[index]] = [newEntries[index], newEntries[index + 1]];
+                                                            return newEntries;
+                                                        }
+                                                        return prev;
+                                                    });
+                                                }}
+                                                style={{
+                                                    padding: '4px 8px',
+                                                    backgroundColor: 'var(--button-color)',
+                                                    color: 'black',
+                                                    border: 'none',
+                                                    borderRadius: '4px',
+                                                    cursor: 'pointer'
+                                                }}
+                                            >
+                                                ▼
+                                            </button>
+                                        </div>
                                 </div>
                             </div>
                         </div>
@@ -2164,7 +2244,7 @@ export const MissionSubTabHauling = ({
                                                         const index = prev.findIndex(entry => entry.dropOffPoint === dropOffPoint);
                                                         if (index < prev.length - 1) {
                                                             const newEntries = [...prev];
-                                                            [newEntries[index], newEntries[index + 1]] = [newEntries[index + 1], newEntries[index]];
+                                                            [newEntries[index + 1], newEntries[index]] = [newEntries[index], newEntries[index + 1]];
                                                             return newEntries;
                                                         }
                                                         return prev;
@@ -2304,21 +2384,8 @@ export const MissionSubTabHauling = ({
                     <label>Pickup Point</label>
                     <Select
                         components={{ DropdownIndicator: null, IndicatorSeparator: null }}
-                        options={currentSystem === 'Pyro' ? [] : currentSystemData.FullList.map(location => {
-                            if (location.startsWith('--') && location.endsWith('--')) {
-                                return {
-                                    value: location,
-                                    label: `-- ${location.replace(/--/g, '')} --`,
-                                    isDisabled: true,
-                                    className: 'dropdown-separator'
-                                };
-                            }
-                            return {
-                                value: location,
-                                label: location
-                            };
-                        })}
-                        value={currentSystem === 'Pyro' ? null : pickupPointOptions(selectedSystem).find(option => option.value === firstDropdownValue)}
+                        options={pickupPointOptions(selectedSystem, currentSystem)}
+                        value={pickupPointOptions(selectedSystem, currentSystem).find(option => option.value === firstDropdownValue) || null}
                         onChange={(option) => {
                             if (!option.isDisabled) {
                                 handlePickupPointChange(option);
@@ -2327,7 +2394,6 @@ export const MissionSubTabHauling = ({
                                 }
                             }
                         }}
-                        isDisabled={currentSystem === 'Pyro'}
                         className="first-dropdown-select"
                         classNamePrefix="react-select"
                         styles={{
@@ -2338,7 +2404,7 @@ export const MissionSubTabHauling = ({
                                               state.isSelected ? 'var(--button-color)' : 
                                               state.isFocused ? 'var(--background-color)' : 'transparent',
                                 color: state.isDisabled ? '#ffffff' : 'var(--text-color)',
-                                fontWeight: state.isDisabled ? 'normal' : 'normal',
+                                fontWeight: state.isDisabled ? 'bold' : 'normal',
                                 fontStyle: state.isDisabled ? 'italic' : 'normal',
                                 cursor: state.isDisabled ? 'default' : 'pointer',
                                 paddingLeft: '8px',
@@ -2348,28 +2414,14 @@ export const MissionSubTabHauling = ({
                                 }
                             })
                         }}
-                        placeholder={currentSystem === 'Pyro' ? 'Pyro system not supported' : 'Search Pickup Point'}
                     />
                 </div>
                 <div className="form-group">
                     <label>Quick Lookup</label>
                     <Select
                         components={{ DropdownIndicator: null, IndicatorSeparator: null }}
-                        options={currentSystem === 'Pyro' ? [] : currentSystemData.FullList.map(location => {
-                            if (location.startsWith('--') && location.endsWith('--')) {
-                                return {
-                                    value: location,
-                                    label: `-- ${location.replace(/--/g, '')} --`,
-                                    isDisabled: true,
-                                    className: 'dropdown-separator'
-                                };
-                            }
-                            return {
-                                value: location,
-                                label: location
-                            };
-                        })}
-                        value={currentSystem === 'Pyro' ? null : quickLookupOptions(selectedSystem).find(option => option.value === secondDropdownValue)}
+                        options={quickLookupOptions(selectedSystem, currentSystem)}
+                        value={quickLookupOptions(selectedSystem, currentSystem).find(option => option.value === secondDropdownValue) || null}
                         onChange={(option) => {
                             if (!option.isDisabled) {
                                 handleQuickLookupChange(option);
@@ -2378,7 +2430,6 @@ export const MissionSubTabHauling = ({
                                 }
                             }
                         }}
-                        isDisabled={currentSystem === 'Pyro'}
                         className="second-dropdown-select"
                         classNamePrefix="react-select"
                         styles={{
@@ -2389,7 +2440,7 @@ export const MissionSubTabHauling = ({
                                               state.isSelected ? 'var(--button-color)' : 
                                               state.isFocused ? 'var(--background-color)' : 'transparent',
                                 color: state.isDisabled ? '#ffffff' : 'var(--text-color)',
-                                fontWeight: state.isDisabled ? 'normal' : 'normal',
+                                fontWeight: state.isDisabled ? 'bold' : 'normal',
                                 fontStyle: state.isDisabled ? 'italic' : 'normal',
                                 cursor: state.isDisabled ? 'default' : 'pointer',
                                 paddingLeft: '8px',
@@ -2399,7 +2450,6 @@ export const MissionSubTabHauling = ({
                                 }
                             })
                         }}
-                        placeholder={currentSystem === 'Pyro' ? 'Pyro system not supported' : 'Search Quick Lookup'}
                     />
                 </div>
             </div>
@@ -2453,12 +2503,53 @@ export const MissionSubTabHauling = ({
                         <label>Station</label>
                         <Select
                             components={{ DropdownIndicator: null, IndicatorSeparator: null }}
-                            options={stationOptions}
+                            options={locationType === 'station' ? 
+                                stationOptions.map(option => {
+                                    // Make headers unclickable
+                                    if (option.label === '--Stations--' || option.label === '--Lagrange Stations--') {
+                                        return {
+                                            ...option,
+                                            isDisabled: true,
+                                            className: 'dropdown-separator',
+                                            style: {
+                                                fontWeight: 'bold',
+                                                fontStyle: 'italic'
+                                            }
+                                        };
+                                    }
+                                    return option;
+                                }).filter(option => 
+                                    option.label.includes('Station') || 
+                                    option.label.includes('Lagrange')
+                                ) : 
+                                stationOptions}
                             value={stationOptions.find(option => option.value === selectedDropOffPoint)}
                             onChange={handleStationSelectChange}
                             className="station-select"
                             classNamePrefix="react-select"
-                            styles={customStyles}
+                            styles={{
+                                ...customStyles,
+                                input: (provided) => ({
+                                    ...provided,
+                                    color: 'var(--text-color)',
+                                    caretColor: 'var(--text-color)'
+                                }),
+                                option: (provided, state) => ({
+                                    ...provided,
+                                    backgroundColor: state.isDisabled ? 'var(--background-secondary-color)' : 
+                                                  state.isSelected ? 'var(--button-color)' : 
+                                                  state.isFocused ? 'var(--background-color)' : 'transparent',
+                                    color: state.isDisabled ? '#ffffff' : 'var(--text-color)',
+                                    fontWeight: state.isDisabled ? 'bold' : 'normal',
+                                    fontStyle: state.isDisabled ? 'italic' : 'normal',
+                                    cursor: state.isDisabled ? 'default' : 'pointer',
+                                    paddingLeft: '8px',
+                                    paddingRight: '8px',
+                                    ':active': {
+                                        backgroundColor: state.isDisabled ? 'var(--background-secondary-color)' : 'var(--button-color)'
+                                    }
+                                })
+                            }}
                         />
                     </div>
                 )}

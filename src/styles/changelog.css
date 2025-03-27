@@ -1,0 +1,54 @@
+.changelog {
+    padding: 20px;
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.changelog-container {
+    background-color: var(--background-color);
+    padding: 20px;
+    border-radius: 8px;
+    border: 1px solid var(--table-outline-color);
+}
+
+.changelog-version {
+    color: var(--text-color);
+    margin-top: 30px;
+    margin-bottom: 15px;
+    font-size: 1.5em;
+    border-bottom: 2px solid var(--accent-color);
+    padding-bottom: 10px;
+}
+
+.changelog-section {
+    color: var(--text-color);
+    margin-top: 20px;
+    margin-bottom: 10px;
+    font-size: 1.2em;
+}
+
+.changelog-list {
+    list-style-type: disc;
+    margin-left: 20px;
+    color: var(--text-color);
+}
+
+.changelog-item {
+    margin-bottom: 8px;
+    line-height: 1.5;
+}
+
+.changelog-emphasis {
+    color: var(--accent-color);
+    font-weight: bold;
+}
+
+.changelog ul ul {
+    list-style-type: circle;
+    margin-left: 40px;
+}
+
+.changelog ul ul ul {
+    list-style-type: square;
+    margin-left: 60px;
+} 

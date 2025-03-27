@@ -5,61 +5,6 @@ export const ChangelogTab = () => {
         <div className="changelog">
             <div className="changelog-container">
                 <div className="changelog-entry">
-                    <h3>Version 2.1</h3>
-                    <h4>Fixes</h4>
-                    <ul>
-                        <li><b>3D Cargo Grid</b></li>
-                        <ul>
-                            <li>Users can now move Grid (1)(2)(3)(4) to their preferred locations</li>
-                            <li>Colors not correctly changing when switching from commodities to missions</li>
-                            <li>Blocks change color or become highlighted when moving them - removed all color changes when user manipulates the blocks</li>
-                        </ul>
-                        <li><b>Route Planner</b></li>
-                        <ul>
-                            <li><b>Basic View</b></li>
-                            <ul>
-                                <li>Fixed up and down arrows not working</li>
-                                <li>Matched the design of the locations bar to the advanced planner - Added the number index for quicker movement</li>
-                            </ul>
-                            <li><b>Pickup Point and Quick Lookup</b></li>
-                            <ul>
-                                <li>Added Pyro locations to both drop down boxes</li>
-                                <li>Fixed text not being visible when typing in the boxes</li>
-                                <li>Quick lookup now clears when selecting a location</li>
-                            </ul>
-                        </ul>
-                    </ul>
-
-                    <h4>UI Changes</h4>
-                    <ul>
-                        <li><b>3D Cargo Grid</b></li>
-                        <ul>
-                            <li><b>Manifest view</b></li>
-                            <ul>
-                                <li>Made it look a bit better</li>
-                                <li>Changed how the renderer reacts to "Renderer Size" changes so it doesn't look all squashed up (Manual Input)</li>
-                            </ul>
-                            <li><b>Playground</b></li>
-                            <ul>
-                                <li>Set the buttons to be 2 per row instead of 1 per row (looks a bit cleaner)</li>
-                                <li>Lowered brightness of the buttons</li>
-                            </ul>
-                            <li>Made changes to how blocks move in the renderer</li>
-                            <ul>
-                                <li>Blocks can now move underneath each other</li>
-                                <li>Opacity Slider now shows % to better track</li>
-                                <li>Added ability to click through blocks that are below 50% opacity, allowing grabbing of blocks that are stacked together</li>
-                            </ul>
-                        </ul>
-                    </ul>
-
-                    <h4>How to Use</h4>
-                    <ul>
-                        <li>Choose a commodity or mission and then slide the opacity slider to below 50% to be able to grab only that selected commodity</li>
-                        <li>Added a new Load Example button to controls menu to load a preset of commodities in a jumbled formation for the user to test the opacity and interactions when opacity is below 50%</li>
-                    </ul>
-                </div>
-                <div className="changelog-entry">
                     <h3>Version 2.0</h3>
                     <h4>Major Changes</h4>
                     <ul>

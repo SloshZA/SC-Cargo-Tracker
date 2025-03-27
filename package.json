@@ -22,9 +22,12 @@
   "description": "A comprehensive tool for managing and tracking cargo hauling missions in Star Citizen",
   "dependencies": {
     "dat.gui": "^0.7.9",
+    "devlop": "^1.1.0",
+    "marked": "^15.0.7",
     "react": "^18.3.1",
     "react-color": "^2.19.3",
     "react-dom": "^18.2.0",
+    "react-markdown": "^10.1.0",
     "react-pro-sidebar": "^1.1.0",
     "react-select": "^5.10.0",
     "react-tesseract": "^1.0.0",
