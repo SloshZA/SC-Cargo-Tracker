@@ -56,7 +56,7 @@ const createBlock = (size, color) => {
             uNormalMap: { value: normalMap },
             uRoughnessMap: { value: roughnessMap },
             uEdgeColor: { value: new THREE.Color(0xffffff) },
-            uEdgeWidth: { value: 0.02 },
+            uEdgeWidth: { value: 0.04 }, // Increased edge width from 0.02 to 0.04
             uOpacity: { value: 1.0 } // Add this uniform for opacity control
         },
         vertexShader: `
@@ -94,18 +94,21 @@ const createBlock = (size, color) => {
                 vec4 texColor = texture2D(uTexture, vUv);
                 vec3 baseColor = texColor.a > 0.0 ? texColor.rgb * uColor : uColor;
                 
+                // Reduce brightness of the base color only
+                vec3 dimmedBaseColor = baseColor * 0.5; 
+
                 // Edge detection
                 float edge = edgeLine(vUv, uEdgeWidth);
                 
-                // Blend base color with edge color using the edge value as alpha
-                vec3 finalColor = mix(baseColor, uEdgeColor, edge);
+                // Blend dimmed base color with edge color using the edge value as alpha
+                vec3 finalColor = mix(dimmedBaseColor, uEdgeColor, edge); // Use dimmedBaseColor here
                 
-                // Normal and roughness
+                // Normal and roughness (These aren't currently used for final color, but kept for potential future use)
                 vec3 normal = texture2D(uNormalMap, vUv).rgb * 2.0 - 1.0;
                 float roughness = texture2D(uRoughnessMap, vUv).r;
                 
                 // Apply opacity
-                gl_FragColor = vec4(finalColor, uOpacity); // Use uOpacity here
+                gl_FragColor = vec4(finalColor, uOpacity); // finalColor already includes dimmed base and bright edge
             }
         `,
         transparent: true, // Enable transparency
@@ -422,6 +425,7 @@ const Grid3D = () => {
     const dimensionsRef = useRef(null);
     const bannerRef = useRef(null);
     const rendererRef = useRef(null); // Add this line
+    const draggedGrid = useRef(null); // Add this ref to track the dragged grid
     const [blockDetails, setBlockDetails] = useState(null);
     const [activeTab, setActiveTab] = useState('Playground');
     const [missionEntries, setMissionEntries] = useState([]);
@@ -435,8 +439,29 @@ const Grid3D = () => {
     const [expandedCommodity, setExpandedCommodity] = useState(null);
     const [shipSubTab, setShipSubTab] = useState('Template');
     
+
     // Get ships from context
     const { ships } = useShipContext();
+
+    // State for grid positions, initialized from localStorage or defaults
+    const [gridPositions, setGridPositions] = useState(() => {
+        const savedPositions = localStorage.getItem('gridPositions');
+        if (savedPositions) {
+            try {
+                return JSON.parse(savedPositions);
+            } catch (e) {
+                console.error("Failed to parse saved grid positions:", e);
+                // Fallback to defaults if parsing fails
+            }
+        }
+        // Default positions if nothing is saved or parsing failed
+        return {
+            'Grid 1': { x: 0, z: 37, rotation: 0 },
+            'Grid 2': { x: 0, z: 16, rotation: 0 },
+            'Grid 3': { x: 0, z: -4, rotation: 0 },
+            'Grid 4': { x: 0, z: -25, rotation: 0 }
+        };
+    });
 
     // Update the grids state initialization
     const [grids, setGrids] = useState(() => {
@@ -809,39 +834,34 @@ const Grid3D = () => {
 
     // Move checkCollision inside the component
     const checkCollision = (movingBlock, newPosition, blocks, gridName, bannerRef) => {
-        // Apply the block's offsets to the new position
-        const offsetPosition = new THREE.Vector3(
+        // Apply the block's offsets to the new position's X and Z
+        const offsetPositionXZ = new THREE.Vector3(
             newPosition.x + movingBlock.userData.offsets.x,
-            newPosition.y + movingBlock.userData.offsets.y,
+            0, // Y will be determined later
             newPosition.z + movingBlock.userData.offsets.z
         );
 
         // Get the current grid's height from the scene
         const scene = sceneRef.current;
         const grid = scene.getObjectByName(gridName);
-        const gridHeight = grid ? grid.userData.maxHeight : grids[gridName].height;
-        
-        // Get the block's dimensions
+        // Use a default height if grid or maxHeight is not found, fallback to state
+        const gridHeight = grid?.userData?.maxHeight ?? grids[gridName]?.height ?? 20;
+
+        // Get the moving block's dimensions
         const width = movingBlock.geometry.parameters.width;
         const height = movingBlock.geometry.parameters.height;
         const depth = movingBlock.geometry.parameters.depth;
 
-        // Create a box that accounts for rotation
-        const movingBox = new THREE.Box3(
+        // Create a base box for the moving block at Y=0 for XZ checks
+        const movingBoxXZ = new THREE.Box3(
             new THREE.Vector3(-width / 2, -height / 2, -depth / 2),
             new THREE.Vector3(width / 2, height / 2, depth / 2)
         );
-
-        // Apply rotation
         const rotationMatrix = new THREE.Matrix4().makeRotationY(movingBlock.rotation.y);
-        movingBox.applyMatrix4(rotationMatrix);
+        movingBoxXZ.applyMatrix4(rotationMatrix);
+        movingBoxXZ.translate(offsetPositionXZ); // Translate only XZ initially
 
-        // Translate to new position
-        movingBox.translate(offsetPosition);
-
-        let highestY = 0;
-        let collisionDetected = false;
-
+        const xzColliders = [];
         for (const block of blocks) {
             if (block !== movingBlock) {
                 // Get the other block's dimensions
@@ -854,33 +874,63 @@ const Grid3D = () => {
                     new THREE.Vector3(-otherWidth / 2, -otherHeight / 2, -otherDepth / 2),
                     new THREE.Vector3(otherWidth / 2, otherHeight / 2, otherDepth / 2)
                 );
-
-                // Apply rotation to the other block
                 const otherRotationMatrix = new THREE.Matrix4().makeRotationY(block.rotation.y);
                 blockBox.applyMatrix4(otherRotationMatrix);
-
-                // Translate to the block's position
                 blockBox.translate(block.position);
 
-                // Check for collision
-                const xOverlap = movingBox.min.x < blockBox.max.x &&
-                                movingBox.max.x > blockBox.min.x;
-                const zOverlap = movingBox.min.z < blockBox.max.z &&
-                                movingBox.max.z > blockBox.min.z;
-                
+                // Check for XZ collision only
+                const xOverlap = movingBoxXZ.min.x < blockBox.max.x &&
+                                movingBoxXZ.max.x > blockBox.min.x;
+                const zOverlap = movingBoxXZ.min.z < blockBox.max.z &&
+                                movingBoxXZ.max.z > blockBox.min.z;
+
                 if (xOverlap && zOverlap) {
-                    collisionDetected = true;
-                    highestY = Math.max(highestY, blockBox.max.y);
+                    xzColliders.push({ block, box: blockBox }); // Store block and its box
                 }
             }
         }
 
-        const newY = highestY + (height / 2);
-        const maxAllowedY = gridHeight - (height / 2);
+        // Find the lowest valid Y position
+        let potentialY = height / 2; // Start with bottom at Y=0
+        let validYFound = false;
 
-        if (newY > maxAllowedY) {
+        while (!validYFound) {
+            // Create a test box at the current potentialY
+            const testBox = new THREE.Box3().copy(movingBoxXZ);
+            testBox.translate(new THREE.Vector3(0, potentialY, 0)); // Adjust Y
+
+            let intersects = false;
+            for (const collider of xzColliders) {
+                // Check for vertical intersection
+                if (testBox.min.y < collider.box.max.y && testBox.max.y > collider.box.min.y) {
+                    // Intersection detected, need to place above this collider
+                    potentialY = collider.box.max.y + height / 2;
+                    intersects = true;
+                    break; // Restart check with the new potentialY
+                }
+            }
+
+            if (!intersects) {
+                validYFound = true; // No intersection at this potentialY, it's valid
+            }
+
+            // Safety break: If potentialY gets too high (e.g., exceeds grid height significantly)
+            // This prevents infinite loops in unexpected scenarios.
+            if (potentialY > gridHeight + height) {
+                 console.warn("Collision check exceeded expected height, stopping.");
+                 // Treat as collision if it goes way too high
+                 return {
+                     position: movingBlock.position, // Return original position
+                     collision: true
+                 };
+            }
+        }
+
+        // Final check against grid height
+        const maxAllowedCenterY = gridHeight - height / 2;
+        if (potentialY > maxAllowedCenterY) {
             if (bannerRef && bannerRef.current) {
-                bannerRef.current.textContent = `Cannot place block: would exceed grid height (${newY.toFixed(1)} > ${maxAllowedY.toFixed(1)})`;
+                bannerRef.current.textContent = `Cannot place block: would exceed grid height (${(potentialY + height / 2).toFixed(1)} > ${gridHeight.toFixed(1)})`;
                 bannerRef.current.style.display = 'block';
                 setTimeout(() => {
                     if (bannerRef.current) {
@@ -888,19 +938,20 @@ const Grid3D = () => {
                     }
                 }, 3000);
             }
-            return { 
-                position: movingBlock.position,
+            return {
+                position: movingBlock.position, // Return original position
                 collision: true
             };
         }
 
-        return { 
+        // Return the valid position
+        return {
             position: new THREE.Vector3(
-                offsetPosition.x,
-                newY,
-                offsetPosition.z
+                offsetPositionXZ.x, // Use the offset X
+                potentialY,         // Use the calculated lowest valid Y
+                offsetPositionXZ.z  // Use the offset Z
             ),
-            collision: collisionDetected
+            collision: false // No collision at this final position
         };
     };
 
@@ -954,53 +1005,43 @@ const Grid3D = () => {
         });
     };
 
-    // Update the createGrids function to position grids separately
-    const createGrids = (scene, grids) => {
-        const gridPositions = {
-            'Grid 1': { 
-                x: 0, 
-                z: 37,
-                rotation: 0
-            },
-            'Grid 2': { 
-                x: 0, 
-                z: 16,
-                rotation: 0
-            },
-            'Grid 3': { 
-                x: 0, 
-                z: -4,
-                rotation: 0
-            },
-            'Grid 4': { 
-                x: 0, 
-                z: -25,
-                rotation: 0
-            }
-        };
-
-        Object.entries(gridPositions).forEach(([name, position]) => {
+    // Update the createGrids function to use positions from state
+    const createGrids = (scene, gridsData, currentPositions) => {
+        Object.entries(currentPositions).forEach(([name, position]) => {
             // Create new grid if it doesn't exist
             let grid = scene.getObjectByName(name);
             if (!grid) {
-                grid = createGrid(grids[name].width, grids[name].length);
+                grid = createGrid(gridsData[name].width, gridsData[name].length);
                 grid.name = name;
                 scene.add(grid);
             }
 
-            // Set position and rotation
+            // Set position and rotation from the state
             grid.position.set(position.x, 0, position.z);
             grid.rotation.y = position.rotation;
 
-            // Update grid geometry if width or length changed
-            if (grid.geometry) {
-                const newGeometry = new THREE.BoxGeometry(grids[name].width, 1, grids[name].length);
-                grid.geometry.dispose();
-                grid.geometry = newGeometry;
+            // Update grid geometry if width or length changed (using gridsData for dimensions)
+            // Check if grid lines exist before trying to update geometry
+            const linesExist = grid.children.length > 0;
+            const currentWidth = linesExist ? (grid.children[0].geometry.boundingBox?.max.x - grid.children[0].geometry.boundingBox?.min.x) : gridsData[name].width;
+            const currentLength = linesExist ? (grid.children[0].geometry.boundingBox?.max.z - grid.children[0].geometry.boundingBox?.min.z) : gridsData[name].length;
+
+            if (gridsData[name].width !== currentWidth || gridsData[name].length !== currentLength) {
+                 // Remove old lines
+                 while (grid.children.length > 0) {
+                    const child = grid.children[0];
+                    if (child.geometry) child.geometry.dispose();
+                    if (child.material) child.material.dispose();
+                    grid.remove(child);
+                 }
+                 // Add new lines based on gridsData dimensions
+                 const newGridLines = createGrid(gridsData[name].width, gridsData[name].length);
+                 newGridLines.children.forEach(line => grid.add(line.clone())); // Add clones to avoid issues
             }
 
+
             // Hide grid if it's 1x1, show if larger
-            grid.visible = !(grids[name].width === 1 && grids[name].length === 1);
+            grid.visible = !(gridsData[name].width === 1 && gridsData[name].length === 1);
         });
     };
 
@@ -1095,8 +1136,8 @@ const Grid3D = () => {
         mountRef.current.appendChild(renderer.domElement);
         rendererRef.current = renderer; // Store the renderer in the ref
 
-        // Create the grids
-        createGrids(scene, grids);
+        // Create the grids using the state positions
+        createGrids(scene, grids, gridPositions);
 
         // Add white background planes for each grid
         createBackgroundPlanes(scene, grids);
@@ -1153,24 +1194,28 @@ const Grid3D = () => {
             raycaster.setFromCamera(mouse, camera);
 
             // Calculate objects intersecting the picking ray
-            const intersects = raycaster.intersectObjects(blocks.current);
+            const intersectsBlocks = raycaster.intersectObjects(blocks.current);
+            let targetBlock = null;
 
-            if (blockCellMode && !intersects.length) {
-                // If in block cell mode and clicking empty space
-                const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
-                const intersection = new THREE.Vector3();
-                raycaster.ray.intersectPlane(plane, intersection);
+            // Find the first block with opacity > 0.5
+            for (const intersect of intersectsBlocks) {
+                const block = intersect.object;
+                if (block.material.uniforms.uOpacity.value > 0.5) {
+                    targetBlock = block;
+                    break; // Found the block to interact with
+                }
+                // Otherwise, ignore this block and continue checking
+            }
 
-                // Snap to grid
-                const snappedX = Math.round(intersection.x);
-                const snappedZ = Math.round(intersection.z);
-
-                // Toggle cell block state
-                handleCellBlock(activeGridTab, snappedX, snappedZ);
-            } else if (intersects.length > 0) {
+            // Check if a suitable block was found
+            if (targetBlock) {
                 // Left click - select block
-                if (event.button === 0) { // 0 = left click
-                    const clickedBlock = intersects[0].object;
+                if (event.button === 0) {
+                    const clickedBlock = targetBlock; // Use the found block
+                    
+                    // --- Conditional Dragging Logic ---
+                    // The check for opacity <= 0.5 is now implicitly handled
+                    // by only selecting blocks with opacity > 0.5 above.
                     
                     // Only update if clicking a different block
                     if (!selectedObject.current || selectedObject.current !== clickedBlock) {
@@ -1205,27 +1250,69 @@ const Grid3D = () => {
                         });
                     }
                 }
-                // Right click - start rotating
-                else if (event.button === 2) { // 2 = right click
+                // Right click - start rotating camera (even if clicking through low-opacity blocks)
+                else if (event.button === 2) { 
                     isRotating.current = true;
                     lastMousePosition.current = {
                         x: event.clientX,
                         y: event.clientY
                     };
                 }
-            } else {
-                // Clicked empty space - start rotating
-                isRotating.current = true;
-                lastMousePosition.current = {
-                    x: event.clientX,
-                    y: event.clientY
-                };
+            } else { // No suitable block found (either no blocks hit, or all hit blocks had low opacity)
+                // Check for grid interaction or empty space click
+                const mainGrids = scene.children.filter(obj => obj.name && obj.name.startsWith('Grid '));
+                const intersectsGrids = raycaster.intersectObjects(mainGrids, true); // Check grid lines
+
+                if (blockCellMode && !intersectsBlocks.length && !intersectsGrids.length) { // Added !intersectsGrids check
+                    // If in block cell mode and clicking empty space
+                    const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+                    const intersection = new THREE.Vector3();
+                    raycaster.ray.intersectPlane(plane, intersection);
+
+                    // Snap to grid
+                    const snappedX = Math.round(intersection.x);
+                    const snappedZ = Math.round(intersection.z);
+
+                    // Toggle cell block state
+                    handleCellBlock(activeGridTab, snappedX, snappedZ);
+                } else if (event.button === 0 && intersectsGrids.length > 0) {
+                     // Left click on a main grid - start dragging the grid
+                     // Find the top-level grid group object
+                     let clickedGrid = intersectsGrids[0].object;
+                     while (clickedGrid.parent && !clickedGrid.name?.startsWith('Grid ')) {
+                         clickedGrid = clickedGrid.parent;
+                     }
+                     if (clickedGrid.name?.startsWith('Grid ')) {
+                         draggedGrid.current = clickedGrid;
+                         // Prevent camera rotation while dragging grid
+                         isRotating.current = false;
+                     } else {
+                         // If no grid found, allow camera rotation on empty space click
+                         isRotating.current = true;
+                         lastMousePosition.current = { x: event.clientX, y: event.clientY };
+                     }
+                } else {
+                    // Clicked empty space or right-clicked grid/empty space - start rotating camera
+                    isRotating.current = true;
+                    lastMousePosition.current = {
+                        x: event.clientX,
+                        y: event.clientY
+                    };
+                }
             }
         };
 
         const onMouseMove = (event) => {
+            // Get mouse position in normalized device coordinates
+            const rect = renderer.domElement.getBoundingClientRect();
+            mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+            mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+            // Update the picking ray with the camera and mouse position
+            raycaster.setFromCamera(mouse, camera);
+
             if (isRotating.current) {
-                // Calculate mouse movement (inverted)
+                // ... existing camera rotation code ...
                 const deltaX = lastMousePosition.current.x - event.clientX;
                 const deltaY = lastMousePosition.current.y - event.clientY;
                 
@@ -1283,14 +1370,7 @@ const Grid3D = () => {
                     y: event.clientY
                 };
             } else if (selectedObject.current) {
-                // Get mouse position in normalized device coordinates
-                const rect = renderer.domElement.getBoundingClientRect();
-                mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
-                mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
-
-                // Update the picking ray with the camera and mouse position
-                raycaster.setFromCamera(mouse, camera);
-
+                // ... existing block dragging code ...
                 // Find intersection with the ground plane
                 const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
                 const intersection = new THREE.Vector3();
@@ -1315,6 +1395,17 @@ const Grid3D = () => {
                     // Update block position
                     selectedObject.current.position.copy(collisionResult.position);
                 }
+            } else if (draggedGrid.current) {
+                 // Dragging a grid
+                 const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0); // Ground plane at y=0
+                 const intersection = new THREE.Vector3();
+                 if (raycaster.ray.intersectPlane(plane, intersection)) {
+                     // Move the grid on the XZ plane, snapping to the nearest integer
+                     draggedGrid.current.position.x = snapToGrid(intersection.x, 1); // Snap X
+                     draggedGrid.current.position.z = snapToGrid(intersection.z, 1); // Snap Z
+                     // Keep grid at y=0
+                     draggedGrid.current.position.y = 0;
+                 }
             }
         };
 
@@ -1322,6 +1413,28 @@ const Grid3D = () => {
             if (selectedObject.current) {
                 selectedObject.current = null;
                 saveBlocksToLocalStorage();
+            }
+            if (draggedGrid.current) {
+                 // Update the position state for the dragged grid
+                 const gridName = draggedGrid.current.name;
+                 const newPosition = {
+                     x: draggedGrid.current.position.x,
+                     z: draggedGrid.current.position.z,
+                     rotation: draggedGrid.current.rotation.y // Assuming rotation doesn't change during drag
+                 };
+
+                 // Use functional update for setGridPositions
+                 setGridPositions(prevPositions => {
+                     const updatedPositions = {
+                         ...prevPositions,
+                         [gridName]: newPosition
+                     };
+                     // Save updated positions to localStorage *inside* the updater
+                     localStorage.setItem('gridPositions', JSON.stringify(updatedPositions));
+                     return updatedPositions; // Return the new state
+                 });
+
+                 draggedGrid.current = null;
             }
             isRotating.current = false;
         };
@@ -1343,6 +1456,28 @@ const Grid3D = () => {
                 }
                 
                 selectedObject.current = null;
+            }
+            if (draggedGrid.current) {
+                 // Update the position state for the dragged grid before stopping
+                 const gridName = draggedGrid.current.name;
+                 const newPosition = {
+                     x: draggedGrid.current.position.x,
+                     z: draggedGrid.current.position.z,
+                     rotation: draggedGrid.current.rotation.y
+                 };
+
+                 // Use functional update for setGridPositions
+                 setGridPositions(prevPositions => {
+                     const updatedPositions = {
+                         ...prevPositions,
+                         [gridName]: newPosition
+                     };
+                     // Save updated positions to localStorage *inside* the updater
+                     localStorage.setItem('gridPositions', JSON.stringify(updatedPositions));
+                     return updatedPositions; // Return the new state
+                 });
+
+                 draggedGrid.current = null;
             }
             isRotating.current = false;
         };
@@ -1643,23 +1778,18 @@ const Grid3D = () => {
         }
     };
 
-    // Update the useEffect hook to handle grid changes
+    // Update the useEffect hook to handle grid changes (dimensions and positions)
     useEffect(() => {
         const updateSceneGrids = () => {
             const scene = sceneRef.current;
             if (scene) {
-                // Remove existing grids
-                scene.children
-                    .filter(obj => obj.name && obj.name.startsWith('Grid'))
-                    .forEach(grid => scene.remove(grid));
-
-                // Create new grids with updated dimensions
-                createGrids(scene, grids);
+                // Update grids with current dimensions (from grids state) and positions (from gridPositions state)
+                createGrids(scene, grids, gridPositions);
             }
         };
 
         updateSceneGrids();
-    }, [grids]);
+    }, [grids, gridPositions]); // Add gridPositions as a dependency
 
     // Update the updateMissionsWithBlocks function
     const updateMissionsWithBlocks = () => {
@@ -1688,20 +1818,27 @@ const Grid3D = () => {
         blocks.current.forEach(block => {
             // Store original color if not already stored
             if (!block.userData.originalColor) {
-                block.userData.originalColor = block.material.uniforms.uColor.value.clone();
+                // Ensure originalColor is a THREE.Color object
+                if (!(block.material.uniforms.uColor.value instanceof THREE.Color)) {
+                     block.userData.originalColor = new THREE.Color(block.material.uniforms.uColor.value);
+                } else {
+                     block.userData.originalColor = block.material.uniforms.uColor.value.clone();
+                }
             }
 
-            // This will highlight the selected Mission blocks
-            if (block.userData && block.userData.missionIndex === missionIndex) {
-                // Selected mission blocks stay fully opaque
+            // Check if the block belongs to the highlighted mission
+            const isHighlightedBlock = block.userData && block.userData.missionIndex === missionIndex;
+
+            if (isHighlightedBlock) {
+                // Selected mission blocks stay fully opaque and slightly brighter
                 const highlightColor = new THREE.Color(block.userData.originalColor).multiplyScalar(1.5);
                 block.material.uniforms.uColor.value.copy(highlightColor);
                 block.material.uniforms.uOpacity.value = 1.0;
             } else {
-                // Non-mission blocks use the opacity slider value
+                // Non-mission blocks (or blocks without missionIndex) use the opacity slider value and are dimmed
                 const dimColor = new THREE.Color(block.userData.originalColor).multiplyScalar(0.3);
                 block.material.uniforms.uColor.value.copy(dimColor);
-                block.material.uniforms.uOpacity.value = opacity;
+                block.material.uniforms.uOpacity.value = opacity; // Apply global opacity
             }
         });
     };
@@ -1786,22 +1923,38 @@ const Grid3D = () => {
         if (!scene) return;
 
         blocks.current.forEach(block => {
+            // Ensure original color is stored correctly, especially for blocks added without commodity initially
+             if (!block.userData.originalColor) {
+                 if (!(block.material.uniforms.uColor.value instanceof THREE.Color)) {
+                      block.userData.originalColor = new THREE.Color(block.material.uniforms.uColor.value);
+                 } else {
+                      block.userData.originalColor = block.material.uniforms.uColor.value.clone();
+                 }
+             }
+
+            // Determine the base color (commodity color or original if no commodity)
+            let baseColor;
             if (block.userData.commodity) {
-                const baseColor = new THREE.Color(
-                    Math.abs(hashCode(block.userData.commodity) % 0xffffff)
-                );
+                 baseColor = new THREE.Color(
+                     Math.abs(hashCode(block.userData.commodity) % 0xffffff)
+                 );
+            } else {
+                 baseColor = new THREE.Color(block.userData.originalColor); // Use original color if no commodity
+            }
+
+            // Check if the block belongs to the highlighted commodity
+            const isHighlightedBlock = block.userData.commodity === commodity;
                 
-                if (block.userData.commodity === commodity) {
-                    // Selected commodity stays fully opaque
-                    const highlightColor = baseColor.multiplyScalar(1.5);
-                    block.material.uniforms.uColor.value.copy(highlightColor);
-                    block.material.uniforms.uOpacity.value = 1.0;
-                } else {
-                    // Other commodities use the opacity slider value
-                    const dimColor = baseColor.multiplyScalar(0.3);
-                    block.material.uniforms.uColor.value.copy(dimColor);
-                    block.material.uniforms.uOpacity.value = opacity;
-                }
+            if (isHighlightedBlock) {
+                // Selected commodity stays fully opaque and slightly brighter
+                const highlightColor = baseColor.multiplyScalar(1.5);
+                block.material.uniforms.uColor.value.copy(highlightColor);
+                block.material.uniforms.uOpacity.value = 1.0;
+            } else {
+                // Other commodities (or blocks without commodity) use the opacity slider value and are dimmed
+                const dimColor = baseColor.multiplyScalar(0.3);
+                block.material.uniforms.uColor.value.copy(dimColor);
+                block.material.uniforms.uOpacity.value = opacity; // Apply global opacity
             }
         });
     };
@@ -1965,6 +2118,15 @@ const Grid3D = () => {
     const renderControlsModal = () => {
         if (!showControlsModal) return null;
 
+        const loadExampleData = () => {
+            const exampleData = [
+                {"size":"8SCU","position":{"x":-14,"y":7,"z":16},"rotation":0,"commodity":"Aluminum (Raw)","color":16753920},{"size":"8SCU","position":{"x":-20,"y":1,"z":16},"rotation":0,"commodity":"Aluminum (Raw)","color":16753920},{"size":"8SCU","position":{"x":-18,"y":3,"z":12},"rotation":0,"commodity":"Aluminum (Raw)","color":16753920},{"size":"16SCU","position":{"x":-17,"y":9,"z":8},"rotation":0,"commodity":"Aluminum (Raw)","color":8388736},{"size":"16SCU","position":{"x":-19,"y":11,"z":12},"rotation":1.5707963267948966,"commodity":"Aluminum (Raw)","color":8388736},{"size":"16SCU","position":{"x":-22,"y":5,"z":13},"rotation":0,"commodity":"Aluminum (Raw)","color":8388736},{"size":"16SCU","position":{"x":-18,"y":1,"z":18},"rotation":0,"commodity":"Aluminum (Raw)","color":8388736},{"size":"32SCU","position":{"x":-16,"y":5,"z":15},"rotation":1.5707963267948966,"commodity":"Aluminum (Raw)","color":16711680},{"size":"32SCU","position":{"x":-13,"y":1,"z":14},"rotation":0,"commodity":"Aluminum (Raw)","color":16711680},{"size":"32SCU","position":{"x":-16,"y":1,"z":3},"rotation":1.5707963267948966,"commodity":"Aluminum (Raw)","color":16711680},{"size":"32SCU","position":{"x":-21,"y":7,"z":17},"rotation":0,"commodity":"Aluminum (Raw)","color":16711680},{"size":"32SCU","position":{"x":-17,"y":5,"z":8},"rotation":0,"commodity":"Aluminum (Raw)","color":16711680},{"size":"8SCU","position":{"x":-17,"y":3,"z":10},"rotation":0,"commodity":"Bioplastic","color":16753920},{"size":"8SCU","position":{"x":-21,"y":7,"z":6},"rotation":0,"commodity":"Bioplastic","color":16753920},{"size":"8SCU","position":{"x":-15,"y":3,"z":10},"rotation":0,"commodity":"Bioplastic","color":16753920},{"size":"8SCU","position":{"x":-19,"y":7,"z":11},"rotation":0,"commodity":"Bioplastic","color":16753920},{"size":"8SCU","position":{"x":-18,"y":5,"z":13},"rotation":0,"commodity":"Bioplastic","color":16753920},{"size":"16SCU","position":{"x":-19,"y":9,"z":12},"rotation":0,"commodity":"Bioplastic","color":8388736},{"size":"16SCU","position":{"x":-15,"y":1,"z":16},"rotation":0,"commodity":"Bioplastic","color":8388736},{"size":"16SCU","position":{"x":-17,"y":1,"z":6},"rotation":0,"commodity":"Bioplastic","color":8388736},{"size":"32SCU","position":{"x":-20,"y":3,"z":13},"rotation":0,"commodity":"Bioplastic","color":16711680},{"size":"32SCU","position":{"x":-23,"y":3,"z":10},"rotation":3.141592653589793,"commodity":"Bioplastic","color":16711680},{"size":"8SCU","position":{"x":-16,"y":7,"z":6},"rotation":0,"commodity":"Jahlium","color":16753920},{"size":"8SCU","position":{"x":-15,"y":1,"z":6},"rotation":0,"commodity":"Jahlium","color":16753920},{"size":"8SCU","position":{"x":-20,"y":3,"z":8},"rotation":0,"commodity":"Jahlium","color":16753920},{"size":"8SCU","position":{"x":-14,"y":3,"z":17},"rotation":1.5707963267948966,"commodity":"Jahlium","color":16753920},{"size":"8SCU","position":{"x":-13,"y":3,"z":13},"rotation":0,"commodity":"Jahlium","color":16753920},{"size":"16SCU","position":{"x":-22,"y":1,"z":7},"rotation":0,"commodity":"Jahlium","color":8388736},{"size":"16SCU","position":{"x":-23,"y":1,"z":18},"rotation":0,"commodity":"Jahlium","color":8388736},{"size":"16SCU","position":{"x":-19,"y":1,"z":14},"rotation":1.5707963267948966,"commodity":"Jahlium","color":8388736},{"size":"16SCU","position":{"x":-21,"y":5,"z":10},"rotation":1.5707963267948966,"commodity":"Jahlium","color":8388736},{"size":"16SCU","position":{"x":-15,"y":3,"z":14},"rotation":0,"commodity":"Jahlium","color":8388736},{"size":"16SCU","position":{"x":-22,"y":5,"z":6},"rotation":1.5707963267948966,"commodity":"Jahlium","color":8388736},{"size":"32SCU","position":{"x":-20,"y":1,"z":11},"rotation":1.5707963267948966,"commodity":"Jahlium","color":16711680},{"size":"32SCU","position":{"x":-24,"y":1,"z":6},"rotation":0,"commodity":"Jahlium","color":16711680},{"size":"32SCU","position":{"x":-20,"y":5,"z":17},"rotation":1.5707963267948966,"commodity":"Jahlium","color":16711680},{"size":"32SCU","position":{"x":-47,"y":1,"z":24},"rotation":0,"commodity":"Jahlium","color":16711680}
+            ];
+            localStorage.setItem('savedBlocks', JSON.stringify(exampleData));
+            // Optionally, reload the blocks after loading the example data
+            loadBlocksFromLocalStorage();
+        };
+
         return (
             <div style={{
                 position: 'fixed',
@@ -1990,6 +2152,21 @@ const Grid3D = () => {
                     <p><strong>Delete Key:</strong> Delete selected block</p>
                     <p><strong>Ctrl+Z:</strong> Undo last deletion</p>
                 </div>
+                <button
+                    onClick={loadExampleData}
+                    style={{
+                        display: 'block',
+                        margin: '10px auto 0',
+                        padding: '8px 16px',
+                        backgroundColor: '#555',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '4px',
+                        cursor: 'pointer'
+                    }}
+                >
+                    Load Example
+                </button>
                 <button 
                     onClick={() => setShowControlsModal(false)}
                     style={{
@@ -2039,15 +2216,11 @@ const Grid3D = () => {
         } else if (!showCommodities && highlightedMission !== null) {
             highlightMissionBlocks(highlightedMission);
         }
-    }, [opacity]);
+    }, [opacity, highlightedCommodity, highlightedMission, showCommodities]); // Rerun when opacity or highlight state changes
 
-    const log1SCUBlockPositions = () => {
-        blocks.current.forEach(block => {
-            if (getBlockSize(block) === '1SCU') {
-                console.log(`1 SCU Block at position: x=${block.position.x}, y=${block.position.y}, z=${block.position.z}`);
-            }
-        });
-    };
+    // Remove the log1SCUBlockPositions function
+    // const log1SCUBlockPositions = () => { ... }; // Deleted
+
 
     return (
         <div style={{ 
@@ -2588,10 +2761,12 @@ const Grid3D = () => {
                                     }}
                                 />
                             </div>
+
+
                         </div>
 
                         {/* Add controls in the Playground tab */}
-                        <div style={{ marginTop: '20px' }}>
+                        <div style={{ marginTop: '10px' }}> 
                             <h3 style={{ color: 'white' }}>Renderer Size</h3>
                             <div style={{ marginBottom: '10px' }}>
                                 <label style={{ color: 'white', display: 'block', marginBottom: '5px' }}>Width</label>
@@ -2604,6 +2779,12 @@ const Grid3D = () => {
                                             const newSize = { ...rendererSize, width: newWidth };
                                             setRendererSize(newSize);
                                             localStorage.setItem('rendererSize', JSON.stringify(newSize));
+                                            // Update renderer and camera immediately
+                                            if (rendererRef.current && cameraRef.current) {
+                                                rendererRef.current.setSize(newWidth, newSize.height);
+                                                cameraRef.current.aspect = newWidth / newSize.height;
+                                                cameraRef.current.updateProjectionMatrix();
+                                            }
                                         }
                                     }}
                                     style={{ width: '95%', padding: '5px', borderRadius: '4px', border: '1px solid #444' }}
@@ -2620,6 +2801,12 @@ const Grid3D = () => {
                                             const newSize = { ...rendererSize, height: newHeight };
                                             setRendererSize(newSize);
                                             localStorage.setItem('rendererSize', JSON.stringify(newSize));
+                                            // Update renderer and camera immediately
+                                            if (rendererRef.current && cameraRef.current) {
+                                                rendererRef.current.setSize(newSize.width, newHeight);
+                                                cameraRef.current.aspect = newSize.width / newHeight;
+                                                cameraRef.current.updateProjectionMatrix();
+                                            }
                                         }
                                     }}
                                     style={{ width: '95%', padding: '5px', borderRadius: '4px', border: '1px solid #444' }}
@@ -2627,8 +2814,15 @@ const Grid3D = () => {
                             </div>
                             <button 
                                 onClick={() => {
-                                    rendererRef.current.setSize(rendererSize.width, rendererSize.height);
-                                    localStorage.setItem('rendererSize', JSON.stringify(rendererSize));
+                                    // Apply button can remain for explicit re-application if needed,
+                                    // but the main update now happens onChange.
+                                    if (rendererRef.current && cameraRef.current) {
+                                        rendererRef.current.setSize(rendererSize.width, rendererSize.height);
+                                        cameraRef.current.aspect = rendererSize.width / rendererSize.height;
+                                        cameraRef.current.updateProjectionMatrix();
+                                        // Ensure localStorage is also up-to-date
+                                        localStorage.setItem('rendererSize', JSON.stringify(rendererSize));
+                                    }
                                 }}
                                 style={{
                                     padding: '8px 16px',
@@ -2642,22 +2836,6 @@ const Grid3D = () => {
                                 Apply Size
                             </button>
                         </div>
-
-                        {/* In the Playground tab section */}
-                        <button 
-                            onClick={log1SCUBlockPositions}
-                            style={{
-                                padding: '8px 16px',
-                                backgroundColor: '#444',
-                                color: 'white',
-                                border: 'none',
-                                borderRadius: '4px',
-                                cursor: 'pointer',
-                                marginTop: '10px'
-                            }}
-                        >
-                            Log 1 SCU Block Positions
-                        </button>
                     </div>
                 )}
             </div>
@@ -2920,11 +3098,15 @@ const Grid3D = () => {
                 top: '30px', // Align with the Controls button
                 left: '450px', // Position to the right of the Controls button
                 display: 'flex',
-                alignItems: 'center',
-                gap: '10px',
+                flexDirection: 'column', // Stack label and slider vertically
+                alignItems: 'center', // Center items horizontally
+                gap: '5px', // Space between label and slider
                 zIndex: 100
             }}>
-                <label style={{ color: 'white', fontSize: '14px' }}>Opacity:</label>
+                {/* Opacity Percentage Display */}
+                <label style={{ color: 'white', fontSize: '14px', marginBottom: '-5px' }}>
+                     Opacity: {Math.round(opacity * 100)}%
+                 </label>
                 <input
                     type="range"
                     min="0"
