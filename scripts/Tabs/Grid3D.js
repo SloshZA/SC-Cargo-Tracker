@@ -2581,85 +2581,99 @@ const Grid3D = () => {
                         flexDirection: 'column',
                         gap: '8px'
                     }}>
-                        {/* Existing SCU buttons */}
-                        <button 
-                            onClick={() => addBlock('1SCU')}
-                            style={{
-                                padding: '8px 16px',
-                                backgroundColor: '#00ff00',
-                                color: 'white',
-                                border: 'none',
-                                borderRadius: '4px',
-                                cursor: 'pointer'
-                            }}
-                        >
-                            Add 1SCU
-                        </button>
-                        <button 
-                            onClick={() => addBlock('2SCU')}
-                            style={{
-                                padding: '8px 16px',
-                                backgroundColor: '#0000ff',
-                                color: 'white',
-                                border: 'none',
-                                borderRadius: '4px',
-                                cursor: 'pointer'
-                            }}
-                        >
-                            Add 2SCU
-                        </button>
-                        <button 
-                            onClick={() => addBlock('4SCU')}
-                            style={{
-                                padding: '8px 16px',
-                                backgroundColor: '#ff00ff',
-                                color: 'white',
-                                border: 'none',
-                                borderRadius: '4px',
-                                cursor: 'pointer'
-                            }}
-                        >
-                            Add 4SCU
-                        </button>
-                        <button 
-                            onClick={() => addBlock('8SCU')}
-                            style={{
-                                padding: '8px 16px',
-                                backgroundColor: '#ffa500',
-                                color: 'white',
-                                border: 'none',
-                                borderRadius: '4px',
-                                cursor: 'pointer'
-                            }}
-                        >
-                            Add 8SCU
-                        </button>
-                        <button 
-                            onClick={() => addBlock('16SCU')}
-                            style={{
-                                padding: '8px 16px',
-                                backgroundColor: '#800080',
-                                color: 'white',
-                                border: 'none',
-                                borderRadius: '4px',
-                                cursor: 'pointer'
-                            }}
-                        >
-                            Add 16SCU
-                        </button>
-                        <button 
-                            onClick={() => addBlock('32SCU')}
-                            style={{
-                                padding: '8px 16px',
-                                backgroundColor: '#ff0000',
-                                color: 'white',
-                                border: 'none',
-                                borderRadius: '4px',
-                                cursor: 'pointer'
-                            }}
-                        >
-                            Add 32SCU
-                        </button>
+                        {/* Existing SCU buttons with reduced brightness */}
+                        <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between' }}>
+                            <button 
+                                onClick={() => addBlock('1SCU')}
+                                style={{
+                                    padding: '8px 16px',
+                                    backgroundColor: '#006600', // Darker green
+                                    color: 'white',
+                                    border: 'none',
+                                    borderRadius: '4px',
+                                    cursor: 'pointer',
+                                    width: '48%',
+                                    marginBottom: '8px'
+                                }}
+                            >
+                                Add 1SCU
+                            </button>
+                            <button 
+                                onClick={() => addBlock('2SCU')}
+                                style={{
+                                    padding: '8px 16px',
+                                    backgroundColor: '#000099', // Darker blue
+                                    color: 'white',
+                                    border: 'none',
+                                    borderRadius: '4px',
+                                    cursor: 'pointer',
+                                    width: '48%',
+                                    marginBottom: '8px'
+                                }}
+                            >
+                                Add 2SCU
+                            </button>
+                            <button 
+                                onClick={() => addBlock('4SCU')}
+                                style={{
+                                    padding: '8px 16px',
+                                    backgroundColor: '#990099', // Darker magenta
+                                    color: 'white',
+                                    border: 'none',
+                                    borderRadius: '4px',
+                                    cursor: 'pointer',
+                                    width: '48%',
+                                    marginBottom: '8px'
+                                }}
+                            >
+                                Add 4SCU
+                            </button>
+                            <button 
+                                onClick={() => addBlock('8SCU')}
+                                style={{
+                                    padding: '8px 16px',
+                                    backgroundColor: '#cc8400', // Darker orange
+                                    color: 'white',
+                                    border: 'none',
+                                    borderRadius: '4px',
+                                    cursor: 'pointer',
+                                    width: '48%',
+                                    marginBottom: '8px'
+                                }}
+                            >
+                                Add 8SCU
+                            </button>
+                            <button 
+                                onClick={() => addBlock('16SCU')}
+                                style={{
+                                    padding: '8px 16px',
+                                    backgroundColor: '#4b004b', // Darker purple
+                                    color: 'white',
+                                    border: 'none',
+                                    borderRadius: '4px',
+                                    cursor: 'pointer',
+                                    width: '48%',
+                                    marginBottom: '8px'
+                                }}
+                            >
+                                Add 16SCU
+                            </button>
+                            <button 
+                                onClick={() => addBlock('32SCU')}
+                                style={{
+                                    padding: '8px 16px',
+                                    backgroundColor: '#990000', // Darker red
+                                    color: 'white',
+                                    border: 'none',
+                                    borderRadius: '4px',
+                                    cursor: 'pointer',
+                                    width: '48%',
+                                    marginBottom: '8px'
+                                }}
+                            >
+                                Add 32SCU
+                            </button>
+                        </div>
 
                         {/* Add Clear Boxes button */}
                         <button 
