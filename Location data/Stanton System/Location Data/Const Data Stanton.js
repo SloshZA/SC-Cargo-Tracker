@@ -126,6 +126,7 @@ export const StantonSystemData = {
         'HDMS-Woodruff',
         'HDMS-Hahn',
         'HDMS-Perlman',
+        'HDMS-Pinewood',
         'Rayari Anvik Research Outpost',
         'Rayari Kaltag Research Outpost',
         'Shubin Mining Facility SMCa-6',
@@ -477,7 +478,9 @@ export const StantonSystemData = {
             'HDMS-Ryder',
             'HDMS-Woodruff',
             'HDMS-Hahn',
-            'HDMS-Perlman'
+            'HDMS-Perlman',
+            'HDMS-Pinewood',
+
         ],
         'Microtech': [
             'Rayari Deltana Research Outpost',
