@@ -295,6 +295,7 @@ export const StantonSystemData = {
         'Quantum Fuel',
         'Corundum Raw',
         'Iron Raw',
+        'Iron Ore',
         'Quartz Raw',
         'Silicon Raw',
         'Tin Raw',
