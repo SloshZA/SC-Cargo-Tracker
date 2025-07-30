@@ -262,35 +262,34 @@ const CaptureSubTabHauling = ({
             setOcrProgress(0);
             if (!image || typeof image !== 'string' || !image.startsWith('data:image')) {
                 if (debugFlags.ocrErrors) {
-                    logOCRError(captureDebugMode, debugFlags, 'Invalid image data provided to OCR');
+                    logOCRError('Invalid image data provided to OCR');
                 }
                 showBannerMessage('Invalid image data', false);
                 return '';
             }
 
-            if (debugFlags.ocrProcess) {
-                logOCRProcess(captureDebugMode, debugFlags, 'Starting OCR processing...');
-            }
+            // Always log the start of OCR processing
+            logOCRProcess('Starting OCR processing...');
             
             const worker = await Tesseract.createWorker({
                 logger: m => {
                     if (m.status === 'recognizing text') {
                         if (debugFlags.ocrProgress) {
-                            logOCRProgress(captureDebugMode, debugFlags, m.progress);
+                            logOCRProgress(m.progress);
                         }
                         setOcrProgress(Math.round(m.progress * 100));
                         
                         if (debugFlags.ocrRewards && m.text) {
                             const reward = extractReward(m.text);
                             if (reward) {
-                                logOCRProcess(captureDebugMode, debugFlags, 'Found reward during progress:', reward);
+                                logOCRProcess('Found reward during progress:', reward);
                             }
                         }
                     }
                 },
                 errorHandler: (err) => {
                     if (debugFlags.ocrErrors) {
-                        logOCRError(captureDebugMode, debugFlags, 'Tesseract Error:', err);
+                        logOCRError('Tesseract Error:', err);
                     }
                     showBannerMessage('OCR processing error', false);
                 }
@@ -308,21 +307,21 @@ const CaptureSubTabHauling = ({
             await worker.terminate();
 
             if (!text || text.trim() === '') {
+                // Keep this log conditional as it's an informational message about no text being detected
                 if (debugFlags.ocrProcess) {
-                    logOCRProcess(captureDebugMode, debugFlags, 'No text detected in image');
+                    logOCRProcess('No text detected in image');
                 }
                 showBannerMessage('No text detected in image. Try adjusting the capture area.', false);
                 return '';
             }
 
-            if (debugFlags.ocrProcess) {
-                logOCRProcess(captureDebugMode, debugFlags, 'Raw OCR text:', text);
-            }
+            // Always log the raw OCR text now
+            logOCRProcess('Raw OCR text:', text);
             
             // Extract reward first
             const reward = extractReward(text);
             if (reward && debugFlags.ocrRewards) {
-                logOCRProcess(captureDebugMode, debugFlags, 'Found reward:', reward);
+                logOCRProcess('Found reward:', reward);
             }
 
             const cleanedText = text.replace(/[.,]/g, '');
@@ -331,19 +330,19 @@ const CaptureSubTabHauling = ({
             const parsedResults = parseOCRResults(cleanedText, false);
             
             if (debugFlags.ocrProcess) {
-                logOCRProcess(captureDebugMode, debugFlags, 'Parsed OCR results:', parsedResults);
+                logOCRProcess('Parsed OCR results:', parsedResults);
             }
             
             // Check if we have any parsed results
             if (parsedResults && parsedResults.length > 0) {
                 if (debugFlags.ocrProcess) {
-                    logOCRProcess(captureDebugMode, debugFlags, 'Valid entries found:', parsedResults);
+                    logOCRProcess('Valid entries found:', parsedResults);
                 }
                 showBannerMessage('OCR capture successful!', true);
                 return cleanedText;
             } else {
                 if (debugFlags.ocrProcess) {
-                    logOCRProcess(captureDebugMode, debugFlags, 'No valid mission data found in:', cleanedText);
+                    logOCRProcess('No valid mission data found in:', cleanedText);
                 }
                 showBannerMessage('No valid mission data detected', false);
                 return '';
@@ -351,7 +350,7 @@ const CaptureSubTabHauling = ({
 
         } catch (error) {
             if (debugFlags.ocrErrors) {
-                logOCRError(captureDebugMode, debugFlags, 'OCR Error:', error);
+                logOCRError('OCR Error:', error);
             }
             showBannerMessage('Error processing image. Please try again.', false);
             return '';
@@ -1106,10 +1105,22 @@ const CaptureSubTabHauling = ({
                 let imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
                 let data = imgData.data;
 
-                // Convert to grayscale and apply threshold
+                // Convert to grayscale and calculate histogram
+                const grayscaleData = new Uint8ClampedArray(data.length / 4);
+                const histogram = new Array(256).fill(0);
+
                 for (let i = 0; i < data.length; i += 4) {
                     const avg = (data[i] + data[i + 1] + data[i + 2]) / 3;
-                    const color = avg > 128 ? 255 : 0; // 128 is the threshold value
+                    grayscaleData[i / 4] = avg;
+                    histogram[Math.floor(avg)]++;
+                }
+
+                // Apply Otsu's thresholding
+                const threshold = getOtsuThreshold(histogram, grayscaleData.length);
+                logOCRProcess('Otsu Threshold:', threshold);
+
+                for (let i = 0; i < data.length; i += 4) {
+                    const color = grayscaleData[i / 4] > threshold ? 255 : 0;
                     data[i] = color;
                     data[i + 1] = color;
                     data[i + 2] = color;
@@ -1120,6 +1131,40 @@ const CaptureSubTabHauling = ({
             };
         });
     }
+
+    const getOtsuThreshold = (histogram, totalPixels) => {
+        let sum = 0;
+        for (let i = 0; i < 256; i++) {
+            sum += i * histogram[i];
+        }
+
+        let sumB = 0;
+        let wB = 0;
+        let wF = 0;
+        let mB = 0;
+        let mF = 0;
+        let maxVar = 0;
+        let threshold = 0;
+
+        for (let i = 0; i < 256; i++) {
+            wB += histogram[i];
+            if (wB === 0) continue;
+            wF = totalPixels - wB;
+            if (wF === 0) break;
+
+            sumB += (i * histogram[i]);
+            mB = sumB / wB;
+            mF = (sum - sumB) / wF;
+
+            const varBetween = wB * wF * (mB - mF) * (mB - mF);
+
+            if (varBetween > maxVar) {
+                maxVar = varBetween;
+                threshold = i;
+            }
+        }
+        return threshold;
+    };
 
     const thresholdImage = (imageData, threshold) => {
         const canvas = document.createElement('canvas');
