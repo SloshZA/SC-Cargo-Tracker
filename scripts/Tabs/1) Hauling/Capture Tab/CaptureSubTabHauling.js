@@ -361,10 +361,37 @@ const CaptureSubTabHauling = ({
 
     const parseOCRResults = (text, shouldExtractReward = true) => {
         const processedText = processOCRText(text, locationCorrections);
-        const lines = processedText.split('\n').filter(line => line.trim() !== '');
+
+        // New logic to combine "Deliver" lines that are split across multiple lines
+        const rawLines = processedText.split('\n').map(line => line.trim()).filter(line => line !== '');
+        const combinedLines = [];
+
+        // Patterns for combining lines - check if a line *starts* with these
+        // These are simpler and only used for the initial line combination logic.
+        const deliverStartPattern = /^(?:Deliver|Quantity|SCU)/i;
+        const collectStartPattern = /^(?:Collect|O Collect)/i;
+
+        for (let i = 0; i < rawLines.length; i++) {
+            let currentLine = rawLines[i];
+
+            // If the current line starts with a deliver pattern and there's a next line
+            if (currentLine.match(deliverStartPattern) && (i + 1) < rawLines.length) {
+                const nextLine = rawLines[i + 1];
+
+                // If the next line does NOT start with a known mission pattern (deliver or collect),
+                // it's likely a continuation of the current deliver line.
+                if (!nextLine.match(deliverStartPattern) && !nextLine.match(collectStartPattern)) {
+                    currentLine += ' ' + nextLine; // Combine them with a space
+                    i++; // Skip the next line as it's now part of the current line
+                }
+            }
+            combinedLines.push(currentLine);
+        }
+
+        const lines = combinedLines; // Use the combined lines for subsequent parsing
         
         if (captureDebugMode) {
-            console.log('Processing OCR lines:', lines);
+            console.log('Processing OCR lines (after combining):', lines);
         }
     
         const commodityEntries = {};
@@ -372,13 +399,13 @@ const CaptureSubTabHauling = ({
         let currentPickup = null;
         let currentDropoff = null;
     
-        // Modified patterns to be more forgiving
-        const collectPattern = /(?:Collect|O Collect)\s+([\w\s]+?)(?:\s+from|\s*$)/i;
-        const pickupPattern = /(?:from|at)\s+([^.]+?)(?:\.|\s*$)/i;
-        const dropoffPattern = /(?:To|Deliver to|Deliver\s+(?:\d+\/\d+\s+)?SCU\s+to)\s+([^.]+?)(?:\.|\s*$)/i;
+        // Original patterns for detailed extraction (remain unchanged)
+        const collectPattern = /(?:Collect|O Collect)\s+([\w\s]+?)(?:(?:\s+from|\s+at)\s+([^.]+?)(?:\.|$)|\s*$)/i; // Modified to capture pickup in same line
+        const pickupPattern = /(?:from|at)\s+([^.]+?)(?:(?=\s*(?:To|Deliver))|\.|(?=\s*(?:Reward|Contract Deadline|Contracted By|PRIMARY OBJECTIVES))|$)/i; // Modified to be more flexible
+        const dropoffPattern = /(?:To|Deliver to|Deliver\s+(?:\d+\/\d+\s+)?SCU\s+to)\s+(.+?)(?:\.|(?=\s*(?:Reward|Contract Deadline|Contracted By|PRIMARY OBJECTIVES))|$)/i; // Modified to be more flexible
         const deliverPattern = /(?:Deliver|Quantity|SCU)\s*:?\s*(\d+\s*\/\s*\d+)/i;
-        const pickupLocationPattern = /(?:Port\s+Tressler|Area\s+18|Orison|Lorville|New\s+Babbage)/i;
-    
+        const pickupLocationPattern = /(?:Port\s+Tressler|Area\s+18|Orison|Lorville|New\s+Babbage|Everus Harbor|Port Olisar|Grim Hex|Levski|Cellin|Daymar|Yela|Crusader|MicroTech|ArcCorp|Hurston|Magellan|Lyria|Wala|Brio\'s Breakdown|Covalex Trading Post|Shubin Mining Facility|HDMO-Dobbs|Deakins Research Outpost|ArcCorp Mining Area|Bezdek Research Outpost|Terra Mills HydroFarm|Samson & Son\'s Salvage Center|Rayari Deltana Research Outpost|Security Post Kareah|HUR-L1|CRU-L1|ARC-L1|MIC-L1|GRIMHEX|LEVSKI|GIBSON ORBITAL|PORT OLISAR|COMMUNITY MEDICAL|COVALEX_TRADING_HUB|JUMPTOWN|SEACRAFT_RESORT|DEVIL\'S_PIT|BETHLEHEM_SHIPPING_HUB|ADIRA_FALLS|CLIO|EUTERPE|CALLIOPE|URANIA|ERATO|TERPSICHORE|THALIA|MELPOMENE|POLYHYMNIA|EGYPT|TOKYO|BERLIN|LONDON|PARIS|ROME|OSLO|MOSCOW|DUBAI|SYDNEY|RIO|HAVANA|CAIRO|ATHENS|BUDAPEST|PRAGUE|VIENNA|ZURICH|AMSTERDAM|BRUSSELS|COPENHAGEN|HELSINKI|STOCKHOLM|WARSAW|LISBON|MADRID|DUBLIN|EDINBURGH|CARDIFF|BELFAST|REYKJAVIK|GREENVILLE|AUSTIN|DALLAS|HOUSTON|SAN ANTONIO|PHOENIX|TUCSON|ALBUQUERQUE|SANTA FE|DENVER|COLORADO SPRINGS|SALT LAKE CITY|LAS VEGAS|RENO|BOISE|PORTLAND|SEATTLE|ANCHORAGE|FAIRBANKS|HONOLULU|LOS ANGELES|SAN FRANCISCO|SAN DIEGO|SACRAMENTO|FRESNO|BAKERSFIELD|PALM SPRINGS|EL PASO|SAN JUAN|ST LOUIS|KANSAS CITY|MINNEAPOLIS|ST PAUL|MILWAUKEE|CHICAGO|INDIANAPOLIS|DETROIT|CLEVELAND|COLUMBUS|CINCINNATI|LOUISVILLE|NASHVILLE|MEMPHIS|NEW ORLEANS|ATLANTA|MIAMI|ORLANDO|TAMPA|CHARLOTTE|RALEIGH|DURHAM|RICHMOND|BALTIMORE|PHILADELPHIA|PITTSBURGH|WASHINGTON|BOSTON|NEW YORK|BUFFALO|ROCHESTER|SYRACUSE|ALBANY|HARTFORD|PROVIDENCE|MONTREAL|TORONTO|VANCOUVER|CALGARY|EDMONTON|WINNIPEG|OTTAWA|QUEBEC CITY|HALIFAX|ST JOHN\'S|MEXICO CITY|GUADALAJARA|MONTERREY|CANCUN|PUERTO VALLARTA|CABO SAN LUCAS|PUNTA CANA|KINGSTON|NASSAU|SANTO DOMINGO|PORT AU PRINCE|HAVANA|SAN SALVADOR|TEGUCIGALPA|MANAGUA|SAN JOSE|PANAMA CITY|BOGOTA|MEDELLIN|CALI|QUITO|GUAYAQUIL|LIMA|SANTIAGO|BUENOS AIRES|SAO PAULO|RIO DE JANEIRO|BRASILIA|MONTEVIDEO|ASUNCION|LA PAZ|SANTA CRUZ|CARACAS|MARACAIBO|VALENCIA|GEORGETOWN|PARAMARIBO|CAYENNE)/i;
+
         for (let i = 0; i < lines.length; i++) {
             const line = lines[i].trim();
             
@@ -409,18 +436,11 @@ const CaptureSubTabHauling = ({
                 let quantity = deliverMatch[1].replace(/\s*\/\s*/, '/').trim();
                 quantity = quantity.split('/')[1] || quantity;
     
-                // Look for dropoff location in this line or next line
+                // Look for dropoff location in this line
                 let dropoffLocation = '';
                 const dropoffMatch = line.match(dropoffPattern);
                 if (dropoffMatch) {
                     dropoffLocation = dropoffMatch[1].trim();
-                } else if (i + 1 < lines.length) {
-                    // Check next line for dropoff location
-                    const nextLineDropoff = lines[i + 1].match(dropoffPattern);
-                    if (nextLineDropoff) {
-                        dropoffLocation = nextLineDropoff[1].trim();
-                        i++; // Skip next line since we used it
-                    }
                 }
     
                 if (dropoffLocation) {

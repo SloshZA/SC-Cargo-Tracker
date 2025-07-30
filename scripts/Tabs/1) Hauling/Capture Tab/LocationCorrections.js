@@ -63,6 +63,7 @@ export const locationCorrections = {
         'MIC-L2 Long Forest Station i': 'MIC-L2 Long Forest Station',
         'Processed Foad': 'Processed Food',
         'Port Tressler i': 'Port Tressler',
+        'Port Tressler j': 'Port Tressler',
         'Greycat Stantan IV Production Complex-A': 'Greycat Stanton IV Production Complex-A',
         'Sakura Sun Goldenrod Workcenter_': 'Sakura Sun Goldenrod Workcenter',
         'Port Tressier- i': 'Port Tressler',

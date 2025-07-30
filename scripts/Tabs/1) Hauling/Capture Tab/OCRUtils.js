@@ -1,5 +1,7 @@
 // Fuzzy matching for OCR results
 export const findClosestMatch = (input, options) => {
+    // This log will show what string findClosestMatch is trying to match
+    console.log('[DEBUG] findClosestMatch Input:', input);
     if (!input || !options || options.length === 0) return null;
 
     // Ensure input is a string
