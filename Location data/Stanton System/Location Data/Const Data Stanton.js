@@ -139,6 +139,7 @@ export const StantonSystemData = {
         'Rayari Cantwell Research Outpost',
         'Rayari McGrath Research Outpost',
         'Devlin Scrap & Salvage',
+        'Teasa Spaceport',
     ],
 
     Dropoffpoints: {
@@ -148,6 +149,7 @@ export const StantonSystemData = {
             '--City--',
             'Lorville',
             'Riker Memorial Spaceport',
+            'Teasa Spaceport',
             '--Distribution Center--',
             'Covalex Distribution Centre S1DC06',
             'Greycat Stanton 1 Production Complex-B',

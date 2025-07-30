@@ -399,10 +399,12 @@ const CaptureSubTabHauling = ({
         let currentPickup = null;
         let currentDropoff = null;
     
-        // Original patterns for detailed extraction (remain unchanged)
-        const collectPattern = /(?:Collect|O Collect)\s+([\w\s]+?)(?:(?:\s+from|\s+at)\s+([^.]+?)(?:\.|$)|\s*$)/i; // Modified to capture pickup in same line
+        // Modified patterns to be more forgiving
+        // Relaxed the ending condition for dropoffPattern to allow for "in Lorville" or "on microTech"
+        // by making the last part `(.+?)` extend until a clear new section keyword or the very end.
+        const collectPattern = /(?:Collect|O Collect)\s+([\w\s]+?)(?:(?:\s+from|\s+at)\s+([^.]+?)(?:(?=\s*(?:To|Deliver))|\.|(?=\s*(?:Reward|Contract Deadline|Contracted By|PRIMARY OBJECTIVES))|$))/i; // Modified to capture pickup in same line
         const pickupPattern = /(?:from|at)\s+([^.]+?)(?:(?=\s*(?:To|Deliver))|\.|(?=\s*(?:Reward|Contract Deadline|Contracted By|PRIMARY OBJECTIVES))|$)/i; // Modified to be more flexible
-        const dropoffPattern = /(?:To|Deliver to|Deliver\s+(?:\d+\/\d+\s+)?SCU\s+to)\s+(.+?)(?:\.|(?=\s*(?:Reward|Contract Deadline|Contracted By|PRIMARY OBJECTIVES))|$)/i; // Modified to be more flexible
+        const dropoffPattern = /(?:To|Deliver to|Deliver\s+(?:\d+\/\d+\s+)?SCU\s+to)\s+(.+?)(?=\s*(?:Reward|Contract Deadline|Contracted By|PRIMARY OBJECTIVES|Collect|To|Deliver|$))/i; // Relaxed: capture until a new clear section (Reward, Collect, To, Deliver) or end of string
         const deliverPattern = /(?:Deliver|Quantity|SCU)\s*:?\s*(\d+\s*\/\s*\d+)/i;
         const pickupLocationPattern = /(?:Port\s+Tressler|Area\s+18|Orison|Lorville|New\s+Babbage|Everus Harbor|Port Olisar|Grim Hex|Levski|Cellin|Daymar|Yela|Crusader|MicroTech|ArcCorp|Hurston|Magellan|Lyria|Wala|Brio\'s Breakdown|Covalex Trading Post|Shubin Mining Facility|HDMO-Dobbs|Deakins Research Outpost|ArcCorp Mining Area|Bezdek Research Outpost|Terra Mills HydroFarm|Samson & Son\'s Salvage Center|Rayari Deltana Research Outpost|Security Post Kareah|HUR-L1|CRU-L1|ARC-L1|MIC-L1|GRIMHEX|LEVSKI|GIBSON ORBITAL|PORT OLISAR|COMMUNITY MEDICAL|COVALEX_TRADING_HUB|JUMPTOWN|SEACRAFT_RESORT|DEVIL\'S_PIT|BETHLEHEM_SHIPPING_HUB|ADIRA_FALLS|CLIO|EUTERPE|CALLIOPE|URANIA|ERATO|TERPSICHORE|THALIA|MELPOMENE|POLYHYMNIA|EGYPT|TOKYO|BERLIN|LONDON|PARIS|ROME|OSLO|MOSCOW|DUBAI|SYDNEY|RIO|HAVANA|CAIRO|ATHENS|BUDAPEST|PRAGUE|VIENNA|ZURICH|AMSTERDAM|BRUSSELS|COPENHAGEN|HELSINKI|STOCKHOLM|WARSAW|LISBON|MADRID|DUBLIN|EDINBURGH|CARDIFF|BELFAST|REYKJAVIK|GREENVILLE|AUSTIN|DALLAS|HOUSTON|SAN ANTONIO|PHOENIX|TUCSON|ALBUQUERQUE|SANTA FE|DENVER|COLORADO SPRINGS|SALT LAKE CITY|LAS VEGAS|RENO|BOISE|PORTLAND|SEATTLE|ANCHORAGE|FAIRBANKS|HONOLULU|LOS ANGELES|SAN FRANCISCO|SAN DIEGO|SACRAMENTO|FRESNO|BAKERSFIELD|PALM SPRINGS|EL PASO|SAN JUAN|ST LOUIS|KANSAS CITY|MINNEAPOLIS|ST PAUL|MILWAUKEE|CHICAGO|INDIANAPOLIS|DETROIT|CLEVELAND|COLUMBUS|CINCINNATI|LOUISVILLE|NASHVILLE|MEMPHIS|NEW ORLEANS|ATLANTA|MIAMI|ORLANDO|TAMPA|CHARLOTTE|RALEIGH|DURHAM|RICHMOND|BALTIMORE|PHILADELPHIA|PITTSBURGH|WASHINGTON|BOSTON|NEW YORK|BUFFALO|ROCHESTER|SYRACUSE|ALBANY|HARTFORD|PROVIDENCE|MONTREAL|TORONTO|VANCOUVER|CALGARY|EDMONTON|WINNIPEG|OTTAWA|QUEBEC CITY|HALIFAX|ST JOHN\'S|MEXICO CITY|GUADALAJARA|MONTERREY|CANCUN|PUERTO VALLARTA|CABO SAN LUCAS|PUNTA CANA|KINGSTON|NASSAU|SANTO DOMINGO|PORT AU PRINCE|HAVANA|SAN SALVADOR|TEGUCIGALPA|MANAGUA|SAN JOSE|PANAMA CITY|BOGOTA|MEDELLIN|CALI|QUITO|GUAYAQUIL|LIMA|SANTIAGO|BUENOS AIRES|SAO PAULO|RIO DE JANEIRO|BRASILIA|MONTEVIDEO|ASUNCION|LA PAZ|SANTA CRUZ|CARACAS|MARACAIBO|VALENCIA|GEORGETOWN|PARAMARIBO|CAYENNE)/i;
 
@@ -441,6 +443,9 @@ const CaptureSubTabHauling = ({
                 const dropoffMatch = line.match(dropoffPattern);
                 if (dropoffMatch) {
                     dropoffLocation = dropoffMatch[1].trim();
+                    if (captureDebugMode) {
+                        console.log('Extracted dropoff location:', dropoffLocation); // Added debug log
+                    }
                 }
     
                 if (dropoffLocation) {
