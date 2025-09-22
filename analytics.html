@@ -1,0 +1,737 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SC Cargo - Analytics Dashboard</title>
+    <style>
+        :root {
+            --background-color: #1a1a1a;
+            --text-color: #ffffff;
+            --title-color: #4CAF50;
+            --button-color: #2196F3;
+            --border-color: #444;
+            --card-background: #2a2a2a;
+            --success-color: #4CAF50;
+            --warning-color: #FF9800;
+            --error-color: #F44336;
+            --info-color: #2196F3;
+            --gold-color: #FFD700;
+            --purple-color: #9C27B0;
+            --cyan-color: #00BCD4;
+            --pink-color: #E91E63;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--background-color);
+            color: var(--text-color);
+            line-height: 1.6;
+            overflow-x: auto;
+        }
+
+        .header {
+            background: linear-gradient(135deg, var(--button-color), var(--success-color));
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .card {
+            background: var(--card-background);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.2);
+        }
+
+        .card h3 {
+            color: var(--title-color);
+            margin-bottom: 15px;
+            font-size: 1.3rem;
+            border-bottom: 2px solid var(--title-color);
+            padding-bottom: 8px;
+        }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+        }
+
+        .metric-card {
+            background: #333;
+            padding: 15px;
+            border-radius: 6px;
+            text-align: center;
+            border: 1px solid #444;
+        }
+
+        .metric-value {
+            font-size: 1.8rem;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .metric-label {
+            font-size: 0.9rem;
+            color: #ccc;
+        }
+
+        .chart-container {
+            height: 250px;
+            overflow-y: auto;
+            padding: 10px;
+        }
+
+        .bar-chart {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .bar-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 8px;
+            background: #333;
+            border-radius: 4px;
+            transition: background-color 0.2s ease;
+        }
+
+        .bar-item:hover {
+            background: #444;
+        }
+
+        .bar-label {
+            min-width: 100px;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        .bar-visual {
+            flex: 1;
+            height: 24px;
+            background: #333;
+            border-radius: 3px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .bar-fill {
+            height: 100%;
+            border-radius: 3px;
+            transition: width 0.6s ease;
+            position: relative;
+        }
+
+        .bar-value {
+            min-width: 100px;
+            text-align: right;
+            font-size: 0.9rem;
+            font-weight: bold;
+        }
+
+        .profitability-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .profitability-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            background: #333;
+            border-radius: 6px;
+            border-left: 4px solid var(--success-color);
+            transition: all 0.2s ease;
+        }
+
+        .profitability-item:hover {
+            background: #444;
+            transform: translateX(5px);
+        }
+
+        .item-info h4 {
+            color: var(--warning-color);
+            margin-bottom: 4px;
+            font-size: 1rem;
+        }
+
+        .item-stats {
+            font-size: 0.8rem;
+            color: #ccc;
+        }
+
+        .item-profit {
+            text-align: right;
+        }
+
+        .profit-per-scu {
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: var(--success-color);
+            margin-bottom: 2px;
+        }
+
+        .total-profit {
+            font-size: 0.8rem;
+            color: #ccc;
+        }
+
+        .full-width {
+            grid-column: 1 / -1;
+        }
+
+        .no-data {
+            text-align: center;
+            color: #666;
+            font-style: italic;
+            padding: 40px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: var(--info-color);
+        }
+
+        .export-controls {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            gap: 10px;
+            z-index: 1000;
+        }
+
+        .export-btn {
+            padding: 10px 15px;
+            background: var(--button-color);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background-color 0.2s ease;
+        }
+
+        .export-btn:hover {
+            background: #1976D2;
+        }
+
+        .export-btn.danger {
+            background: var(--error-color);
+        }
+
+        .export-btn.danger:hover {
+            background: #D32F2F;
+        }
+
+        @media (max-width: 768px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .export-controls {
+                position: relative;
+                top: auto;
+                right: auto;
+                justify-content: center;
+                margin-bottom: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="export-controls">
+        <button class="export-btn" onclick="exportData()">📁 Export Data</button>
+        <button class="export-btn danger" onclick="resetData()">🔄 Reset Data</button>
+        <button class="export-btn" onclick="window.close()">❌ Close</button>
+    </div>
+
+    <div class="header">
+        <h1>📊 SC Cargo Analytics Dashboard</h1>
+        <p>Comprehensive trading performance analysis</p>
+    </div>
+
+    <div class="container">
+        <div id="loading" class="loading">
+            <h2>Loading analytics data...</h2>
+            <p>Please wait while we process your trading data.</p>
+        </div>
+
+        <div id="analytics-content" style="display: none;">
+            <!-- Financial Overview -->
+            <div class="card full-width">
+                <h3>💰 Financial Overview</h3>
+                <div class="metrics-grid" id="financial-metrics">
+                    <!-- Populated by JavaScript -->
+                </div>
+            </div>
+
+            <div class="grid">
+                <!-- Daily Earnings Chart -->
+                <div class="card">
+                    <h3>📈 Daily Earnings (Last 30 Days)</h3>
+                    <div class="chart-container">
+                        <div class="bar-chart" id="daily-earnings">
+                            <!-- Populated by JavaScript -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Monthly Earnings Chart -->
+                <div class="card">
+                    <h3>📊 Monthly Earnings</h3>
+                    <div class="chart-container">
+                        <div class="bar-chart" id="monthly-earnings">
+                            <!-- Populated by JavaScript -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Commodity Profitability -->
+                <div class="card">
+                    <h3>📦 Commodity Profitability</h3>
+                    <div class="chart-container">
+                        <div class="profitability-list" id="commodity-profitability">
+                            <!-- Populated by JavaScript -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Route Profitability -->
+                <div class="card">
+                    <h3>🛣️ Route Profitability</h3>
+                    <div class="chart-container">
+                        <div class="profitability-list" id="route-profitability">
+                            <!-- Populated by JavaScript -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Performance Metrics -->
+            <div class="card full-width">
+                <h3>⚡ Performance Metrics</h3>
+                <div class="metrics-grid" id="performance-metrics">
+                    <!-- Populated by JavaScript -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Load data from localStorage
+        function loadAnalyticsData() {
+            try {
+                console.log('Loading analytics data...');
+                const payoutData = JSON.parse(localStorage.getItem('payoutEntries')) || [];
+                const historyData = JSON.parse(localStorage.getItem('historyEntries')) || [];
+                
+                console.log('Payout data:', payoutData.length, 'entries');
+                console.log('History data:', historyData.length, 'entries');
+                
+                if (payoutData.length === 0 && historyData.length === 0) {
+                    console.log('No data found, showing no data message');
+                    showNoData();
+                    return;
+                }
+
+                console.log('Processing and displaying data...');
+                processAndDisplayData(payoutData, historyData);
+            } catch (error) {
+                console.error('Error loading analytics data:', error);
+                showError();
+            }
+        }
+
+        function showNoData() {
+            document.getElementById('loading').innerHTML = `
+                <h2>📊 No Data Available</h2>
+                <p>Start completing some cargo missions to see your analytics!</p>
+                <p>Your trading data will appear here once you have some missions in your history.</p>
+                <div style="margin-top: 20px; padding: 15px; background: #333; border-radius: 6px; text-align: left;">
+                    <h4>Debug Information:</h4>
+                    <p><strong>Payout Entries:</strong> ${localStorage.getItem('payoutEntries') ? 'Found' : 'Not found'}</p>
+                    <p><strong>History Entries:</strong> ${localStorage.getItem('historyEntries') ? 'Found' : 'Not found'}</p>
+                    <p><strong>All localStorage keys:</strong> ${Object.keys(localStorage).join(', ')}</p>
+                </div>
+            `;
+        }
+
+        function showError() {
+            document.getElementById('loading').innerHTML = `
+                <h2>❌ Error Loading Data</h2>
+                <p>There was an error loading your analytics data.</p>
+                <p>Please try refreshing the page or check if your data is properly saved.</p>
+            `;
+        }
+
+        function processAndDisplayData(payoutData, historyData) {
+            console.log('Processing data...');
+            
+            // Calculate unique missions
+            const uniqueMissions = payoutData.reduce((acc, entry) => {
+                if (!acc.some(e => e.missionId === entry.missionId)) {
+                    acc.push(entry);
+                }
+                return acc;
+            }, []);
+
+            console.log('Unique missions:', uniqueMissions.length);
+
+            // Calculate basic stats
+            const totalMoneyEarned = uniqueMissions.reduce((total, entry) => {
+                const reward = entry?.reward ? parseInt(entry.reward.replace(/,/g, '')) : 0;
+                return total + reward;
+            }, 0);
+
+            const totalMissions = uniqueMissions.length;
+            const biggestPayday = uniqueMissions.reduce((max, entry) => {
+                const reward = entry?.reward ? parseInt(entry.reward.replace(/,/g, '')) : 0;
+                return Math.max(max, reward);
+            }, 0);
+
+            // Calculate success rate
+            const successfulDeliveries = historyData.filter(entry => entry.status === 'Delivered').length;
+            const totalDeliveries = historyData.filter(entry => entry.status === 'Delivered' || entry.status === 'Failed').length;
+            const successRate = totalDeliveries > 0 ? Math.round((successfulDeliveries / totalDeliveries) * 100) : 0;
+
+            // Calculate SCU stats
+            const totalSCUDelivered = historyData.reduce((total, entry) => {
+                return total + (parseFloat(entry.currentAmount) || 0);
+            }, 0);
+
+            const mostSCUSingleTrip = historyData.length > 0 ? Math.max(...historyData.map(entry => parseFloat(entry.currentAmount) || 0)) : 0;
+
+            // Calculate unique counts
+            const uniqueCommodities = new Set(historyData.map(entry => entry.commodity).filter(Boolean)).size;
+            const uniqueDeliveryPoints = new Set(historyData.map(entry => entry.dropOffPoint).filter(Boolean)).size;
+
+            console.log('Stats calculated:', {
+                totalMoneyEarned,
+                totalMissions,
+                biggestPayday,
+                successRate,
+                totalSCUDelivered,
+                mostSCUSingleTrip,
+                uniqueCommodities,
+                uniqueDeliveryPoints
+            });
+
+            // Display financial metrics
+            displayFinancialMetrics(totalMoneyEarned, biggestPayday, totalMissions, successRate);
+
+            // Calculate and display charts
+            calculateAndDisplayCharts(uniqueMissions, historyData);
+
+            // Display performance metrics
+            displayPerformanceMetrics(totalSCUDelivered, mostSCUSingleTrip, uniqueCommodities, uniqueDeliveryPoints);
+
+            // Hide loading and show content
+            console.log('Hiding loading, showing content...');
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('analytics-content').style.display = 'block';
+        }
+
+        function displayFinancialMetrics(totalMoneyEarned, biggestPayday, totalMissions, successRate) {
+            const container = document.getElementById('financial-metrics');
+            container.innerHTML = `
+                <div class="metric-card">
+                    <div class="metric-value" style="color: var(--success-color)">${totalMoneyEarned.toLocaleString()}</div>
+                    <div class="metric-label">Total Earnings (aUEC)</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value" style="color: var(--gold-color)">${biggestPayday.toLocaleString()}</div>
+                    <div class="metric-label">Biggest Single Payday</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value" style="color: var(--info-color)">${totalMissions}</div>
+                    <div class="metric-label">Total Missions</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value" style="color: ${successRate >= 80 ? 'var(--success-color)' : successRate >= 60 ? 'var(--warning-color)' : 'var(--error-color)'}">${successRate}%</div>
+                    <div class="metric-label">Success Rate</div>
+                </div>
+            `;
+        }
+
+        function calculateAndDisplayCharts(uniqueMissions, historyData) {
+            // Calculate daily earnings
+            const dailyEarnings = {};
+            const monthlyEarnings = {};
+            const commodityProfits = {};
+            const routeProfits = {};
+
+            uniqueMissions.forEach(entry => {
+                const date = new Date(entry.date || Date.now());
+                const dayKey = date.toLocaleDateString();
+                const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+                const reward = parseInt(entry.reward?.replace(/,/g, '') || '0');
+
+                dailyEarnings[dayKey] = (dailyEarnings[dayKey] || 0) + reward;
+                monthlyEarnings[monthKey] = (monthlyEarnings[monthKey] || 0) + reward;
+
+                // Commodity profits
+                if (entry.commodity && entry.currentAmount) {
+                    const scu = parseFloat(entry.currentAmount) || 0;
+                    if (scu > 0) {
+                        if (!commodityProfits[entry.commodity]) {
+                            commodityProfits[entry.commodity] = { totalProfit: 0, totalSCU: 0, count: 0 };
+                        }
+                        commodityProfits[entry.commodity].totalProfit += reward;
+                        commodityProfits[entry.commodity].totalSCU += scu;
+                        commodityProfits[entry.commodity].count++;
+                    }
+                }
+
+                // Route profits
+                if (entry.pickup && entry.dropOffPoint && entry.currentAmount) {
+                    const route = `${entry.pickup} → ${entry.dropOffPoint}`;
+                    const scu = parseFloat(entry.currentAmount) || 0;
+                    if (scu > 0) {
+                        if (!routeProfits[route]) {
+                            routeProfits[route] = { totalProfit: 0, totalSCU: 0, count: 0 };
+                        }
+                        routeProfits[route].totalProfit += reward;
+                        routeProfits[route].totalSCU += scu;
+                        routeProfits[route].count++;
+                    }
+                }
+            });
+
+            // Display charts
+            displayDailyEarnings(dailyEarnings);
+            displayMonthlyEarnings(monthlyEarnings);
+            displayCommodityProfitability(commodityProfits);
+            displayRouteProfitability(routeProfits);
+        }
+
+        function displayDailyEarnings(dailyEarnings) {
+            const container = document.getElementById('daily-earnings');
+            const sortedData = Object.entries(dailyEarnings)
+                .sort(([a], [b]) => new Date(a) - new Date(b))
+                .slice(-30);
+
+            if (sortedData.length === 0) {
+                container.innerHTML = '<div class="no-data">No daily earnings data available</div>';
+                return;
+            }
+
+            const maxEarnings = Math.max(...sortedData.map(([, earnings]) => earnings));
+            
+            container.innerHTML = sortedData.map(([date, earnings]) => {
+                const percentage = (earnings / maxEarnings) * 100;
+                return `
+                    <div class="bar-item">
+                        <div class="bar-label">${date}</div>
+                        <div class="bar-visual">
+                            <div class="bar-fill" style="width: ${percentage}%; background: var(--success-color);"></div>
+                        </div>
+                        <div class="bar-value" style="color: var(--success-color)">${earnings.toLocaleString()} aUEC</div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function displayMonthlyEarnings(monthlyEarnings) {
+            const container = document.getElementById('monthly-earnings');
+            const sortedData = Object.entries(monthlyEarnings)
+                .sort(([a], [b]) => a.localeCompare(b));
+
+            if (sortedData.length === 0) {
+                container.innerHTML = '<div class="no-data">No monthly earnings data available</div>';
+                return;
+            }
+
+            const maxEarnings = Math.max(...sortedData.map(([, earnings]) => earnings));
+            
+            container.innerHTML = sortedData.map(([month, earnings]) => {
+                const percentage = (earnings / maxEarnings) * 100;
+                return `
+                    <div class="bar-item">
+                        <div class="bar-label">${month}</div>
+                        <div class="bar-visual">
+                            <div class="bar-fill" style="width: ${percentage}%; background: var(--gold-color);"></div>
+                        </div>
+                        <div class="bar-value" style="color: var(--gold-color)">${earnings.toLocaleString()} aUEC</div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function displayCommodityProfitability(commodityProfits) {
+            const container = document.getElementById('commodity-profitability');
+            const sortedData = Object.entries(commodityProfits)
+                .map(([commodity, data]) => ({
+                    commodity,
+                    profitPerSCU: data.totalSCU > 0 ? data.totalProfit / data.totalSCU : 0,
+                    totalProfit: data.totalProfit,
+                    totalSCU: data.totalSCU,
+                    count: data.count
+                }))
+                .sort((a, b) => b.profitPerSCU - a.profitPerSCU)
+                .slice(0, 10);
+
+            if (sortedData.length === 0) {
+                container.innerHTML = '<div class="no-data">No commodity profitability data available</div>';
+                return;
+            }
+
+            container.innerHTML = sortedData.map(item => `
+                <div class="profitability-item">
+                    <div class="item-info">
+                        <h4>${item.commodity}</h4>
+                        <div class="item-stats">${item.count} missions, ${item.totalSCU.toFixed(0)} SCU</div>
+                    </div>
+                    <div class="item-profit">
+                        <div class="profit-per-scu">${item.profitPerSCU.toFixed(0)} aUEC/SCU</div>
+                        <div class="total-profit">${item.totalProfit.toLocaleString()} total</div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function displayRouteProfitability(routeProfits) {
+            const container = document.getElementById('route-profitability');
+            const sortedData = Object.entries(routeProfits)
+                .map(([route, data]) => ({
+                    route,
+                    profitPerSCU: data.totalSCU > 0 ? data.totalProfit / data.totalSCU : 0,
+                    totalProfit: data.totalProfit,
+                    totalSCU: data.totalSCU,
+                    count: data.count
+                }))
+                .sort((a, b) => b.profitPerSCU - a.profitPerSCU)
+                .slice(0, 10);
+
+            if (sortedData.length === 0) {
+                container.innerHTML = '<div class="no-data">No route profitability data available</div>';
+                return;
+            }
+
+            container.innerHTML = sortedData.map(item => `
+                <div class="profitability-item">
+                    <div class="item-info">
+                        <h4>${item.route}</h4>
+                        <div class="item-stats">${item.count} missions, ${item.totalSCU.toFixed(0)} SCU</div>
+                    </div>
+                    <div class="item-profit">
+                        <div class="profit-per-scu">${item.profitPerSCU.toFixed(0)} aUEC/SCU</div>
+                        <div class="total-profit">${item.totalProfit.toLocaleString()} total</div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function displayPerformanceMetrics(totalSCUDelivered, mostSCUSingleTrip, uniqueCommodities, uniqueDeliveryPoints) {
+            const container = document.getElementById('performance-metrics');
+            container.innerHTML = `
+                <div class="metric-card">
+                    <div class="metric-value" style="color: var(--info-color)">${Math.round(totalSCUDelivered).toLocaleString()}</div>
+                    <div class="metric-label">Total SCU Delivered</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value" style="color: var(--pink-color)">${Math.round(mostSCUSingleTrip).toLocaleString()}</div>
+                    <div class="metric-label">Most SCU (Single Trip)</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value" style="color: var(--warning-color)">${uniqueCommodities}</div>
+                    <div class="metric-label">Unique Commodities</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value" style="color: var(--purple-color)">${uniqueDeliveryPoints}</div>
+                    <div class="metric-label">Delivery Points Visited</div>
+                </div>
+            `;
+        }
+
+        function exportData() {
+            try {
+                const payoutData = JSON.parse(localStorage.getItem('payoutEntries')) || [];
+                const historyData = JSON.parse(localStorage.getItem('historyEntries')) || [];
+                
+                const exportData = {
+                    exportDate: new Date().toISOString(),
+                    payoutEntries: payoutData,
+                    historyEntries: historyData,
+                    analytics: {
+                        totalPayouts: payoutData.length,
+                        totalHistory: historyData.length,
+                        lastUpdated: new Date().toISOString()
+                    }
+                };
+
+                const dataStr = JSON.stringify(exportData, null, 2);
+                const dataBlob = new Blob([dataStr], {type: 'application/json'});
+                const url = URL.createObjectURL(dataBlob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = `sc-cargo-analytics-${new Date().toISOString().split('T')[0]}.json`;
+                link.click();
+                URL.revokeObjectURL(url);
+            } catch (error) {
+                alert('Error exporting data: ' + error.message);
+            }
+        }
+
+        function resetData() {
+            if (confirm('Are you sure you want to reset all analytics data? This will clear all history and payouts.')) {
+                localStorage.removeItem('payoutEntries');
+                localStorage.removeItem('historyEntries');
+                alert('Data reset successfully! Please refresh the page.');
+                window.location.reload();
+            }
+        }
+
+        // Load data when page loads
+        document.addEventListener('DOMContentLoaded', loadAnalyticsData);
+    </script>
+</body>
+</html>

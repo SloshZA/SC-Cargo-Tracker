@@ -140,6 +140,10 @@ const App = () => {
     const [isAutoScaling, setIsAutoScaling] = useState(true);
     const [hasEntries, setHasEntries] = useState(false);
     const [bannerMessage, setBannerMessage] = useState('');
+    const [showCharacterTooltip, setShowCharacterTooltip] = useState(() => {
+        const saved = localStorage.getItem('characterTooltipShown');
+        return saved !== 'true'; // Show tooltip if not previously shown
+    });
     const [debugMode, setDebugMode] = useState(() => {
         // Ensure debug mode is off on page load
         localStorage.setItem('debugMode', 'false');
@@ -458,9 +462,9 @@ const App = () => {
             if (location && location.trim() !== '') {
                 const validation = validatePickupPoint(location, currentSystem);
                 
-                if (!validation.isValid) {
-                    showBannerMessage(`Warning: "${location}" is not a recognized location. Please check your spelling.`, false);
-                }
+                // if (!validation.isValid) {
+                //     showBannerMessage(`Warning: "${location}" is not a recognized location. Please check your spelling.`, false);
+                // }
                 setFirstDropdownValue(location);
             }
         } else {
@@ -1589,10 +1593,253 @@ const App = () => {
 
     // Add this state declaration with other states
     const [showBugPopup, setShowBugPopup] = useState(false);
+    const [showUserInfoModal, setShowUserInfoModal] = useState(false);
 
     // Add this function with other handlers
     const handleBugPopup = () => {
         setShowBugPopup(!showBugPopup);
+    };
+
+    const handleUserInfoModal = () => {
+        setShowUserInfoModal(!showUserInfoModal);
+    };
+
+    const calculateTotalMoneyEarned = () => {
+        const payoutData = JSON.parse(localStorage.getItem('payoutEntries')) || [];
+        
+        const uniqueMissions = payoutData.reduce((acc, entry) => {
+            if (!acc.some(e => e.missionId === entry.missionId)) {
+                acc.push(entry);
+            }
+            return acc;
+        }, []);
+
+        return uniqueMissions.reduce((total, entry) => {
+            const reward = entry?.reward ? parseInt(entry.reward.replace(/,/g, '')) : 0;
+            return total + reward;
+        }, 0);
+    };
+
+    const calculateUserStats = () => {
+        const payoutData = JSON.parse(localStorage.getItem('payoutEntries')) || [];
+        const historyData = JSON.parse(localStorage.getItem('historyEntries')) || [];
+        
+        // Helper function to determine system from planet name
+        const determineSystemFromPlanet = (planet) => {
+            const stantonPlanets = ['Arccorp', 'Crusader', 'Hurston', 'MicroTech', 'ArcCorp', 'Hurston', 'MicroTech'];
+            const pyroPlanets = ['Pyro 1', 'Monox', 'Bloom', 'Pyro IV', 'Terminus'];
+            
+            if (stantonPlanets.some(p => planet.toLowerCase().includes(p.toLowerCase()))) {
+                return 'Stanton';
+            } else if (pyroPlanets.some(p => planet.toLowerCase().includes(p.toLowerCase()))) {
+                return 'Pyro';
+            }
+            return null;
+        };
+        
+        if (payoutData.length === 0 && historyData.length === 0) {
+            return {
+                totalMoneyEarned: 0,
+                totalMissions: 0,
+                uniqueDeliveryPoints: 0,
+                uniquePickupPoints: 0,
+                totalSCUDelivered: 0,
+                totalPaidSCUDelivered: 0,
+                successRate: 0,
+                uniqueCommodities: 0,
+                mostDeliveredCommodity: 'None',
+                mostVisitedSystem: 'None',
+                mostVisitedLocation: 'None',
+                preferredLocationType: 'station',
+                mostSCUSingleTrip: 0,
+                mostLocationsSingleTrip: 0,
+                biggestPaydaySingleTrip: 0,
+                deliveryPoints: [],
+                pickupPoints: []
+            };
+        }
+
+        const uniqueMissions = payoutData.reduce((acc, entry) => {
+            if (!acc.some(e => e.missionId === entry.missionId)) {
+                acc.push(entry);
+            }
+            return acc;
+        }, []);
+
+        const totalMoneyEarned = uniqueMissions.reduce((total, entry) => {
+            const reward = entry?.reward ? parseInt(entry.reward.replace(/,/g, '')) : 0;
+            return total + reward;
+        }, 0);
+
+        const totalMissions = uniqueMissions.length;
+
+        const uniqueDeliveryPoints = new Set();
+        const uniquePickupPoints = new Set();
+        let totalSCUDelivered = 0;
+        let totalPaidSCUDelivered = 0;
+        let successfulDeliveries = 0;
+        let totalDeliveries = 0;
+
+        payoutData.forEach(entry => {
+            if (entry.dropOffPoint) {
+                uniqueDeliveryPoints.add(entry.dropOffPoint);
+            }
+            if (entry.pickup) {
+                uniquePickupPoints.add(entry.pickup);
+            }
+            if (entry.currentAmount) {
+                totalPaidSCUDelivered += parseFloat(entry.currentAmount) || 0;
+            }
+        });
+
+        historyData.forEach(entry => {
+            if (entry.dropOffPoint) {
+                uniqueDeliveryPoints.add(entry.dropOffPoint);
+            }
+            if (entry.pickup) {
+                uniquePickupPoints.add(entry.pickup);
+            }
+            if (entry.currentAmount) {
+                totalSCUDelivered += parseFloat(entry.currentAmount) || 0;
+            }
+            if (entry.status === 'Delivered') {
+                successfulDeliveries++;
+            }
+            if (entry.status === 'Delivered' || entry.status === 'Failed') {
+                totalDeliveries++;
+            }
+        });
+
+        const uniqueCommodities = new Set();
+        const commodityCounts = {};
+        const systemCounts = { Stanton: 0, Pyro: 0 };
+        const locationCounts = {};
+        const locationTypeCounts = { station: 0, planet: 0, moon: 0 };
+
+        payoutData.forEach(entry => {
+            if (entry.commodity) {
+                uniqueCommodities.add(entry.commodity);
+                commodityCounts[entry.commodity] = (commodityCounts[entry.commodity] || 0) + (parseFloat(entry.currentAmount) || 0);
+            }
+            // Determine system based on planet
+            if (entry.planet) {
+                const system = determineSystemFromPlanet(entry.planet);
+                if (system) {
+                    systemCounts[system]++;
+                }
+            }
+            if (entry.dropOffPoint) {
+                locationCounts[entry.dropOffPoint] = (locationCounts[entry.dropOffPoint] || 0) + 1;
+            }
+            if (entry.moon) {
+                locationTypeCounts.moon++;
+            } else if (entry.planet) {
+                locationTypeCounts.planet++;
+            }
+        });
+
+        historyData.forEach(entry => {
+            if (entry.commodity) {
+                uniqueCommodities.add(entry.commodity);
+                commodityCounts[entry.commodity] = (commodityCounts[entry.commodity] || 0) + (parseFloat(entry.currentAmount) || 0);
+            }
+            // Determine system based on planet
+            if (entry.planet) {
+                const system = determineSystemFromPlanet(entry.planet);
+                if (system) {
+                    systemCounts[system]++;
+                }
+            }
+            if (entry.dropOffPoint) {
+                locationCounts[entry.dropOffPoint] = (locationCounts[entry.dropOffPoint] || 0) + 1;
+            }
+            if (entry.moon) {
+                locationTypeCounts.moon++;
+            } else if (entry.planet) {
+                locationTypeCounts.planet++;
+            }
+        });
+
+        const mostDeliveredCommodity = Object.keys(commodityCounts).reduce((a, b) => 
+            commodityCounts[a] > commodityCounts[b] ? a : b, 'None'
+        );
+        
+        const mostVisitedSystem = Object.keys(systemCounts).reduce((a, b) => 
+            systemCounts[a] > systemCounts[b] ? a : b, 'None'
+        );
+        
+        const mostVisitedLocation = Object.keys(locationCounts).reduce((a, b) => 
+            locationCounts[a] > locationCounts[b] ? a : b, 'None'
+        );
+        
+        const preferredLocationType = Object.keys(locationTypeCounts).reduce((a, b) => 
+            locationTypeCounts[a] > locationTypeCounts[b] ? a : b, 'station'
+        );
+
+        // Calculate single-trip records
+        const tripGroups = {};
+        const payoutTripGroups = {};
+        
+        historyData.forEach(entry => {
+            const date = new Date(entry.date || Date.now()).toLocaleDateString();
+            if (!tripGroups[date]) {
+                tripGroups[date] = {
+                    totalSCU: 0,
+                    locations: new Set(),
+                    entries: []
+                };
+            }
+            tripGroups[date].totalSCU += parseFloat(entry.currentAmount) || 0;
+            if (entry.dropOffPoint) {
+                tripGroups[date].locations.add(entry.dropOffPoint);
+            }
+            tripGroups[date].entries.push(entry);
+        });
+
+        uniqueMissions.forEach(entry => {
+            const date = new Date(entry.date || Date.now()).toLocaleDateString();
+            if (!payoutTripGroups[date]) {
+                payoutTripGroups[date] = {
+                    totalEarnings: 0,
+                    entries: []
+                };
+            }
+            const reward = entry?.reward ? parseInt(entry.reward.replace(/,/g, '')) : 0;
+            payoutTripGroups[date].totalEarnings += reward;
+            payoutTripGroups[date].entries.push(entry);
+        });
+
+        const tripStats = Object.values(tripGroups);
+        const payoutTripStats = Object.values(payoutTripGroups);
+        
+        const mostSCUSingleTrip = tripStats.length > 0 ? 
+            Math.round(Math.max(...tripStats.map(trip => trip.totalSCU))) : 0;
+        const mostLocationsSingleTrip = tripStats.length > 0 ? 
+            Math.max(...tripStats.map(trip => trip.locations.size)) : 0;
+        const biggestPaydaySingleTrip = payoutTripStats.length > 0 ? 
+            Math.max(...payoutTripStats.map(trip => trip.totalEarnings)) : 0;
+
+        const successRate = totalDeliveries > 0 ? (successfulDeliveries / totalDeliveries) * 100 : 0;
+
+        return {
+            totalMoneyEarned,
+            totalMissions,
+            uniqueDeliveryPoints: uniqueDeliveryPoints.size,
+            uniquePickupPoints: uniquePickupPoints.size,
+            totalSCUDelivered: Math.round(totalSCUDelivered),
+            totalPaidSCUDelivered: Math.round(totalPaidSCUDelivered),
+            successRate: Math.round(successRate),
+            uniqueCommodities: uniqueCommodities.size,
+            mostDeliveredCommodity,
+            mostVisitedSystem,
+            mostVisitedLocation,
+            preferredLocationType,
+            mostSCUSingleTrip,
+            mostLocationsSingleTrip,
+            biggestPaydaySingleTrip,
+            deliveryPoints: Array.from(uniqueDeliveryPoints),
+            pickupPoints: Array.from(uniquePickupPoints)
+        };
     };
 
     const handleSystemChange = (system) => {
@@ -1624,20 +1871,85 @@ const App = () => {
         <ShipProvider>
             <div className={darkMode ? 'dark-mode' : ''}>
                 <header>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '20px' }}>
-                        <h1 style={{ color: 'var(--title-color)' }}>SC Cargo Tracker</h1>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+                            <h1 style={{ color: 'var(--title-color)' }}>SC Cargo Tracker</h1>
+                            <button 
+                                onClick={handleBugPopup}
+                                style={{
+                                    padding: '8px 16px',
+                                    backgroundColor: '#ff4444',
+                                    color: 'white',
+                                    border: 'none',
+                                    borderRadius: '4px',
+                                    cursor: 'pointer'
+                                }}
+                            >
+                                Bug Report
+                            </button>
+                        </div>
                         <button 
-                            onClick={handleBugPopup}
+                            onClick={() => {
+                                handleUserInfoModal();
+                                setShowCharacterTooltip(false);
+                                localStorage.setItem('characterTooltipShown', 'true');
+                            }}
                             style={{
-                                padding: '8px 16px',
-                                backgroundColor: '#ff4444',
-                                color: 'white',
+                                padding: '8px',
+                                backgroundColor: 'transparent',
                                 border: 'none',
-                                borderRadius: '4px',
-                                cursor: 'pointer'
+                                borderRadius: '50%',
+                                cursor: 'pointer',
+                                fontSize: '24px',
+                                color: 'var(--title-color)',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                width: '40px',
+                                height: '40px',
+                                transition: 'all 0.2s ease',
+                                position: 'relative'
+                            }}
+                            onMouseEnter={(e) => {
+                                e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
+                            }}
+                            onMouseLeave={(e) => {
+                                e.target.style.backgroundColor = 'transparent';
                             }}
                         >
-                            Bug Report
+                            👤
+                            {/* Character tooltip bubble */}
+                            {showCharacterTooltip && (
+                                <div style={{
+                                    position: 'absolute',
+                                    top: '20%',
+                                    left: '-80px',
+                                    transform: 'translateY(-50%)',
+                                    backgroundColor: 'var(--button-color)',
+                                    color: 'black',
+                                    padding: '8px 12px',
+                                    borderRadius: '20px',
+                                    fontSize: '12px',
+                                    fontWeight: 'bold',
+                                    whiteSpace: 'nowrap',
+                                    zIndex: 1000,
+                                    boxShadow: '0 2px 10px rgba(0,0,0,0.3)',
+                                    animation: 'bounce 2s infinite'
+                                }}>
+                                    Click me! I'm new!
+                                    <div style={{
+                                        position: 'absolute',
+                                        top: '50%',
+                                        right: '-6px',
+                                        transform: 'translateY(-50%)',
+                                        width: 0,
+                                        height: 0,
+                                        borderTop: '6px solid transparent',
+                                        borderBottom: '6px solid transparent',
+                                        borderLeft: '6px solid var(--button-color)'
+                                    }}></div>
+                                </div>
+                            )}
                         </button>
                     </div>
                 </header>
@@ -1701,6 +2013,279 @@ const App = () => {
                         </div>
                     </Portal>
                 )}
+                {showUserInfoModal && (
+                    <div 
+                        style={{
+                            position: 'fixed',
+                            top: 0,
+                            left: 0,
+                            right: 0,
+                            bottom: 0,
+                            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                            zIndex: 9999,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center'
+                        }}
+                        onClick={handleUserInfoModal}
+                    >
+                        <div 
+                            style={{
+                                backgroundColor: '#333',
+                                padding: '20px',
+                                borderRadius: '8px',
+                                boxShadow: '0 2px 10px rgba(0,0,0,0.2)',
+                                color: 'white',
+                                width: '800px',
+                                textAlign: 'left',
+                                maxHeight: '80vh',
+                                overflowY: 'auto'
+                            }}
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            <h3 style={{ 
+                                color: 'var(--title-color)', 
+                                marginBottom: '20px',
+                                textAlign: 'center',
+                                fontSize: '20px',
+                                borderBottom: '2px solid var(--title-color)',
+                                paddingBottom: '10px'
+                            }}>
+                                User Profile
+                            </h3>
+                            
+                            {(() => {
+                                const stats = calculateUserStats();
+                                return (
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+                                        {/* Financial Overview Section */}
+                                        <div style={{
+                                            backgroundColor: '#2a2a2a',
+                                            padding: '15px',
+                                            borderRadius: '6px',
+                                            border: '1px solid #444'
+                                        }}>
+                                            <h4 style={{ 
+                                                color: '#4CAF50', 
+                                                margin: '0 0 10px 0',
+                                                fontSize: '16px',
+                                                fontWeight: 'bold'
+                                            }}>
+                                                💰 Financial Overview
+                                            </h4>
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                                    <span>Total Money Earned:</span>
+                                                    <span style={{ color: '#4CAF50', fontWeight: 'bold' }}>
+                                                        {stats.totalMoneyEarned.toLocaleString()} aUEC
+                                                    </span>
+                                                </div>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                                    <span>Total Missions:</span>
+                                                    <span>{stats.totalMissions}</span>
+                                                </div>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                                    <span>Success Rate:</span>
+                                                    <span style={{ 
+                                                        color: stats.successRate >= 80 ? '#4CAF50' : stats.successRate >= 60 ? '#FF9800' : '#F44336', 
+                                                        fontWeight: 'bold' 
+                                                    }}>
+                                                        {stats.successRate}%
+                                                    </span>
+                                                </div>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                                    <span>Biggest Payday:</span>
+                                                    <span style={{ color: '#FFD700', fontWeight: 'bold' }}>
+                                                        {stats.biggestPaydaySingleTrip.toLocaleString()} aUEC
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Cargo & Delivery Section */}
+                                        <div style={{
+                                            backgroundColor: '#2a2a2a',
+                                            padding: '15px',
+                                            borderRadius: '6px',
+                                            border: '1px solid #444'
+                                        }}>
+                                            <h4 style={{ 
+                                                color: '#2196F3', 
+                                                margin: '0 0 10px 0',
+                                                fontSize: '16px',
+                                                fontWeight: 'bold'
+                                            }}>
+                                                📦 Cargo & Delivery
+                                            </h4>
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                                    <span>Total SCU Delivered:</span>
+                                                    <span style={{ color: '#2196F3', fontWeight: 'bold' }}>
+                                                        {stats.totalSCUDelivered.toLocaleString()} SCU
+                                                    </span>
+                                                </div>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                                    <span>Paid SCU Delivered:</span>
+                                                    <span style={{ color: '#4CAF50', fontWeight: 'bold' }}>
+                                                        {stats.totalPaidSCUDelivered.toLocaleString()} SCU
+                                                    </span>
+                                                </div>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                                    <span>Most SCU (Single Trip):</span>
+                                                    <span style={{ color: '#E91E63', fontWeight: 'bold' }}>
+                                                        {stats.mostSCUSingleTrip.toLocaleString()} SCU
+                                                    </span>
+                                                </div>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                                    <span>Unique Commodities:</span>
+                                                    <span>{stats.uniqueCommodities}</span>
+                                                </div>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                                    <span>Most Delivered Commodity:</span>
+                                                    <span style={{ color: '#FF9800', fontWeight: 'bold' }}>
+                                                        {stats.mostDeliveredCommodity}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Travel & Locations Section */}
+                                        <div style={{
+                                            backgroundColor: '#2a2a2a',
+                                            padding: '15px',
+                                            borderRadius: '6px',
+                                            border: '1px solid #444'
+                                        }}>
+                                            <h4 style={{ 
+                                                color: '#9C27B0', 
+                                                margin: '0 0 10px 0',
+                                                fontSize: '16px',
+                                                fontWeight: 'bold'
+                                            }}>
+                                                🌌 Travel & Locations
+                                            </h4>
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                                    <span>Most Visited System:</span>
+                                                    <span style={{ color: '#9C27B0', fontWeight: 'bold' }}>
+                                                        {stats.mostVisitedSystem}
+                                                    </span>
+                                                </div>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                                    <span>Most Visited Location:</span>
+                                                    <span style={{ color: '#607D8B', fontWeight: 'bold' }}>
+                                                        {stats.mostVisitedLocation}
+                                                    </span>
+                                                </div>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                                    <span>Delivery Points Visited:</span>
+                                                    <span>{stats.uniqueDeliveryPoints}</span>
+                                                </div>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                                    <span>Pickup Points Visited:</span>
+                                                    <span>{stats.uniquePickupPoints}</span>
+                                                </div>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                                    <span>Most Locations (Single Trip):</span>
+                                                    <span style={{ color: '#00BCD4', fontWeight: 'bold' }}>
+                                                        {stats.mostLocationsSingleTrip} locations
+                                                    </span>
+                                                </div>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                                    <span>Preferred Location Type:</span>
+                                                    <span style={{ color: '#795548', fontWeight: 'bold' }}>
+                                                        {stats.preferredLocationType.charAt(0).toUpperCase() + stats.preferredLocationType.slice(1)}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Controls Section */}
+                                        <div style={{
+                                            backgroundColor: '#2a2a2a',
+                                            padding: '15px',
+                                            borderRadius: '6px',
+                                            border: '1px solid #444'
+                                        }}>
+                                            <h4 style={{ 
+                                                color: '#FF9800', 
+                                                margin: '0 0 10px 0',
+                                                fontSize: '16px',
+                                                fontWeight: 'bold'
+                                            }}>
+                                                🎛️ Analytics Controls
+                                            </h4>
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                                <button 
+                                                    onClick={() => {
+                                                        window.open('analytics.html', '_blank');
+                                                        handleUserInfoModal(); // Close the user profile modal
+                                                    }}
+                                                    style={{
+                                                        padding: '8px 12px',
+                                                        backgroundColor: '#4CAF50',
+                                                        color: 'white',
+                                                        border: 'none',
+                                                        borderRadius: '4px',
+                                                        cursor: 'pointer',
+                                                        fontSize: '12px',
+                                                        fontWeight: 'bold'
+                                                    }}
+                                                >
+                                                    📊 View Detailed Analytics
+                                                </button>
+                                                <button 
+                                                    onClick={() => {
+                                                        // Export analytics data
+                                                        const stats = calculateUserStats();
+                                                        const dataStr = JSON.stringify(stats, null, 2);
+                                                        const dataBlob = new Blob([dataStr], {type: 'application/json'});
+                                                        const url = URL.createObjectURL(dataBlob);
+                                                        const link = document.createElement('a');
+                                                        link.href = url;
+                                                        link.download = 'analytics-data.json';
+                                                        link.click();
+                                                        URL.revokeObjectURL(url);
+                                                    }}
+                                                    style={{
+                                                        padding: '8px 12px',
+                                                        backgroundColor: '#2196F3',
+                                                        color: 'white',
+                                                        border: 'none',
+                                                        borderRadius: '4px',
+                                                        cursor: 'pointer',
+                                                        fontSize: '12px',
+                                                        fontWeight: 'bold'
+                                                    }}
+                                                >
+                                                    📁 Export Analytics Data
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                );
+                            })()}
+                            
+                            <button 
+                                onClick={handleUserInfoModal}
+                                style={{
+                                    padding: '8px 16px',
+                                    backgroundColor: '#ff4444',
+                                    color: 'white',
+                                    border: 'none',
+                                    borderRadius: '4px',
+                                    cursor: 'pointer',
+                                    marginTop: '15px',
+                                    width: '100%'
+                                }}
+                            >
+                                Close
+                            </button>
+                        </div>
+                    </div>
+                )}
+
+
                 <Tabs
                     mainTab={mainTab}
                     haulingSubTab={haulingSubTab}

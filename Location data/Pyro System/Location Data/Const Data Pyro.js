@@ -1,7 +1,7 @@
 export const PyroSystemData = {
     planets: ['Pyro 1', 'Monox', 'Bloom', 'Pyro IV', 'Pyro V', 'Terminus'],
     moons: ['Ignis', 'Vatra', 'Adir', 'Fairo', 'Fuego', 'Vuur'],
-    stations: ['Ruin Station', 'Orbituary', 'Patch City', 'Starlight Service Station', 'Checkmate', 'Rods Fuel N Supplies', 'Endgame', 'Dudley & Daughters', 'Rats Net', 'Megumi Refueling', 'Gaslight'],
+    stations: ['Ruin Station', 'Orbituary', 'Patch City', 'Starlight Service Station', 'Checkmate', 'Rods Fuel N Supplies', 'Endgame', 'Dudley & Daughters', 'Rats Net', 'Megumi Refueling', 'Gaslight', 'Stanton Gateway'],
     outposts: ['Stags Rut', 'Arid Reach', 'Jacksons Swap', 'Narenas Rest', 'The Golden Riviera', 'Frigid Knot', 'ShadowFall', 'Fallow Field', 'Goners Deal', 'Sacrens Plot', 'Rough Landing', 'Blackrock Exchange', 'Canard View', 'Stonetree'],
     miningoutpost: ['Yangs Place', 'Ostlers Claim', 'Last Ditch', 'Cravers Ridge', 'Bueno Ravine'],
     farmingoutpost: ['The Yard', 'Shepherds Rest', 'Scrapers Turn', 'Bullocks Reach', 'Kinder Plots'],
@@ -70,6 +70,7 @@ export const PyroSystemData = {
         'Rats Net',
         'Megumi Refueling',
         'Gaslight',
+        'Stanton Gateway',
         '--Outposts--',
         'Stags Rut',
         'Arid Reach',

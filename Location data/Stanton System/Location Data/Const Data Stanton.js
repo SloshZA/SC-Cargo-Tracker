@@ -9,6 +9,7 @@ export const StantonSystemData = {
         'Port Tressler',
         'Pyro Gateway',
         'Magnus Gateway',
+        'Terra Gateway',
         '--Lagrange Stations--',
         'ARC-L1 Wide Forest Station',
         'ARC-L2 Lively Pathway Station',
@@ -63,6 +64,11 @@ export const StantonSystemData = {
         'Baijini Point',
         'Seraphim Station',
         'Port Tressler',
+        '--Gateway Stations--',
+        'Pyro Gateway',
+        'Magnus Gateway',
+        'Terra Gateway',
+        'Stanton Gateway',
         '--Lagrange Station--',
         'ARC-L1 Wide Forest Station',
         'ARC-L2 Lively Pathway Station',
@@ -530,6 +536,15 @@ export const generateLocationLists = () => {
         ...StantonSystemData.Dropoffpoints.Crusader.filter(x => x !== '--City--'),
         ...StantonSystemData.Dropoffpoints.Hurston.filter(x => x !== '--City--'),
         ...StantonSystemData.Dropoffpoints.Microtech.filter(x => x !== '--City--')
+    );
+
+    // Add gateway stations from main stations array
+    pickupPoints.push(
+        '--Gateway Stations--',
+        'Pyro Gateway',
+        'Magnus Gateway',
+        'Terra Gateway',
+        'Stanton Gateway'
     );
 
     // Add stations

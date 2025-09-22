@@ -8,24 +8,10 @@ body {
     transition: transform 0.3s ease;
 }
 
-/* Scaling breakpoints in 25px increments */
-@media screen and (max-width: 1125px) { 
-    body {
-        width: 1200px;
-        transform: scale(1.00); 
-    } 
-}
-@media screen and (max-width: 1100px) { 
-    body { transform: scale(0.98); } 
-}
-
-
 /* Handle high DPI screens */
 @media screen and (min-resolution: 192dpi) {
     body {
         -webkit-font-smoothing: antialiased;
         -moz-osx-font-smoothing: grayscale;
     }
-}
-
-/* ... rest of the file stays the same ... */ 
+} 

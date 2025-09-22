@@ -193,10 +193,6 @@
     pointer-events: none;
 }
 
-.capture-table {
-    
-}
-
 .capture-table-group {
     margin-bottom: 20px;
     border: 1px solid var(--table-outline-color);
@@ -727,9 +723,9 @@
     display: flex;
     flex-wrap: wrap;
     gap: 5px;
-    margin-left: 730px;
-    margin-top: -160px;
-    margin-bottom: -20px;
+    margin-left: 450px;
+    margin-top: -300px;
+    margin-bottom: 90px;
     border: 1px solid var(--button-color);
     padding: 10px;
     border-radius: 5px;
@@ -835,13 +831,14 @@
 }
 
 .route-planner-container {
-    position: absolute;
-    left: 50%;
-    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
 }
 
 .route-planner-button {
     padding: 8px 16px;
+    margin-left: 70px;
+    margin-top: 20px;
     background-color: var(--button-color);
     color: black;
     border: none;
@@ -897,4 +894,17 @@
 .mission-details-row td {
     font-size: 14px; /* Reduce row text size */
     padding: 4px; /* Optional: adjust padding to match new text size */
+}
+
+/* Bounce animation for SCU tooltip */
+@keyframes bounce {
+    0%, 20%, 50%, 80%, 100% {
+        transform: translateX(-50%) translateY(0);
+    }
+    40% {
+        transform: translateX(-50%) translateY(-10px);
+    }
+    60% {
+        transform: translateX(-50%) translateY(-5px);
+    }
 }

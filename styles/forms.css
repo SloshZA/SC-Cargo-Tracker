@@ -34,7 +34,9 @@ select.moon {
 }
 
 select.drop-off {
-    width: 300px;
+    width: min(300px, 100%);
+    max-width: 300px;
+    min-width: 200px;
 }
 
 select.commodity {
@@ -68,6 +70,31 @@ select.commodity {
     display: flex;
     gap: 10px;
     align-items: center;
+    flex-wrap: wrap;
+}
+
+/* Responsive form layout */
+@media (max-width: 768px) {
+    .form-row {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 15px;
+    }
+    
+    .form-group {
+        width: 100%;
+    }
+    
+    .form-group label {
+        text-align: left;
+        margin-bottom: 5px;
+    }
+}
+
+@media (max-width: 480px) {
+    .form-row {
+        gap: 10px;
+    }
 }
 
 
@@ -119,37 +146,127 @@ select.commodity {
     color: white;
 }
 
-/* Specific Select Widths */
+/* Specific Select Widths - Responsive */
 .first-dropdown-select .react-select__control {
-    width: 350px;
+    width: min(350px, 100%);
+    max-width: 350px;
+    min-width: 200px;
 }
 
 .second-dropdown-select .react-select__control {
-    width: 350px;
+    width: min(350px, 100%);
+    max-width: 350px;
+    min-width: 200px;
 }
 
 .location-type-select .react-select__control {
-    width: 90px;
+    width: min(90px, 100%);
+    max-width: 90px;
+    min-width: 70px;
 }
 
 .planet-select .react-select__control {
-    width: 119px;
+    width: min(119px, 100%);
+    max-width: 119px;
+    min-width: 90px;
 }
 
 .moon-select .react-select__control {
-    width: 110px;
+    width: min(110px, 100%);
+    max-width: 110px;
+    min-width: 90px;
 }
 
 .drop-off-select .react-select__control {
-    width: 300px;
+    width: min(300px, 100%);
+    max-width: 300px;
+    min-width: 200px;
 }
 
 .commodity-select .react-select__control {
-    width: 200px;
+    width: min(200px, 100%);
+    max-width: 200px;
+    min-width: 150px;
 }
 
 .station-select .react-select__control {
-    width: 119px;
+    width: min(119px, 100%);
+    max-width: 119px;
+    min-width: 90px;
+}
+
+/* Media queries for responsive dropdowns */
+@media (max-width: 1200px) {
+    .first-dropdown-select .react-select__control,
+    .second-dropdown-select .react-select__control {
+        width: min(300px, 100%);
+        max-width: 300px;
+    }
+    
+    .drop-off-select .react-select__control {
+        width: min(250px, 100%);
+        max-width: 250px;
+    }
+}
+
+@media (max-width: 768px) {
+    .first-dropdown-select .react-select__control,
+    .second-dropdown-select .react-select__control {
+        width: min(250px, 100%);
+        max-width: 250px;
+    }
+    
+    .drop-off-select .react-select__control {
+        width: min(200px, 100%);
+        max-width: 200px;
+    }
+    
+    .location-type-select .react-select__control {
+        width: min(80px, 100%);
+        max-width: 80px;
+    }
+    
+    .planet-select .react-select__control,
+    .moon-select .react-select__control,
+    .station-select .react-select__control {
+        width: min(100px, 100%);
+        max-width: 100px;
+    }
+    
+    .commodity-select .react-select__control {
+        width: min(150px, 100%);
+        max-width: 150px;
+    }
+}
+
+@media (max-width: 480px) {
+    .first-dropdown-select .react-select__control,
+    .second-dropdown-select .react-select__control {
+        width: min(200px, 100%);
+        max-width: 200px;
+    }
+    
+    .drop-off-select .react-select__control {
+        width: min(180px, 100%);
+        max-width: 180px;
+    }
+    
+    .location-type-select .react-select__control {
+        width: min(70px, 100%);
+        max-width: 70px;
+    }
+    
+    .planet-select .react-select__control,
+    .moon-select .react-select__control,
+    .station-select .react-select__control {
+        width: min(90px, 100%);
+        max-width: 90px;
+    }
+    
+    .commodity-select .react-select__control {
+        width: min(120px, 100%);
+        max-width: 120px;
+    }
 }
 
 /* ... rest of form styles ... */ 

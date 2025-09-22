@@ -4,7 +4,8 @@ import { logAddEntry, logProcessOrders, logMissionGrouping, logStatusChange } fr
 import crypto from 'crypto';
 import { generateLocationLists as generateStantonLocations } from '../../../../Location data/Stanton System/Location Data/Const Data Stanton.js';
 import StantonSystemData from '../../../../Location data/Stanton System/Location Data/Const Data Stanton.js';
-import { PyroSystemData } from '../../../../Location data/Pyro System/Location Data/Const Data Pyro.js';
+import { PyroSystemData, generatePyroLocationLists } from '../../../../Location data/Pyro System/Location Data/Const Data Pyro.js';
+import { DatabaseQueries } from '../../../../database/star-citizen-database.js';
 
 // Add system data mapping
 const systemDataMap = {
@@ -12,83 +13,635 @@ const systemDataMap = {
     'Pyro': PyroSystemData
 };
 
-// Update the pickup point options generation
-const pickupPointOptions = (selectedSystem, currentSystem) => {
-    let locations = [];
+// Get planet options from database
+const getPlanetOptions = (filteredSystem = 'all') => {
+    const systems = DatabaseQueries.getSystems();
+    const planets = [];
     
-    if (currentSystem === 'Pyro') {
-        // Use Pyro FullList for locations
-        locations = [...new Set(PyroSystemData.FullList || [])];
-    } else {
-        // Get Stanton locations with headers and remove duplicates
-        const { pickupPoints } = generateStantonLocations();
-        locations = [...new Set(pickupPoints)];
-    }
-    
-    // Map locations to options
-    return locations.map(location => {
-        if (location.startsWith('--')) {
-            return {
-                label: `-- ${location.replace(/--/g, '')} --`,
+    systems.forEach(system => {
+        if (filteredSystem === 'all' || filteredSystem === system.id) {
+            const systemPlanets = DatabaseQueries.getPlanets(system.id);
+            
+            // Add system header
+            planets.push({
+                value: `--${system.name}--`,
+                label: `-- ${system.name} System --`,
                 isDisabled: true,
                 className: 'dropdown-separator',
                 style: {
                     fontWeight: 'bold',
-                    fontStyle: 'italic'
+                    fontStyle: 'italic',
+                    backgroundColor: '#2a2a2a',
+                    color: '#ffffff'
                 }
-            };
+            });
+            
+            // Add planets for this system
+            systemPlanets.forEach(planet => {
+                planets.push({
+                    value: planet.id,
+                    label: planet.name,
+                    system: system.id,
+                    planetData: planet
+                });
+            });
         }
-        return {
-            value: location,
-            label: location
-        };
     });
+    
+    return planets;
 };
 
-// Update the quick lookup options generation
-const quickLookupOptions = (selectedSystem, currentSystem) => {
-    let locations = [];
+// Get moon options for a specific planet
+const getMoonOptions = (planetId, filteredSystem = 'all') => {
+    if (!planetId) return [{ value: '', label: 'Select a moon...' }];
     
-    if (currentSystem === 'Pyro') {
-        // Use Pyro FullList for locations
-        locations = [...new Set(PyroSystemData.FullList || [])];
-    } else {
-        // Get Stanton locations with headers and remove duplicates
-        locations = [...new Set(StantonSystemData.FullList)];
-    }
+    const systems = DatabaseQueries.getSystems();
+    const moons = [];
     
-    // Map locations to options
-    return locations.map(location => {
-        if (location.startsWith('--')) {
-            return {
-                label: `-- ${location.replace(/--/g, '')} --`,
+    // Add default "no selection" option
+    moons.push({ value: '', label: 'Select a moon...' });
+    
+    systems.forEach(system => {
+        if (filteredSystem === 'all' || filteredSystem === system.id) {
+            const systemPlanets = DatabaseQueries.getPlanets(system.id);
+            const planet = systemPlanets.find(p => p.id === planetId);
+            
+            if (planet && planet.moons) {
+                Object.values(planet.moons).forEach(moon => {
+                    moons.push({
+                        value: moon.id,
+                        label: moon.name,
+                        planet: planet.id,
+                        moonData: moon
+                    });
+                });
+            }
+        }
+    });
+    
+    return moons;
+};
+
+// Get station options from database
+const getStationOptions = (filteredSystem = 'all') => {
+    const systems = DatabaseQueries.getSystems();
+    const stations = [];
+    
+    systems.forEach(system => {
+        if (filteredSystem === 'all' || filteredSystem === system.id) {
+            const systemStations = DatabaseQueries.getStations(system.id);
+            systemStations.forEach(station => {
+                stations.push({
+                    value: station.name,
+                    label: `${station.name} (${system.name})`,
+                    system: system.id,
+                    stationData: station
+                });
+            });
+        }
+    });
+    
+    return stations;
+};
+
+// Get drop-off point options from database
+const getDropOffOptions = (filteredSystem = 'all', selectedPlanet = null, selectedMoon = null) => {
+    const systems = DatabaseQueries.getSystems();
+    const dropOffPoints = [];
+    
+    systems.forEach(system => {
+        if (filteredSystem === 'all' || filteredSystem === system.id) {
+            const systemPlanets = DatabaseQueries.getPlanets(system.id);
+            
+            if (selectedPlanet && selectedMoon) {
+                // If both planet and moon are selected, show moon locations
+                const planet = systemPlanets.find(p => p.id === selectedPlanet);
+                if (planet && planet.moons) {
+                    const moon = Object.values(planet.moons).find(m => m.id === selectedMoon);
+                    if (moon) {
+                        Object.entries(moon.locations).forEach(([category, locationList]) => {
+                            if (locationList.length > 0) {
+                                // Add category header
+                                dropOffPoints.push({
+                                    value: `--${category}--`,
+                                    label: `-- ${category.charAt(0).toUpperCase() + category.slice(1)} --`,
+                                    isDisabled: true,
+                                    className: 'dropdown-separator',
+                                    style: {
+                                        fontWeight: 'bold',
+                                        fontStyle: 'italic',
+                                        backgroundColor: '#2a2a2a',
+                                        color: '#ffffff'
+                                    }
+                                });
+                                
+                                // Add locations for this category
+                                locationList.forEach(locationName => {
+                                    dropOffPoints.push({
+                                        value: locationName,
+                                        label: `  ${locationName}`,
+                                        system: system.id,
+                                        locationData: {
+                                            name: locationName,
+                                            type: category,
+                                            category: category,
+                                            planet: planet.name,
+                                            planetId: planet.id,
+                                            moon: moon.name,
+                                            moonId: moon.id,
+                                            locationType: 'moon'
+                                        }
+                                    });
+                                });
+                            }
+                        });
+                    }
+                }
+            } else if (selectedPlanet) {
+                // If only planet is selected, show planet locations and space locations
+                const planet = systemPlanets.find(p => p.id === selectedPlanet);
+                if (planet) {
+                    // Add planet locations (cities, distribution, outposts)
+                    if (planet.planetLocations) {
+                        Object.entries(planet.planetLocations).forEach(([category, locationList]) => {
+                            if (locationList.length > 0) {
+                                // Add category header
+                                dropOffPoints.push({
+                                    value: `--${category}--`,
+                                    label: `-- ${category.charAt(0).toUpperCase() + category.slice(1)} --`,
+                                    isDisabled: true,
+                                    className: 'dropdown-separator',
+                                    style: {
+                                        fontWeight: 'bold',
+                                        fontStyle: 'italic',
+                                        backgroundColor: '#2a2a2a',
+                                        color: '#ffffff'
+                                    }
+                                });
+                                
+                                // Add locations for this category
+                                locationList.forEach(locationName => {
+                                    dropOffPoints.push({
+                                        value: locationName,
+                                        label: `  ${locationName}`,
+                                        system: system.id,
+                                        locationData: {
+                                            name: locationName,
+                                            type: category,
+                                            category: category,
+                                            planet: planet.name,
+                                            planetId: planet.id,
+                                            locationType: 'planet'
+                                        }
+                                    });
+                                });
+                            }
+                        });
+                    }
+                    
+                    // Add space locations (stations, lagrange)
+                    if (planet.spaceLocations) {
+                        Object.entries(planet.spaceLocations).forEach(([category, locationList]) => {
+                            if (locationList.length > 0) {
+                                // Add category header
+                                dropOffPoints.push({
+                                    value: `--${category}--`,
+                                    label: `-- ${category.charAt(0).toUpperCase() + category.slice(1)} --`,
+                                    isDisabled: true,
+                                    className: 'dropdown-separator',
+                                    style: {
+                                        fontWeight: 'bold',
+                                        fontStyle: 'italic',
+                                        backgroundColor: '#2a2a2a',
+                                        color: '#ffffff'
+                                    }
+                                });
+                                
+                                // Add locations for this category
+                                locationList.forEach(locationName => {
+                                    dropOffPoints.push({
+                                        value: locationName,
+                                        label: `  ${locationName}`,
+                                        system: system.id,
+                                        locationData: {
+                                            name: locationName,
+                                            type: category,
+                                            category: category,
+                                            planet: planet.name,
+                                            planetId: planet.id,
+                                            locationType: 'space'
+                                        }
+                                    });
+                                });
+                            }
+                        });
+                    }
+                }
+            } else {
+                // If no planet selected, show all locations
+                const systemLocations = DatabaseQueries.getSystemLocations(system.id);
+                systemLocations.forEach(location => {
+                    dropOffPoints.push({
+                        value: location.name,
+                        label: location.name,
+                        system: system.id,
+                        locationData: location
+                    });
+                });
+            }
+        }
+    });
+    
+    return dropOffPoints;
+};
+
+// Get system options from database
+const getSystemOptions = () => {
+    const systems = DatabaseQueries.getSystems();
+    return systems.map(system => ({
+        value: system.id,
+        label: system.name
+    }));
+};
+
+// Update the pickup point options generation to show all locations from both systems with proper categorization
+const pickupPointOptions = (filteredSystem = 'all') => {
+    // Get all locations from both systems using the database
+    const stantonLocations = DatabaseQueries.getSystemLocations('stanton');
+    const pyroLocations = DatabaseQueries.getSystemLocations('pyro');
+    
+    // Helper function to categorize locations by type
+    const categorizeLocations = (locations, systemName) => {
+        const categorized = {
+            cities: [],
+            stations: [],
+            lagrange: [],
+            distribution: [],
+            outposts: [],
+            mining: [],
+            salvage: [],
+            farming: [],
+            gateway: [],
+            other: []
+        };
+        
+        locations.forEach(location => {
+            const type = location.type || 'other';
+            if (categorized[type]) {
+                categorized[type].push(location);
+            } else {
+                categorized.other.push(location);
+            }
+        });
+        
+        return categorized;
+    };
+    
+    // Categorize locations for each system
+    const stantonCategorized = categorizeLocations(stantonLocations, 'Stanton');
+    const pyroCategorized = categorizeLocations(pyroLocations, 'Pyro');
+    
+    // Build the options array with proper categorization
+    const allLocations = [];
+    
+    // Add Stanton System if not filtered or if Stanton is selected
+    if (filteredSystem === 'all' || filteredSystem === 'stanton') {
+        allLocations.push(
+            // Stanton System Header
+            { 
+                label: '-- Stanton System --', 
                 isDisabled: true,
                 className: 'dropdown-separator',
                 style: {
                     fontWeight: 'bold',
-                    fontStyle: 'italic'
+                    fontStyle: 'italic',
+                    backgroundColor: '#2a2a2a',
+                    color: '#ffffff'
                 }
-            };
-        }
-        return {
-            value: location,
-            label: location
-        };
-    });
+            },
+            
+            // Stanton Cities
+            ...(stantonCategorized.cities.length > 0 ? [
+                { 
+                    label: '  Cities', 
+                    isDisabled: true,
+                    className: 'dropdown-separator',
+                    style: {
+                        fontWeight: 'bold',
+                        color: '#cccccc',
+                        fontSize: '12px',
+                        paddingLeft: '10px'
+                    }
+                },
+                ...stantonCategorized.cities.map(location => ({
+                    value: location.name,
+                    label: `  ${location.name}`,
+                    system: 'Stanton',
+                    planet: location.planet,
+                    type: location.type
+                }))
+            ] : []),
+            
+            // Stanton Stations
+            ...(stantonCategorized.stations.length > 0 ? [
+                { 
+                    label: '  Space Stations', 
+                    isDisabled: true,
+                    className: 'dropdown-separator',
+                    style: {
+                        fontWeight: 'bold',
+                        color: '#cccccc',
+                        fontSize: '12px',
+                        paddingLeft: '10px'
+                    }
+                },
+                ...stantonCategorized.stations.map(location => ({
+                    value: location.name,
+                    label: `  ${location.name}`,
+                    system: 'Stanton',
+                    planet: location.planet,
+                    type: location.type
+                }))
+            ] : []),
+            
+            // Stanton Lagrange Stations
+            ...(stantonCategorized.lagrange.length > 0 ? [
+                { 
+                    label: '  Lagrange Stations', 
+                    isDisabled: true,
+                    className: 'dropdown-separator',
+                    style: {
+                        fontWeight: 'bold',
+                        color: '#cccccc',
+                        fontSize: '12px',
+                        paddingLeft: '10px'
+                    }
+                },
+                ...stantonCategorized.lagrange.map(location => ({
+                    value: location.name,
+                    label: `  ${location.name}`,
+                    system: 'Stanton',
+                    planet: location.planet,
+                    type: location.type
+                }))
+            ] : []),
+            
+            // Stanton Distribution Centers
+            ...(stantonCategorized.distribution.length > 0 ? [
+                { 
+                    label: '  Distribution Centers', 
+                    isDisabled: true,
+                    className: 'dropdown-separator',
+                    style: {
+                        fontWeight: 'bold',
+                        color: '#cccccc',
+                        fontSize: '12px',
+                        paddingLeft: '10px'
+                    }
+                },
+                ...stantonCategorized.distribution.map(location => ({
+                    value: location.name,
+                    label: `  ${location.name}`,
+                    system: 'Stanton',
+                    planet: location.planet,
+                    type: location.type
+                }))
+            ] : []),
+            
+            // Stanton Outposts
+            ...(stantonCategorized.outposts.length > 0 ? [
+                { 
+                    label: '  Mining Outposts', 
+                    isDisabled: true,
+                    className: 'dropdown-separator',
+                    style: {
+                        fontWeight: 'bold',
+                        color: '#cccccc',
+                        fontSize: '12px',
+                        paddingLeft: '10px'
+                    }
+                },
+                ...stantonCategorized.outposts.map(location => ({
+                    value: location.name,
+                    label: `  ${location.name}`,
+                    system: 'Stanton',
+                    planet: location.planet,
+                    type: location.type
+                }))
+            ] : []),
+            
+            // Stanton Gateways
+            ...(stantonCategorized.gateway.length > 0 ? [
+                { 
+                    label: '  Gateway Stations', 
+                    isDisabled: true,
+                    className: 'dropdown-separator',
+                    style: {
+                        fontWeight: 'bold',
+                        color: '#cccccc',
+                        fontSize: '12px',
+                        paddingLeft: '10px'
+                    }
+                },
+                ...stantonCategorized.gateway.map(location => ({
+                    value: location.name,
+                    label: `  ${location.name}`,
+                    system: 'Stanton',
+                    planet: location.planet,
+                    type: location.type
+                }))
+            ] : [])
+        );
+    }
+    
+    // Add Pyro System if not filtered or if Pyro is selected
+    if (filteredSystem === 'all' || filteredSystem === 'pyro') {
+        allLocations.push(
+            // Pyro System Header
+            { 
+                label: '-- Pyro System --', 
+                isDisabled: true,
+                className: 'dropdown-separator',
+                style: {
+                    fontWeight: 'bold',
+                    fontStyle: 'italic',
+                    backgroundColor: '#2a2a2a',
+                    color: '#ffffff'
+                }
+            },
+            
+            // Pyro Stations
+            ...(pyroCategorized.stations.length > 0 ? [
+                { 
+                    label: '  Space Stations', 
+                    isDisabled: true,
+                    className: 'dropdown-separator',
+                    style: {
+                        fontWeight: 'bold',
+                        color: '#cccccc',
+                        fontSize: '12px',
+                        paddingLeft: '10px'
+                    }
+                },
+                ...pyroCategorized.stations.map(location => ({
+                    value: location.name,
+                    label: `  ${location.name}`,
+                    system: 'Pyro',
+                    planet: location.planet,
+                    type: location.type
+                }))
+            ] : []),
+            
+            // Pyro Outposts
+            ...(pyroCategorized.outposts.length > 0 ? [
+                { 
+                    label: '  Outposts', 
+                    isDisabled: true,
+                    className: 'dropdown-separator',
+                    style: {
+                        fontWeight: 'bold',
+                        color: '#cccccc',
+                        fontSize: '12px',
+                        paddingLeft: '10px'
+                    }
+                },
+                ...pyroCategorized.outposts.map(location => ({
+                    value: location.name,
+                    label: `  ${location.name}`,
+                    system: 'Pyro',
+                    planet: location.planet,
+                    type: location.type
+                }))
+            ] : []),
+            
+            // Pyro Mining Sites
+            ...(pyroCategorized.mining.length > 0 ? [
+                { 
+                    label: '  Mining Sites', 
+                    isDisabled: true,
+                    className: 'dropdown-separator',
+                    style: {
+                        fontWeight: 'bold',
+                        color: '#cccccc',
+                        fontSize: '12px',
+                        paddingLeft: '10px'
+                    }
+                },
+                ...pyroCategorized.mining.map(location => ({
+                    value: location.name,
+                    label: `  ${location.name}`,
+                    system: 'Pyro',
+                    planet: location.planet,
+                    type: location.type
+                }))
+            ] : []),
+            
+            // Pyro Salvage Sites
+            ...(pyroCategorized.salvage.length > 0 ? [
+                { 
+                    label: '  Salvage Sites', 
+                    isDisabled: true,
+                    className: 'dropdown-separator',
+                    style: {
+                        fontWeight: 'bold',
+                        color: '#cccccc',
+                        fontSize: '12px',
+                        paddingLeft: '10px'
+                    }
+                },
+                ...pyroCategorized.salvage.map(location => ({
+                    value: location.name,
+                    label: `  ${location.name}`,
+                    system: 'Pyro',
+                    planet: location.planet,
+                    type: location.type
+                }))
+            ] : []),
+            
+            // Pyro Farming Sites
+            ...(pyroCategorized.farming.length > 0 ? [
+                { 
+                    label: '  Farming Sites', 
+                    isDisabled: true,
+                    className: 'dropdown-separator',
+                    style: {
+                        fontWeight: 'bold',
+                        color: '#cccccc',
+                        fontSize: '12px',
+                        paddingLeft: '10px'
+                    }
+                },
+                ...pyroCategorized.farming.map(location => ({
+                    value: location.name,
+                    label: `  ${location.name}`,
+                    system: 'Pyro',
+                    planet: location.planet,
+                    type: location.type
+                }))
+            ] : []),
+            
+            // Other locations
+            ...(pyroCategorized.other.length > 0 ? [
+                { 
+                    label: '  Other Locations', 
+                    isDisabled: true,
+                    className: 'dropdown-separator',
+                    style: {
+                        fontWeight: 'bold',
+                        color: '#cccccc',
+                        fontSize: '12px',
+                        paddingLeft: '10px'
+                    }
+                },
+                ...pyroCategorized.other.map(location => ({
+                    value: location.name,
+                    label: `  ${location.name}`,
+                    system: 'Pyro',
+                    planet: location.planet,
+                    type: location.type
+                }))
+            ] : [])
+        );
+    }
+    
+    return allLocations;
+};
+
+// Update the quick lookup options generation to show all locations from both systems with proper categorization
+const quickLookupOptions = (filteredSystem = 'all') => {
+    // Use the same categorization logic as pickupPointOptions
+    return pickupPointOptions(filteredSystem);
 };
 
 // Add this function near the top of the file, after the systemDataMap declaration
-const validatePickupPoint = (location, selectedSystem) => {
-    const systemData = systemDataMap[selectedSystem] || StantonSystemData;
+const validatePickupPoint = (location) => {
+    // Check if the location exists in either system using the database
+    const stantonLocations = DatabaseQueries.getSystemLocations('stanton');
+    const pyroLocations = DatabaseQueries.getSystemLocations('pyro');
     
-    // Check if the location exists in the system's FullList
-    const isValid = systemData.FullList.includes(location) && 
+    console.log('Validating location:', location);
+    console.log('Stanton locations count:', stantonLocations.length);
+    console.log('Pyro locations count:', pyroLocations.length);
+    
+    const stantonLocation = stantonLocations.find(loc => loc.name === location);
+    const pyroLocation = pyroLocations.find(loc => loc.name === location);
+    
+    console.log('Stanton location found:', stantonLocation);
+    console.log('Pyro location found:', pyroLocation);
+    
+    const isValid = (stantonLocation || pyroLocation) && 
+                   location && 
                    !location.startsWith('--') && 
                    !location.endsWith('--');
     
+    const system = stantonLocation ? 'Stanton' : pyroLocation ? 'Pyro' : 'Unknown';
+    
+    console.log('Validation result:', { isValid, system });
+    
     return {
         isValid,
-        message: isValid ? '' : `Warning: "${location}" is not a recognized location in the ${selectedSystem} system`
+        message: isValid ? '' : `Warning: "${location}" is not a recognized location`,
+        system: system
     };
 };
 
@@ -150,13 +703,108 @@ export const MissionSubTabHauling = ({
     amountInputRef,
     setHistoryEntries,
     addOCRToManifest,
-    selectedSystem = 'Stanton', // Add default value
-    currentSystem,
-    handleSystemChange,
     lockedMissionIndex, // Add this
 }) => {
+    // Local handlers for planet and moon selection
+    const handleLocalPlanetSelectChange = (option) => {
+        if (option && option.value) {
+            setSelectedPlanet(option.value);
+            setSelectedMoon(null); // Clear moon selection when planet changes
+            setSelectedDropOffPoint(null); // Clear drop-off point selection when planet changes
+        } else {
+            setSelectedPlanet(null);
+            setSelectedMoon(null);
+            setSelectedDropOffPoint(null);
+        }
+    };
+
+    const handleLocalMoonSelectChange = (option) => {
+        if (option && option.value && option.value !== '') {
+            setSelectedMoon(option.value);
+            setSelectedDropOffPoint(null); // Clear drop-off point selection when moon changes
+        } else {
+            setSelectedMoon(null);
+            setSelectedDropOffPoint(null);
+        }
+    };
+
+    // Quick lookup handler
+    const handleLocalQuickLookupChange = (option) => {
+        if (!option || !option.value) return;
+
+        try {
+            console.log('Quick lookup selected:', option.value);
+            
+            // Find the location in our database
+            const systems = DatabaseQueries.getSystems();
+            let foundLocation = null;
+            let foundSystem = null;
+            
+            // Search through all systems to find the location
+            for (const system of systems) {
+                const systemLocations = DatabaseQueries.getSystemLocations(system.id);
+                console.log(`Searching in ${system.name}:`, systemLocations.length, 'locations');
+                const location = systemLocations.find(loc => loc.name === option.value);
+                
+                if (location) {
+                    foundLocation = location;
+                    foundSystem = system;
+                    console.log('Found location:', location);
+                    break;
+                }
+            }
+            
+            if (!foundLocation) {
+                console.log('Location not found in database:', option.value);
+                return;
+            }
+            
+            // Determine location type based on the location data
+            console.log('Location type:', foundLocation.type);
+            if (foundLocation.type === 'stations' || foundLocation.type === 'station' || foundLocation.type === 'lagrange' || foundLocation.type === 'gateway') {
+                // Space-based location
+                console.log('Setting location type to station');
+                setLocationType('station');
+                setSelectedPlanet(null);
+                setSelectedMoon(null);
+            } else {
+                // Planet-based location (cities, distribution, outposts, mining, salvage, farming, etc.)
+                console.log('Setting location type to planet');
+                setLocationType('planet');
+                
+                if (foundLocation.moonId) {
+                    // Location is on a moon
+                    console.log('Setting planet and moon:', foundLocation.planetId, foundLocation.moonId);
+                    setSelectedPlanet(foundLocation.planetId);
+                    setSelectedMoon(foundLocation.moonId);
+                } else {
+                    // Location is on a planet
+                    console.log('Setting planet only:', foundLocation.planetId);
+                    setSelectedPlanet(foundLocation.planetId);
+                    setSelectedMoon(null);
+                }
+            }
+            
+            // Set the drop-off point
+            console.log('Setting drop-off point:', option.value);
+            setSelectedDropOffPoint(option.value);
+            
+            // Update the selected location
+            setSecondDropdownValue(option.value);
+            
+            // Focus on the amount input
+            if (amountInputRef.current) {
+                amountInputRef.current.focus();
+            }
+        } catch (error) {
+            console.error('Error in handleQuickLookupChange:', error);
+            showBannerMessage('Error processing location selection');
+        }
+    };
+
     // Local state
     const [needsClearConfirmation, setNeedsClearConfirmation] = useState(false);
+    const [systemFilter, setSystemFilter] = useState('all'); // 'all' means show all systems
     const [autoMissionAllocation, setAutoMissionAllocation] = useState(() => {
         const saved = localStorage.getItem('autoMissionAllocation');
         return saved !== null ? JSON.parse(saved) : true;
@@ -170,6 +818,52 @@ export const MissionSubTabHauling = ({
 
     // Add state for popup visibility
     const [showRoutePlanner, setShowRoutePlanner] = useState(false);
+
+    // Add state for SCU breakdown modal
+    const [showSCUBreakdown, setShowSCUBreakdown] = useState(false);
+
+    // Add state for SCU tooltip bubble
+    const [showSCUTooltip, setShowSCUTooltip] = useState(() => {
+        const saved = localStorage.getItem('totalSCUTooltipShown');
+        return saved !== 'true'; // Show tooltip if not previously shown
+    });
+
+    // Function to calculate commodity breakdown
+    const calculateCommodityBreakdown = () => {
+        const breakdown = {};
+        
+        entries.forEach(entry => {
+            const commodity = entry.commodity || 'Unknown';
+            const amount = parseFloat(entry.currentAmount) || parseFloat(entry.amount) || 0;
+            
+            if (breakdown[commodity]) {
+                breakdown[commodity] += amount;
+            } else {
+                breakdown[commodity] = amount;
+            }
+        });
+        
+        return Object.entries(breakdown)
+            .map(([commodity, amount]) => ({ commodity, amount }))
+            .sort((a, b) => b.amount - a.amount);
+    };
+
+    // Function to calculate SCU box breakdown
+    const calculateSCUBreakdown = (totalSCU) => {
+        const boxSizes = [32, 24, 16, 8, 4, 2, 1];
+        const breakdown = {};
+        let remainingSCU = totalSCU;
+        
+        boxSizes.forEach(size => {
+            const boxes = Math.floor(remainingSCU / size);
+            if (boxes > 0) {
+                breakdown[size] = boxes;
+                remainingSCU -= boxes * size;
+            }
+        });
+        
+        return breakdown;
+    };
 
     // Add new state for route planner
     const [routePresets, setRoutePresets] = useState(() => {
@@ -211,12 +905,10 @@ export const MissionSubTabHauling = ({
     // Add new state variables
     const [basicSelectedPreset, setBasicSelectedPreset] = useState(null);
     const [advancedSelectedPreset, setAdvancedSelectedPreset] = useState(null);
+    const [advancedSelectedSystem, setAdvancedSelectedSystem] = useState('Stanton');
 
     // Add this state near the other state declarations
     const [showClearConfirmation, setShowClearConfirmation] = useState(false);
-
-    // Add new state for selected system in advanced view
-    const [advancedSelectedSystem, setAdvancedSelectedSystem] = useState('Stanton');
 
     // Add this state near your other state declarations
     const [positionInputs, setPositionInputs] = useState({});
@@ -1222,49 +1914,14 @@ export const MissionSubTabHauling = ({
             })}
     </div>
 
-    // Add fallback to Stanton if selectedSystem is invalid
-    const currentSystemData = systemDataMap[selectedSystem] || StantonSystemData;
-
-    useEffect(() => {
-        if (currentSystem === 'Pyro') {
-            showBannerMessage('Pyro system locations are not currently supported for Quick lookup and Pickup points');
-        }
-    }, [currentSystem]);
+    // useEffect(() => {
+    //     if (currentSystem === 'Pyro') {
+    //         showBannerMessage('Pyro system locations are not currently supported for Quick lookup and Pickup points');
+    //     }
+    // }, [currentSystem]);
 
     return (
         <div className="hauling-missions">
-        <div className="system-switcher-container">
-            <div className="system-switch-group">
-                <label className="system-switch-label">
-                    <input 
-                        className="system-switch-radio"
-                        type="radio"
-                        name="system"
-                        checked={currentSystem === 'Stanton'}
-                        onChange={() => handleSystemChange('Stanton')}
-                    />
-                    <span className="system-switch-text">Stanton System</span>
-                </label>
-                <label className="system-switch-label">
-                    <input 
-                        className="system-switch-radio"
-                        type="radio"
-                        name="system"
-                        checked={currentSystem === 'Pyro'}
-                        onChange={() => handleSystemChange('Pyro')}
-                    />
-                    <span className="system-switch-text">Pyro System</span>
-                </label>
-            </div>
-            <div className="route-planner-container">
-                <button 
-                    className="route-planner-button with-icon"
-                    onClick={() => setShowRoutePlanner(true)}
-                >
-                    Route Planner
-                </button>
-            </div>
-        </div>
 
             {/* Basic View Popup */}
             {showRoutePlanner && !showAdvancedView && (
@@ -1400,7 +2057,26 @@ export const MissionSubTabHauling = ({
                                 value={basicSelectedPreset}
                                 onChange={(selected) => handlePresetSelect(selected, false)}
                                     placeholder="Select a route preset"
-                                    styles={customStyles}
+                                    styles={{
+                                        ...customStyles,
+                                        option: (provided, state) => ({
+                                            ...provided,
+                                            backgroundColor: state.isDisabled ? 'var(--background-secondary-color)' : 
+                                                          state.isSelected ? 'var(--button-color)' : 
+                                                          state.isFocused ? 'var(--background-color)' : 'transparent',
+                                            color: state.isDisabled ? '#ffffff' : 
+                                                   state.isSelected ? '#000000' : 
+                                                   'var(--text-color)',
+                                            fontWeight: state.isDisabled ? 'bold' : 'normal',
+                                            fontStyle: state.isDisabled ? 'italic' : 'normal',
+                                            cursor: state.isDisabled ? 'default' : 'pointer',
+                                            paddingLeft: '8px',
+                                            paddingRight: '8px',
+                                            ':active': {
+                                                backgroundColor: state.isDisabled ? 'var(--background-secondary-color)' : 'var(--button-color)'
+                                            }
+                                        })
+                                    }}
                                     components={{ 
                                         DropdownIndicator: null, 
                                         IndicatorSeparator: null 
@@ -1903,102 +2579,119 @@ export const MissionSubTabHauling = ({
                         
                         {/* Drop-off Points List */}
                         <div style={{ marginTop: '10px' }}>
-                            {(advancedSelectedSystem === 'Stanton' ? StantonSystemData : PyroSystemData).FullList
-                                .filter(location => {
-                                    // Skip separators when searching
-                                    if (location.startsWith('--') && location.endsWith('--')) {
-                                        return true;
-                                    }
+                            {(() => {
+                                // Get locations based on selected system
+                                let locations = [];
+                                if (advancedSelectedSystem === 'Stanton') {
+                                    locations = DatabaseQueries.getSystemLocations('stanton');
+                                } else if (advancedSelectedSystem === 'Pyro') {
+                                    locations = DatabaseQueries.getSystemLocations('pyro');
+                                } else {
+                                    // Show all locations if no system selected
+                                    const stantonLocations = DatabaseQueries.getSystemLocations('stanton');
+                                    const pyroLocations = DatabaseQueries.getSystemLocations('pyro');
+                                    locations = [...stantonLocations, ...pyroLocations];
+                                }
+                                
+                                return locations
+                                    .filter(location => {
+                                        // Skip separators when searching
+                                        if (location.name.startsWith('--') && location.name.endsWith('--')) {
+                                            return true;
+                                        }
 
-                                    // Get location type
-                                    const locationType = getLocationType(location);
-                                    const typeString = locationType === 'Station' ? 'Space Station' : 
-                                                      locationType === 'Distribution' ? 'Distribution Center' : 
-                                                      locationType === 'Outpost' ? 'Mining Outpost' : 
-                                                      locationType;
+                                        // Get location type
+                                        const locationType = location.type;
+                                        const typeString = locationType === 'stations' ? 'Space Station' : 
+                                                          locationType === 'lagrange' ? 'Lagrange Station' :
+                                                          locationType === 'gateway' ? 'Gateway Station' :
+                                                          locationType === 'distribution' ? 'Distribution Center' : 
+                                                          locationType === 'outposts' ? 'Outpost' : 
+                                                          locationType === 'mining' ? 'Mining Facility' :
+                                                          locationType === 'salvage' ? 'Salvage Facility' :
+                                                          locationType === 'farming' ? 'Farming Facility' :
+                                                          locationType === 'cities' ? 'City' :
+                                                          locationType;
 
                                     // Check if search term matches location name or type
-                                    return location.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                                    return location.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                                            typeString.toLowerCase().includes(searchTerm.toLowerCase());
                                 })
                                 .map((location, index) => {
-                                    if (location.startsWith('--') && location.endsWith('--')) {
-                                        // Only show separator if there are visible items after it
-                                        const nextItem = StantonSystemData.FullList[index + 1];
-                                        if (!nextItem || !nextItem.toLowerCase().includes(searchTerm.toLowerCase())) {
-                                            return null;
-                                        }
-
-                                        // Render separator
-                                        return (
-                                            <div key={index} style={{
-                                                padding: '5px',
-                                                margin: '10px 0',
-                                                backgroundColor: 'var(--background-secondary-color)',
-                                                color: 'var(--text-secondary-color)',
-                                                fontWeight: 'bold',
-                                                textAlign: 'center'
-                                            }}>
-                                                {location.replace(/--/g, '')}
-                                            </div>
-                                        );
-                                    }
-
-                                    // Get location details
-                                    const locationType = getLocationType(location);
-                                    const planet = Object.keys(StantonSystemData.Dropoffpoints).find(planet => 
-                                        StantonSystemData.Dropoffpoints[planet].includes(location)
-                                    ) || Object.keys(StantonSystemData.moons).find(planet => 
-                                        Object.values(StantonSystemData.moons[planet]).flat().includes(location)
-                                    );
-
-                                    const moon = planet ? Object.keys(StantonSystemData.moons[planet]).find(moon => 
-                                        StantonSystemData.moons[planet][moon].includes(location)
-                                    ) : null;
-
-                                    const isInAdvancedView = advancedViewEntries.some(entry => entry.dropOffPoint === location);
-                                    const isInManifest = entries.some(entry => entry.dropOffPoint === location);
-
+                                    // Render location item
                                     return (
-                                        <div 
-                                            key={location} 
-                                            style={{
-                                                padding: '10px',
-                                                marginBottom: '10px',
-                                                backgroundColor: isInAdvancedView ? 'var(--table-row-color)' : 'var(--background-secondary-color)',
-                                                borderRadius: '4px',
-                                                cursor: 'pointer',
-                                                border: `1px solid ${isInAdvancedView ? 'var(--border-color)' : '#ccc'}`,
-                                                opacity: isInAdvancedView ? 1 : 0.7,
-                                                ':hover': {
-                                                    backgroundColor: 'var(--button-color)'
+                                        <div key={index} style={{
+                                            padding: '8px',
+                                            margin: '5px 0',
+                                            backgroundColor: 'var(--background-secondary-color)',
+                                            borderRadius: '4px',
+                                            cursor: 'pointer',
+                                            border: '1px solid var(--border-color)',
+                                            display: 'flex',
+                                            justifyContent: 'space-between',
+                                            alignItems: 'center'
+                                        }}
+                                        onClick={() => {
+                                            // Handle location selection
+                                            console.log('Selected location:', location.name);
+                                            
+                                            // Determine location type based on the location data
+                                            if (location.type === 'stations' || location.type === 'lagrange' || location.type === 'gateway') {
+                                                // Space-based location
+                                                console.log('Setting location type to station');
+                                                setLocationType('station');
+                                                setSelectedPlanet(null);
+                                                setSelectedMoon(null);
+                                            } else {
+                                                // Planet-based location
+                                                console.log('Setting location type to planet');
+                                                setLocationType('planet');
+                                                
+                                                if (location.moonId) {
+                                                    // Location is on a moon
+                                                    console.log('Setting planet and moon:', location.planetId, location.moonId);
+                                                    setSelectedPlanet(location.planetId);
+                                                    setSelectedMoon(location.moonId);
+                                                } else {
+                                                    // Location is on a planet
+                                                    console.log('Setting planet only:', location.planetId);
+                                                    setSelectedPlanet(location.planetId);
+                                                    setSelectedMoon(null);
                                                 }
-                                            }}
-                                            onClick={() => {
-                                                if (showAdvancedView) {
-                                                    handleAddDropOffPoint(location, planet, moon);
-                                                } else if (!isInManifest) {
-                                                    handleAddDropOffPoint(location, planet, moon);
-                                                }
-                                            }}
+                                            }
+                                            
+                                            // Set the drop-off point
+                                            console.log('Setting drop-off point:', location.name);
+                                            setSelectedDropOffPoint(location.name);
+                                            
+                                            // Update the selected location
+                                            setSecondDropdownValue(location.name);
+                                        }}
                                         >
                                             <div>
-                                                <div style={{ fontWeight: 'bold' }}>{location}</div>
-                                                <div style={{ fontSize: '0.8em', color: 'var(--text-secondary-color)' }}>
-                                                    {locationType === 'Station' ? 'Space Station' : 
-                                                     locationType === 'Distribution' ? 'Distribution Center' : 
-                                                     locationType === 'Outpost' ? `${planet} ${moon ? `- ${moon}` : ''} (Outpost)` : 
-                                                     `${planet} ${moon ? `- ${moon}` : ''} (${locationType})`}
+                                                <div style={{ fontWeight: 'bold', color: 'var(--text-color)' }}>
+                                                    {location.name}
                                                 </div>
-                                                {isInManifest && (
-                                                    <div style={{ fontSize: '0.8em', color: '#ff4444', marginTop: '5px' }}>
-                                                        (In Hauling Manifest)
-                                                    </div>
-                                                )}
+                                                <div style={{ fontSize: '12px', color: 'var(--text-secondary-color)' }}>
+                                                    {location.type === 'stations' ? 'Space Station' : 
+                                                     location.type === 'lagrange' ? 'Lagrange Station' :
+                                                     location.type === 'gateway' ? 'Gateway Station' :
+                                                     location.type === 'distribution' ? 'Distribution Center' : 
+                                                     location.type === 'outposts' ? 'Outpost' : 
+                                                     location.type === 'mining' ? 'Mining Facility' :
+                                                     location.type === 'salvage' ? 'Salvage Facility' :
+                                                     location.type === 'farming' ? 'Farming Facility' :
+                                                     location.type === 'cities' ? 'City' :
+                                                     location.type} • {location.planet || 'Unknown Planet'}
+                                                </div>
+                                            </div>
+                                            <div style={{ fontSize: '12px', color: 'var(--text-secondary-color)' }}>
+                                                {advancedSelectedSystem || 'All Systems'}
                                             </div>
                                         </div>
                                     );
-                                })}
+                                });
+                            })()}
                         </div>
                     </div>
 
@@ -2079,7 +2772,26 @@ export const MissionSubTabHauling = ({
                                     value={advancedSelectedPreset}
                                     onChange={(selected) => handlePresetSelect(selected, true)}
                                     placeholder="Select a route preset"
-                                    styles={customStyles}
+                                    styles={{
+                                        ...customStyles,
+                                        option: (provided, state) => ({
+                                            ...provided,
+                                            backgroundColor: state.isDisabled ? 'var(--background-secondary-color)' : 
+                                                          state.isSelected ? 'var(--button-color)' : 
+                                                          state.isFocused ? 'var(--background-color)' : 'transparent',
+                                            color: state.isDisabled ? '#ffffff' : 
+                                                   state.isSelected ? '#000000' : 
+                                                   'var(--text-color)',
+                                            fontWeight: state.isDisabled ? 'bold' : 'normal',
+                                            fontStyle: state.isDisabled ? 'italic' : 'normal',
+                                            cursor: state.isDisabled ? 'default' : 'pointer',
+                                            paddingLeft: '8px',
+                                            paddingRight: '8px',
+                                            ':active': {
+                                                backgroundColor: state.isDisabled ? 'var(--background-secondary-color)' : 'var(--button-color)'
+                                            }
+                                        })
+                                    }}
                                     components={{ 
                                         DropdownIndicator: null, 
                                         IndicatorSeparator: null 
@@ -2379,13 +3091,236 @@ export const MissionSubTabHauling = ({
                 </button>
             </div>
 
+            {/* SCU Breakdown Modal */}
+            {showSCUBreakdown && (
+                <div 
+                    style={{
+                        position: 'fixed',
+                        top: 0,
+                        left: 0,
+                        width: '100vw',
+                        height: '100vh',
+                        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                        zIndex: 1000,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                    }}
+                    onClick={() => setShowSCUBreakdown(false)}
+                >
+                    <div 
+                        style={{
+                            background: 'var(--background-color)',
+                            border: '2px solid var(--button-color)',
+                            borderRadius: '10px',
+                            padding: '20px',
+                            minWidth: '400px',
+                            maxWidth: '600px',
+                            maxHeight: '80vh',
+                            overflowY: 'auto',
+                            boxShadow: '0 4px 20px rgba(0,0,0,0.3)'
+                        }}
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                    <div style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        marginBottom: '20px'
+                    }}>
+                        <h2 style={{ color: 'var(--title-color)', margin: 0 }}>Commodity Breakdown</h2>
+                        <button 
+                            onClick={() => setShowSCUBreakdown(false)}
+                            style={{
+                                padding: '8px 16px',
+                                backgroundColor: 'var(--button-color)',
+                                color: 'black',
+                                border: 'none',
+                                borderRadius: '4px',
+                                cursor: 'pointer'
+                            }}
+                        >
+                            Close
+                        </button>
+                    </div>
+                    
+                    <div style={{ marginBottom: '15px' }}>
+                        <div style={{
+                            backgroundColor: '#1a1a1a',
+                            border: '1px solid var(--table-outline-color)',
+                            borderRadius: '6px',
+                            padding: '12px',
+                            marginBottom: '10px',
+                            fontSize: '13px',
+                            lineHeight: '1.4'
+                        }}>
+                            <div style={{ color: 'var(--mission-text-color)', fontWeight: 'bold', marginBottom: '6px' }}>
+                                Container Size Information:
+                            </div>
+                            <div style={{ color: 'var(--row-text-color)' }}>
+                                This is a general breakdown of container sizes based on how the cargo missions work.
+                            </div>
+                            <div style={{ color: 'var(--row-text-color)', marginTop: '4px' }}>
+                                Beginner missions tend to make all containers smaller sizes.
+                            </div>
+                        </div>
+                        <strong style={{ color: 'var(--mission-text-color)' }}>
+                            Total SCU: {calculateTotalSCU()}
+                        </strong>
+                    </div>
+                    
+                    <table style={{
+                        width: '100%',
+                        borderCollapse: 'collapse',
+                        border: '1px solid var(--table-outline-color)'
+                    }}>
+                        <thead>
+                            <tr style={{ backgroundColor: '#1a1a1a' }}>
+                                <th style={{
+                                    padding: '10px',
+                                    border: '1px solid var(--table-outline-color)',
+                                    color: 'var(--table-header-text-color)',
+                                    textAlign: 'left'
+                                }}>
+                                    Commodity
+                                </th>
+                                <th style={{
+                                    padding: '10px',
+                                    border: '1px solid var(--table-outline-color)',
+                                    color: 'var(--table-header-text-color)',
+                                    textAlign: 'right'
+                                }}>
+                                    Amount (SCU)
+                                </th>
+                                <th style={{
+                                    padding: '10px',
+                                    border: '1px solid var(--table-outline-color)',
+                                    color: 'var(--table-header-text-color)',
+                                    textAlign: 'center'
+                                }}>
+                                    Box Breakdown
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {calculateCommodityBreakdown().map((item, index) => {
+                                const scuBreakdown = calculateSCUBreakdown(item.amount);
+                                return (
+                                    <tr key={index} style={{
+                                        backgroundColor: index % 2 === 0 ? '#262626' : '#333'
+                                    }}>
+                                        <td style={{
+                                            padding: '8px 10px',
+                                            border: '1px solid var(--table-outline-color)',
+                                            color: 'var(--row-text-color)'
+                                        }}>
+                                            {item.commodity}
+                                        </td>
+                                        <td style={{
+                                            padding: '8px 10px',
+                                            border: '1px solid var(--table-outline-color)',
+                                            color: 'var(--row-text-color)',
+                                            textAlign: 'right',
+                                            fontWeight: 'bold'
+                                        }}>
+                                            {item.amount.toFixed(0)}
+                                        </td>
+                                        <td style={{
+                                            padding: '8px 10px',
+                                            border: '1px solid var(--table-outline-color)',
+                                            color: 'var(--row-text-color)',
+                                            textAlign: 'center',
+                                            fontSize: '12px'
+                                        }}>
+                                            {Object.keys(scuBreakdown).length > 0 ? (
+                                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', justifyContent: 'center' }}>
+                                                    {Object.entries(scuBreakdown)
+                                                        .sort(([a], [b]) => parseInt(b) - parseInt(a))
+                                                        .map(([size, count]) => (
+                                                            <span key={size} style={{
+                                                                backgroundColor: 'var(--button-color)',
+                                                                color: 'black',
+                                                                padding: '4px 8px',
+                                                                borderRadius: '6px',
+                                                                fontSize: '11px',
+                                                                fontWeight: 'bold',
+                                                                whiteSpace: 'nowrap',
+                                                                border: '1px solid rgba(0,0,0,0.2)',
+                                                                boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+                                                                minWidth: '50px',
+                                                                textAlign: 'center'
+                                                            }}>
+                                                                {count} × {size} SCU
+                                                            </span>
+                                                        ))
+                                                    }
+                                                </div>
+                                            ) : (
+                                                <span style={{ color: '#666', fontStyle: 'italic', fontSize: '12px' }}>No containers needed</span>
+                                            )}
+                                        </td>
+                                    </tr>
+                                );
+                            })}
+                        </tbody>
+                    </table>
+                    
+                    {calculateCommodityBreakdown().length === 0 && (
+                        <div style={{
+                            textAlign: 'center',
+                            padding: '20px',
+                            color: 'var(--row-text-color)',
+                            fontStyle: 'italic'
+                        }}>
+                            No commodities in hauling manifest
+                        </div>
+                    )}
+                    </div>
+                </div>
+            )}
+
+            <div className="form-row">
+                <div className="form-group">
+                    <label>System Filtering</label>
+                    <Select
+                        components={{ DropdownIndicator: null, IndicatorSeparator: null }}
+                        options={[
+                            { value: 'all', label: 'All Systems' },
+                            ...getSystemOptions()
+                        ]}
+                        value={systemFilter && systemFilter !== 'all' ? getSystemOptions().find(option => option.value === systemFilter) : { value: 'all', label: 'All Systems' }}
+                        onChange={(option) => {
+                            setSystemFilter(option.value);
+                        }}
+                        className="system-filter-select"
+                        classNamePrefix="react-select"
+                        styles={{
+                            ...customStyles,
+                            input: (provided) => ({
+                                ...provided,
+                                color: 'var(--text-color) !important',
+                                opacity: '1 !important'
+                            })
+                        }}
+                    />
+                </div>
+                <div className="form-group">
+                    <button 
+                        className="route-planner-button with-icon"
+                        onClick={() => setShowRoutePlanner(true)}
+                    >
+                        Route Planner
+                    </button>
+                </div>
+            </div>
+
             <div className="form-row">
                 <div className="form-group">
                     <label>Pickup Point</label>
                     <Select
                         components={{ DropdownIndicator: null, IndicatorSeparator: null }}
-                        options={pickupPointOptions(selectedSystem, currentSystem)}
-                        value={pickupPointOptions(selectedSystem, currentSystem).find(option => option.value === firstDropdownValue) || null}
+                        options={pickupPointOptions(systemFilter)}
+                        value={pickupPointOptions(systemFilter).find(option => option.value === firstDropdownValue) || null}
                         onChange={(option) => {
                             if (!option.isDisabled) {
                                 handlePickupPointChange(option);
@@ -2398,12 +3333,19 @@ export const MissionSubTabHauling = ({
                         classNamePrefix="react-select"
                         styles={{
                             ...customStyles,
+                            input: (provided) => ({
+                                ...provided,
+                                color: 'var(--text-color) !important',
+                                opacity: '1 !important'
+                            }),
                             option: (provided, state) => ({
                                 ...provided,
                                 backgroundColor: state.isDisabled ? 'var(--background-secondary-color)' : 
                                               state.isSelected ? 'var(--button-color)' : 
                                               state.isFocused ? 'var(--background-color)' : 'transparent',
-                                color: state.isDisabled ? '#ffffff' : 'var(--text-color)',
+                                color: state.isDisabled ? '#ffffff' : 
+                                       state.isSelected ? '#000000' : 
+                                       'var(--text-color)',
                                 fontWeight: state.isDisabled ? 'bold' : 'normal',
                                 fontStyle: state.isDisabled ? 'italic' : 'normal',
                                 cursor: state.isDisabled ? 'default' : 'pointer',
@@ -2420,11 +3362,11 @@ export const MissionSubTabHauling = ({
                     <label>Quick Lookup</label>
                     <Select
                         components={{ DropdownIndicator: null, IndicatorSeparator: null }}
-                        options={quickLookupOptions(selectedSystem, currentSystem)}
-                        value={quickLookupOptions(selectedSystem, currentSystem).find(option => option.value === secondDropdownValue) || null}
+                        options={quickLookupOptions(systemFilter)}
+                        value={quickLookupOptions(systemFilter).find(option => option.value === secondDropdownValue) || null}
                         onChange={(option) => {
                             if (!option.isDisabled) {
-                                handleQuickLookupChange(option);
+                                handleLocalQuickLookupChange(option);
                                 if (amountInputRef.current) {
                                     amountInputRef.current.focus();
                                 }
@@ -2434,12 +3376,19 @@ export const MissionSubTabHauling = ({
                         classNamePrefix="react-select"
                         styles={{
                             ...customStyles,
+                            input: (provided) => ({
+                                ...provided,
+                                color: 'var(--text-color) !important',
+                                opacity: '1 !important'
+                            }),
                             option: (provided, state) => ({
                                 ...provided,
                                 backgroundColor: state.isDisabled ? 'var(--background-secondary-color)' : 
                                               state.isSelected ? 'var(--button-color)' : 
                                               state.isFocused ? 'var(--background-color)' : 'transparent',
-                                color: state.isDisabled ? '#ffffff' : 'var(--text-color)',
+                                color: state.isDisabled ? '#ffffff' : 
+                                       state.isSelected ? '#000000' : 
+                                       'var(--text-color)',
                                 fontWeight: state.isDisabled ? 'bold' : 'normal',
                                 fontStyle: state.isDisabled ? 'italic' : 'normal',
                                 cursor: state.isDisabled ? 'default' : 'pointer',
@@ -2466,120 +3415,168 @@ export const MissionSubTabHauling = ({
                         onChange={handleLocationTypeChange}
                         className="location-type-select"
                         classNamePrefix="react-select"
-                        styles={customStyles}
+                        styles={{
+                            ...customStyles,
+                            option: (provided, state) => ({
+                                ...provided,
+                                backgroundColor: state.isDisabled ? 'var(--background-secondary-color)' : 
+                                              state.isSelected ? 'var(--button-color)' : 
+                                              state.isFocused ? 'var(--background-color)' : 'transparent',
+                                color: state.isDisabled ? '#ffffff' : 
+                                       state.isSelected ? '#000000' : 
+                                       'var(--text-color)',
+                                fontWeight: state.isDisabled ? 'bold' : 'normal',
+                                fontStyle: state.isDisabled ? 'italic' : 'normal',
+                                cursor: state.isDisabled ? 'default' : 'pointer',
+                                paddingLeft: '8px',
+                                paddingRight: '8px',
+                                ':active': {
+                                    backgroundColor: state.isDisabled ? 'var(--background-secondary-color)' : 'var(--button-color)'
+                                }
+                            })
+                        }}
                     />
                 </div>
-                {locationType === 'planet' ? (
+                {locationType === 'planet' && (
                     <>
                         <div className="form-group">
                             <label>Planet</label>
                             <Select
                                 components={{ DropdownIndicator: null, IndicatorSeparator: null }}
-                                options={planetOptions}
-                                value={planetOptions.find(option => option.value === selectedPlanet)}
-                                onChange={handlePlanetSelectChange}
+                                options={getPlanetOptions(systemFilter)}
+                                value={getPlanetOptions(systemFilter).find(option => option.value === selectedPlanet) || null}
+                                onChange={handleLocalPlanetSelectChange}
                                 className="planet-select"
                                 classNamePrefix="react-select"
-                                styles={customStyles}
+                                styles={{
+                                    ...customStyles,
+                                    input: (provided) => ({
+                                        ...provided,
+                                        color: 'var(--text-color) !important',
+                                        opacity: '1 !important'
+                                    }),
+                                    option: (provided, state) => ({
+                                        ...provided,
+                                        backgroundColor: state.isDisabled ? 'var(--background-secondary-color)' : 
+                                                      state.isSelected ? 'var(--button-color)' : 
+                                                      state.isFocused ? 'var(--background-color)' : 'transparent',
+                                        color: state.isDisabled ? '#ffffff' : 
+                                       state.isSelected ? '#000000' : 
+                                       'var(--text-color)',
+                                        fontWeight: state.isDisabled ? 'bold' : 'normal',
+                                        fontStyle: state.isDisabled ? 'italic' : 'normal',
+                                        cursor: state.isDisabled ? 'default' : 'pointer',
+                                        paddingLeft: '8px',
+                                        paddingRight: '8px',
+                                        ':active': {
+                                            backgroundColor: state.isDisabled ? 'var(--background-secondary-color)' : 'var(--button-color)'
+                                        }
+                                    })
+                                }}
                             />
                         </div>
                         <div className="form-group">
                             <label>Moon</label>
                             <Select
                                 components={{ DropdownIndicator: null, IndicatorSeparator: null }}
-                                options={selectedPlanet && data.moons[selectedPlanet] ? 
-                                    Object.keys(data.moons[selectedPlanet]).map(moon => ({ value: moon, label: moon })) : 
-                                    []}
-                                value={selectedMoon ? { value: selectedMoon, label: selectedMoon } : null}
-                                onChange={handleMoonSelectChange}
+                                options={getMoonOptions(selectedPlanet, systemFilter)}
+                                value={selectedMoon ? getMoonOptions(selectedPlanet, systemFilter).find(option => option.value === selectedMoon) || null : null}
+                                onChange={handleLocalMoonSelectChange}
                                 className="moon-select"
                                 classNamePrefix="react-select"
-                                styles={customStyles}
+                                styles={{
+                                    ...customStyles,
+                                    input: (provided) => ({
+                                        ...provided,
+                                        color: 'var(--text-color) !important',
+                                        opacity: '1 !important'
+                                    })
+                                }}
                             />
                         </div>
                     </>
-                ) : (
-                    <div className="form-group">
-                        <label>Station</label>
-                        <Select
-                            components={{ DropdownIndicator: null, IndicatorSeparator: null }}
-                            options={locationType === 'station' ? 
-                                stationOptions.map(option => {
-                                    // Make headers unclickable
-                                    if (option.label === '--Stations--' || option.label === '--Lagrange Stations--') {
-                                        return {
-                                            ...option,
-                                            isDisabled: true,
-                                            className: 'dropdown-separator',
-                                            style: {
-                                                fontWeight: 'bold',
-                                                fontStyle: 'italic'
-                                            }
-                                        };
-                                    }
-                                    return option;
-                                }).filter(option => 
-                                    option.label.includes('Station') || 
-                                    option.label.includes('Lagrange')
-                                ) : 
-                                stationOptions}
-                            value={stationOptions.find(option => option.value === selectedDropOffPoint)}
-                            onChange={handleStationSelectChange}
-                            className="station-select"
-                            classNamePrefix="react-select"
-                            styles={{
-                                ...customStyles,
-                                input: (provided) => ({
-                                    ...provided,
-                                    color: 'var(--text-color)',
-                                    caretColor: 'var(--text-color)'
-                                }),
-                                option: (provided, state) => ({
-                                    ...provided,
-                                    backgroundColor: state.isDisabled ? 'var(--background-secondary-color)' : 
-                                                  state.isSelected ? 'var(--button-color)' : 
-                                                  state.isFocused ? 'var(--background-color)' : 'transparent',
-                                    color: state.isDisabled ? '#ffffff' : 'var(--text-color)',
-                                    fontWeight: state.isDisabled ? 'bold' : 'normal',
-                                    fontStyle: state.isDisabled ? 'italic' : 'normal',
-                                    cursor: state.isDisabled ? 'default' : 'pointer',
-                                    paddingLeft: '8px',
-                                    paddingRight: '8px',
-                                    ':active': {
-                                        backgroundColor: state.isDisabled ? 'var(--background-secondary-color)' : 'var(--button-color)'
-                                    }
-                                })
-                            }}
-                        />
-                    </div>
                 )}
                 <div className="form-group">
                     <label>Drop off points</label>
                     <Select
                         components={{ DropdownIndicator: null, IndicatorSeparator: null }}
-                        options={selectedMoon && data.moons[selectedPlanet][selectedMoon] ? 
-                            data.moons[selectedPlanet][selectedMoon].map(station => ({ value: station, label: station })) : 
-                            (() => {
-                                const dropOffPoints = data.Dropoffpoints[selectedPlanet];
-                                if (Array.isArray(dropOffPoints)) {
-                                    return dropOffPoints.map(station => ({ value: station, label: station }));
-                                } else if (typeof dropOffPoints === 'object' && dropOffPoints !== null) {
-                                    // Handle object case (like Pyro V)
-                                    return Object.entries(dropOffPoints).flatMap(([moon, locations]) => 
-                                        locations.map(location => ({ 
-                                            value: location, 
-                                            label: `${moon} - ${location}` 
-                                        }))
+                        options={(() => {
+                            const allOptions = getDropOffOptions(systemFilter, selectedPlanet, selectedMoon);
+                            
+                            // First pass: filter the actual location options
+                            const filteredOptions = allOptions.filter(option => {
+                                // Skip category headers for now
+                                if (option.isDisabled) return true;
+                                
+                                if (locationType === 'planet') {
+                                    // For planets, require planet selection and show only planet-based locations
+                                    if (!selectedPlanet) return false;
+                                    
+                                    return option.locationData && (
+                                        option.locationData.type === 'cities' ||
+                                        option.locationData.type === 'distribution' ||
+                                        option.locationData.type === 'outposts' ||
+                                        option.locationData.type === 'mining' ||
+                                        option.locationData.type === 'salvage' ||
+                                        option.locationData.type === 'farming'
+                                    );
+                                } else if (locationType === 'station') {
+                                    // For stations, show only space-based locations (stations, lagrange, gateway)
+                                    return option.locationData && (
+                                        option.locationData.type === 'stations' ||
+                                        option.locationData.type === 'station' ||
+                                        option.locationData.type === 'lagrange' ||
+                                        option.locationData.type === 'gateway'
                                     );
                                 }
-                                return [];
-                            })()
-                        }
-                        value={selectedDropOffPoint ? { value: selectedDropOffPoint, label: selectedDropOffPoint } : null}
+                                return true;
+                            });
+                            
+                            // Second pass: determine which categories have visible content
+                            const visibleCategories = new Set();
+                            filteredOptions.forEach(option => {
+                                if (option.locationData) {
+                                    visibleCategories.add(option.locationData.type);
+                                }
+                            });
+                            
+                            // Third pass: include category headers only if they have visible content
+                            const finalOptions = [];
+                            let currentCategory = null;
+                            
+                            allOptions.forEach(option => {
+                                if (option.isDisabled && option.value && option.value.startsWith('--')) {
+                                    // This is a category header
+                                    const categoryName = option.value.replace('--', '').replace('--', '');
+                                    if (visibleCategories.has(categoryName)) {
+                                        finalOptions.push(option);
+                                    }
+                                    currentCategory = categoryName;
+                                } else if (!option.isDisabled) {
+                                    // This is a location option
+                                    if (filteredOptions.includes(option)) {
+                                        finalOptions.push(option);
+                                    }
+                                } else {
+                                    // Other disabled items (system headers, etc.)
+                                    finalOptions.push(option);
+                                }
+                            });
+                            
+                            return finalOptions;
+                        })()}
+                        value={getDropOffOptions(systemFilter, selectedPlanet, selectedMoon).find(option => option.value === selectedDropOffPoint) || null}
                         onChange={handleDropOffSelectChange}
                         className="drop-off-select"
                         classNamePrefix="react-select"
-                        styles={customStyles}
+                        styles={{
+                            ...customStyles,
+                            input: (provided) => ({
+                                ...provided,
+                                color: 'var(--text-color) !important',
+                                opacity: '1 !important'
+                            })
+                        }}
                     />
                 </div>
             </div>
@@ -2859,7 +3856,26 @@ export const MissionSubTabHauling = ({
                         onChange={handleCommoditySelectChange}
                         className="commodity-select"
                         classNamePrefix="react-select"
-                        styles={customStyles}
+                        styles={{
+                            ...customStyles,
+                            option: (provided, state) => ({
+                                ...provided,
+                                backgroundColor: state.isDisabled ? 'var(--background-secondary-color)' : 
+                                              state.isSelected ? 'var(--button-color)' : 
+                                              state.isFocused ? 'var(--background-color)' : 'transparent',
+                                color: state.isDisabled ? '#ffffff' : 
+                                       state.isSelected ? '#000000' : 
+                                       'var(--text-color)',
+                                fontWeight: state.isDisabled ? 'bold' : 'normal',
+                                fontStyle: state.isDisabled ? 'italic' : 'normal',
+                                cursor: state.isDisabled ? 'default' : 'pointer',
+                                paddingLeft: '8px',
+                                paddingRight: '8px',
+                                ':active': {
+                                    backgroundColor: state.isDisabled ? 'var(--background-secondary-color)' : 'var(--button-color)'
+                                }
+                            })
+                        }}
                     />
                 </div>
                 <div className="form-group">
@@ -2899,14 +3915,89 @@ export const MissionSubTabHauling = ({
                             Clear Log
                         </button>
                     </form>
-                    <label htmlFor="scuTotal">Total SCU:</label>
-                    <input
+                    <label 
+                        htmlFor="scuTotal"
+                        onClick={() => {
+                            console.log('SCU Label clicked!');
+                            setShowSCUBreakdown(true);
+                            setShowSCUTooltip(false); // Hide tooltip after first click
+                            localStorage.setItem('totalSCUTooltipShown', 'true'); // Save to localStorage
+                        }}
+                        style={{
+                            cursor: 'pointer',
+                            color: 'var(--dropdown-label-color)',
+                            textShadow: '0 0 8px var(--dropdown-label-color)',
+                            userSelect: 'none',
+                            textDecoration: 'underline',
+                            position: 'relative'
+                        }}
+                    >
+                        Total SCU:
+                        {/* Floating bubble tooltip */}
+                        {showSCUTooltip && (
+                            <div style={{
+                                position: 'absolute',
+                                top: '-40px',
+                                left: '50%',
+                                transform: 'translateX(-50%)',
+                                backgroundColor: 'var(--button-color)',
+                                color: 'black',
+                                padding: '8px 12px',
+                                borderRadius: '20px',
+                                fontSize: '12px',
+                                fontWeight: 'bold',
+                                whiteSpace: 'nowrap',
+                                zIndex: 1000,
+                                boxShadow: '0 2px 10px rgba(0,0,0,0.3)',
+                                animation: 'bounce 2s infinite'
+                            }}>
+                                Click me! I'm new!
+                                <div style={{
+                                    position: 'absolute',
+                                    bottom: '-6px',
+                                    left: '50%',
+                                    transform: 'translateX(-50%)',
+                                    width: 0,
+                                    height: 0,
+                                    borderLeft: '6px solid transparent',
+                                    borderRight: '6px solid transparent',
+                                    borderTop: '6px solid var(--button-color)'
+                                }}></div>
+                            </div>
+                        )}
+                    </label>
+                    <div
                         id="scuTotal"
-                        type="text"
-                        value={calculateTotalSCU()}
-                        readOnly
                         className="scu-total-input"
-                    />
+                        onClick={() => {
+                            console.log('SCU Total clicked!');
+                            setShowSCUBreakdown(true);
+                        }}
+                        style={{
+                            cursor: 'pointer',
+                            backgroundColor: '#333',
+                            color: 'var(--dropdown-text-color)',
+                            border: '1px solid #444',
+                            borderRadius: '4px',
+                            padding: '5px 10px',
+                            fontFamily: 'var(--main-font), sans-serif',
+                            fontSize: '18px',
+                            width: '50px',
+                            textAlign: 'right',
+                            display: 'inline-block',
+                            userSelect: 'none',
+                            position: 'relative',
+                            zIndex: 10
+                        }}
+                        onMouseEnter={(e) => {
+                            e.target.style.backgroundColor = '#444';
+                        }}
+                        onMouseLeave={(e) => {
+                            e.target.style.backgroundColor = '#333';
+                        }}
+                    >
+                        {calculateTotalSCU()}
+                    </div>
                 </div>
             </div>
 
@@ -3323,92 +4414,66 @@ export const MissionSubTabHauling = ({
     );
 };
 
-const handleSystemChange = (system) => {
-    // Update the current system state
-    setCurrentSystem(system);
-    
-    // Clear dropdown values if switching to Pyro
-    if (system === 'Pyro') {
-        setFirstDropdownValue(null);
-        setSecondDropdownValue(null);
-    }
-    
-    // Update any other necessary state based on the system change
-    setSelectedPlanet(null);
-    setSelectedMoon(null);
-    setSelectedDropOffPoint(null);
-    
-    // You might also want to clear some other state here
-    setEntries([]);
-    setMissionEntries([]);
-    
-    // Save the selected system to localStorage if needed
-    localStorage.setItem('selectedSystem', system);
-};
-
 const handleQuickLookupChange = (option) => {
     if (!option || !option.value) return;
 
     try {
-        // Check if the location exists in Stanton system data
-        const isStantonLocation = StantonSystemData.FullList.includes(option.value);
+        console.log('Quick lookup selected:', option.value);
         
-        // Check if the location exists in Pyro system data
-        const isPyroLocation = PyroSystemData.FullList.includes(option.value);
-
-        // Update system state based on location
-        if (isStantonLocation) {
-            handleSystemChange('Stanton');
-        } else if (isPyroLocation) {
-            handleSystemChange('Pyro');
+        // Find the location in our database
+        const systems = DatabaseQueries.getSystems();
+        let foundLocation = null;
+        let foundSystem = null;
+        
+        // Search through all systems to find the location
+        for (const system of systems) {
+            const systemLocations = DatabaseQueries.getSystemLocations(system.id);
+            console.log(`Searching in ${system.name}:`, systemLocations.length, 'locations');
+            const location = systemLocations.find(loc => loc.name === option.value);
+            
+            if (location) {
+                foundLocation = location;
+                foundSystem = system;
+                console.log('Found location:', location);
+                break;
+            }
         }
-
-        // Get the current system data based on the selected system
-        const currentSystemData = isStantonLocation ? StantonSystemData : PyroSystemData;
-
-        // Now set the location type and planet/moon
-        let found = false;
         
-        // First check stations
-        if (Array.isArray(currentSystemData.stations) && 
-            currentSystemData.stations.includes(option.value)) {
+        if (!foundLocation) {
+            console.log('Location not found in database:', option.value);
+            return;
+        }
+        
+        // Determine location type based on the location data
+        console.log('Location type:', foundLocation.type);
+        if (foundLocation.type === 'stations' || foundLocation.type === 'lagrange' || foundLocation.type === 'gateway') {
+            // Space-based location
+            console.log('Setting location type to station');
             setLocationType('station');
             setSelectedPlanet(null);
             setSelectedMoon(null);
-            found = true;
-        }
-        
-        // Then check planets
-        if (!found && currentSystemData.Dropoffpoints) {
-            for (const planet in currentSystemData.Dropoffpoints) {
-                const dropOffPoints = currentSystemData.Dropoffpoints[planet];
-                
-                // Handle both array and object cases
-                if (Array.isArray(dropOffPoints)) {
-                    if (dropOffPoints.includes(option.value)) {
-                        setLocationType('planet');
-                        setSelectedPlanet(planet);
-                        setSelectedMoon(null);
-                        found = true;
-                        break;
-                    }
-                } else if (typeof dropOffPoints === 'object' && dropOffPoints !== null) {
-                    // Handle object case (like in Pyro V)
-                    for (const moon in dropOffPoints) {
-                        if (Array.isArray(dropOffPoints[moon]) && 
-                            dropOffPoints[moon].includes(option.value)) {
-                            setLocationType('planet');
-                            setSelectedPlanet(planet);
-                            setSelectedMoon(moon);
-                            found = true;
-                            break;
-                        }
-                    }
-                    if (found) break;
-                }
+        } else {
+            // Planet-based location
+            console.log('Setting location type to planet');
+            setLocationType('planet');
+            
+            if (foundLocation.moonId) {
+                // Location is on a moon
+                console.log('Setting planet and moon:', foundLocation.planetId, foundLocation.moonId);
+                setSelectedPlanet(foundLocation.planetId);
+                setSelectedMoon(foundLocation.moonId);
+            } else {
+                // Location is on a planet
+                console.log('Setting planet only:', foundLocation.planetId);
+                setSelectedPlanet(foundLocation.planetId);
+                setSelectedMoon(null);
             }
         }
-
+        
+        // Set the drop-off point
+        console.log('Setting drop-off point:', option.value);
+        setSelectedDropOffPoint(option.value);
+        
         // Update the selected location
         setSecondDropdownValue(option.value);
         
@@ -3503,15 +4568,6 @@ const handlePickupPointChange = (option) => {
     const location = option.value;
     console.log('Pickup point selected:', location);
     
-    // Only validate if there's a location value
-    if (location && location.trim() !== '') {
-        const validation = validatePickupPoint(location, selectedSystem);
-        
-        if (!validation.isValid) {
-            showBannerMessage(validation.message, false);
-        }
-    }
-
     setFirstDropdownValue(location);
     
     // Focus on the amount input
